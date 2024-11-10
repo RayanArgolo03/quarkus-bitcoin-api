@@ -3,7 +3,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/70a78ecf-eab0-46c8-9d8e-21b5db7266a0" width"40px">
+  <img src="https://github.com/user-attachments/assets/70a78ecf-eab0-46c8-9d8e-21b5db7266a0">
 </p>
 
 ## Endpoints
