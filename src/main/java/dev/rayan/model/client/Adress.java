@@ -1,23 +1,19 @@
-package dev.rayan.model;
-
+package dev.rayan.model.client;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 @NoArgsConstructor(force = true)
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
-public final class Bitcoin {
+public final class Adress {
 
-    UUID id;
-    BigDecimal price;
-    LocalDateTime priceDate;
+    String cep; //Todo pesquisa convenção de tipo de dado
+    String state;
+    String street;
+    String houseNumber;
 
 }
