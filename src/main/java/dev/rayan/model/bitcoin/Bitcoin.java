@@ -16,15 +16,7 @@ import java.util.UUID;
 
 public final class Bitcoin {
 
-    UUID id;
-    String pair;
     BigDecimal last;
-    BigDecimal volume24h;
-    BigDecimal var24h;
-
-    //Todo pesquise sobre desserialização pelo Jackson e anote
-    @JsonFormat(pattern = "YYYY-MM-dd'T'HH:mm:ss")
-    LocalDateTime time;
-
+    LocalDateTime time = LocalDateTime.now();
 
 }

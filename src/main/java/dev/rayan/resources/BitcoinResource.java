@@ -6,7 +6,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 
-@Path("/bitcoins")
+@Path("v1/bitcoins")
 public final class BitcoinResource {
 
     @Inject
@@ -14,7 +14,7 @@ public final class BitcoinResource {
 
     @GET
     @Path("/quote")
-    public Response quote() {
+    public Response quote(){
         return Response
                 .ok(service.quoteBitcoin())
                 .build();
