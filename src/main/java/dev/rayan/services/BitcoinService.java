@@ -20,11 +20,9 @@ public final class BitcoinService {
     BitcoinMapper mapper;
 
     public BitcoinQuoteResponse quoteBitcoin() {
-
-        //Todo adicione try-catch na requisição externa, tolerancia a falha
-        final Bitcoin bitcoin = quoteRestClient.quote();
-
-        return mapper.bitcoinToBitcoinQuoteResponse(bitcoin);
+        return mapper.bitcoinToBitcoinQuoteResponse(
+                quoteRestClient.quote()
+        );
     }
 
 }
