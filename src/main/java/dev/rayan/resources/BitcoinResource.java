@@ -6,9 +6,13 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
 @Path("/api/v1/bitcoins")
 public final class BitcoinResource {
+
+    @Inject
+    Logger log;
 
     @Inject
     BitcoinService service;
@@ -17,14 +21,18 @@ public final class BitcoinResource {
     @Path("/quote")
     public Response quote() {
 
+        log.info("Quoting bitcoin in external API");
         final BitcoinQuoteResponse response = service.quoteBitcoin();
 
         //Use fail first principle
-        return (response == null)
-                ? Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("Service unavailable!")
-                .build()
-                : Response.ok(response)
-                .build();
+        if (response == null) {
+            log.error("Server unavailable!");
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("Bitcoin API is down!")
+                    .build();
+        }
+
+        log.info("Ok!");
+        return Response.ok(response).build();
     }
 
 }
