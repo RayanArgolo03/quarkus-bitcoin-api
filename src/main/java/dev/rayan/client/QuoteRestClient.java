@@ -2,21 +2,24 @@ package dev.rayan.client;
 
 import dev.rayan.model.bitcoin.Bitcoin;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+import java.time.temporal.ChronoUnit;
 
 @RegisterRestClient(baseUri = "https://brasilbitcoin.com.br/API/prices/BTC")
 public interface QuoteRestClient {
 
-
-    //Todo
     @GET
-    @Produces(value = MediaType.APPLICATION_JSON)
-    @Timeout(value = 1)
-    @Fallback(fallbackMethod = "a")
+    @Timeout(value = 3, unit = ChronoUnit.SECONDS)
+    @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
+    @Fallback(fallbackMethod = "fallback")
     Bitcoin quote();
+
+    default Bitcoin fallback() {
+        return null;
+    }
 
 }
