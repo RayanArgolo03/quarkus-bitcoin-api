@@ -14,9 +14,15 @@ public final class BitcoinResource {
 
     @GET
     @Path("/quote")
-    public Response quote(){
-        return Response
-                .ok(service.quoteBitcoin())
+    public Response quote() {
+
+        final BitcoinQuoteResponse response = service.quoteBitcoin();
+
+        //Use fail first principle
+        return (response == null)
+                ? Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("Service unavailable!")
+                .build()
+                : Response.ok(response)
                 .build();
     }
 
