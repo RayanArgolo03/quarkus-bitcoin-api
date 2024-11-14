@@ -1,5 +1,6 @@
 package dev.rayan.resources;
 
+import dev.rayan.dto.respose.BitcoinQuoteResponse;
 import dev.rayan.services.BitcoinService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
