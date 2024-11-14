@@ -7,7 +7,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 
-@Path("v1/bitcoins")
+@Path("/api/v1/bitcoins")
 public final class BitcoinResource {
 
     @Inject
