@@ -1,21 +1,33 @@
 package dev.rayan.model.bitcoin;
 
 
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicInsert;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor(force = true)
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
-public final class Transaction {
+@Entity
+@Table(name = "transactions")
+@DynamicInsert
+public class Transaction {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
-    BigDecimal bitcoinQuantity;
-    LocalDateTime date;
+
+    @Column(name = "quantity", columnDefinition = "DECIMAL(10, 2) NOT NULL")
+    Double bitcoinQuantity;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    LocalDateTime createdAt;
 
 }

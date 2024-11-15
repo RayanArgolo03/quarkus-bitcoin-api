@@ -1,5 +1,8 @@
 package dev.rayan.model.client;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Embedded;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -9,11 +12,16 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
-public final class Adress {
+@Embeddable
+public class Adress {
 
-    String cep; //Todo pesquisa convenção de tipo de dado
+    @Column(columnDefinition = "VARCHAR(8) NOT NULL")
+    String cep;
+
+    @Column(nullable = false)
     String state;
+
+    @Column(nullable = false)
     String street;
-    String houseNumber;
 
 }

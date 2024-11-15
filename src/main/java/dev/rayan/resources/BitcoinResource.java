@@ -27,12 +27,15 @@ public final class BitcoinResource {
         //Use fail first principle
         if (response == null) {
             log.error("Server unavailable!");
-            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("Bitcoin API is down!")
+
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .entity("Bitcoin API is down!")
                     .build();
         }
 
-        log.info("Ok!");
-        return Response.ok(response).build();
+        log.info("Quoted!");
+        return Response.ok(response)
+                .build();
     }
 
 }
