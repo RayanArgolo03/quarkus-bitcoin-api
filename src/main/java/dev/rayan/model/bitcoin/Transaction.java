@@ -23,11 +23,11 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "quantity", columnDefinition = "NUMERIC(10, 2) NOT NULL")
+    @Column(name = "quantity")
     Double bitcoinQuantity;
 
-    @CreationTimestamp
     @Column(name = "created_at")
+    @CreationTimestamp
     LocalDateTime createdAt;
 
 }

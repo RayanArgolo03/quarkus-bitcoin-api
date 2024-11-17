@@ -7,7 +7,10 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -23,27 +26,31 @@ public class Client {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
 
-    @Column(name = "first_name", nullable = false)
+    @Column(name = "first_name")
     String firstName;
 
-    @Column(nullable = false)
     String surname;
 
-    @Column(columnDefinition = "VARCHAR(11) NOT NULL UNIQUE")
     String cpf;
 
     @Embedded
     Adress adress;
 
-    @Column(name = "user_name", nullable = false, unique = true)
+    @Column(name = "user_name")
     String username;
 
-    @Column(nullable = false)
     String password;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "client_id")
     Set<Transaction> transactions;
 
+    @Column(name = "created_at")
+    @CreationTimestamp
+    LocalDateTime createdAt;
+
+    @Column(name = "last_update")
+    @UpdateTimestamp
+    LocalDateTime lastUpdate;
 
 }

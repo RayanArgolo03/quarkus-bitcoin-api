@@ -10,6 +10,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.util.Optional;
+
 @ApplicationScoped
 public final class BitcoinService {
 
@@ -21,8 +23,8 @@ public final class BitcoinService {
     BitcoinMapper mapper;
 
     public BitcoinQuoteResponse quoteBitcoin() {
-        return mapper.bitcoinToBitcoinQuoteResponse(
-                quoteRestClient.quote()
+        return mapper.bitcoinToBitcoinQuoteResponse(quoteRestClient.quote()
+                .orElse(null)
         );
     }
 

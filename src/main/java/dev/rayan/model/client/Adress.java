@@ -15,13 +15,8 @@ import lombok.experimental.FieldDefaults;
 @Embeddable
 public class Adress {
 
-    @Column(columnDefinition = "VARCHAR(8) NOT NULL")
     String cep;
-
-    @Column(nullable = false)
     String state;
-
-    @Column(nullable = false)
     String street;
 
 }
