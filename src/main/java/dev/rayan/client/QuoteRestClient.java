@@ -9,8 +9,10 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import java.time.temporal.ChronoUnit;
 
-@RegisterRestClient(baseUri = "https://brasilbitcoin.com.br/API/prices/BTC")
+@RegisterRestClient(baseUri = QuoteRestClient.BASE_URI)
 public interface QuoteRestClient {
+
+    String BASE_URI = "https://brasilbitcoin.com.br/API/prices/BTC";
 
     @GET
     @Timeout(value = 2, unit = ChronoUnit.SECONDS)

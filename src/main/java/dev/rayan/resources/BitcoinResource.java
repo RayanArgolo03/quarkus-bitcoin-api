@@ -8,8 +8,10 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
-@Path("/api/v1/bitcoins")
+@Path(BitcoinResource.RESOUCE_PATH)
 public final class BitcoinResource {
+
+    public static final String RESOUCE_PATH = "/api/v1/bitcoins";
 
     @Inject
     Logger log;
