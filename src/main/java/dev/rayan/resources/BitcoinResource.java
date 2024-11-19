@@ -1,7 +1,8 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.respose.BitcoinQuoteResponse;
+import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.services.BitcoinService;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -9,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 @Path(BitcoinResource.RESOUCE_PATH)
+@ApplicationScoped
 public final class BitcoinResource {
 
     public static final String RESOUCE_PATH = "/api/v1/bitcoins";
@@ -24,10 +26,10 @@ public final class BitcoinResource {
     public Response quote() {
 
         log.info("Quoting bitcoin in external API");
-        final BitcoinQuoteResponse response = service.quoteBitcoin();
+        final Bitcoin bitcoin = service.quote();
 
         //Use fail first principle
-        if (response == null) {
+        if (bitcoin == null) {
             log.error("Server unavailable!");
 
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
@@ -36,7 +38,7 @@ public final class BitcoinResource {
         }
 
         log.info("Quoted!");
-        return Response.ok(response)
+        return Response.ok(service.mapBitcoinQuoted())
                 .build();
     }
 

@@ -18,11 +18,11 @@ public interface QuoteRestClient {
     String BASE_URI = "https://brasilbitcoin.com.br/API/prices/BTC";
 
     @GET
-    @Timeout(value = 2)
+    @Timeout(value = 2, unit = ChronoUnit.SECONDS)
     @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
     @Fallback(fallbackMethod = "fallback")
-    Optional<Bitcoin> quote();
+    Bitcoin quote();
 
-    default Optional<Bitcoin> fallback() { return Optional.empty(); }
+    default Bitcoin fallback() { return null; }
 
 }

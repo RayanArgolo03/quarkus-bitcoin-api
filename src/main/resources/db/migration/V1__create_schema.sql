@@ -1,3 +1,4 @@
+
 -- dropping tables in init if existing
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS clients;
@@ -6,7 +7,7 @@ DROP TABLE IF EXISTS clients;
 
 CREATE TABLE clients
 (
-    id          UUID PRIMARY KEY,
+    client_id          UUID PRIMARY KEY,
     first_name  VARCHAR(55) NOT NULL,
     surname     VARCHAR(55) NOT NULL,
     cpf         VARCHAR(11) NOT NULL,
@@ -21,9 +22,9 @@ CREATE TABLE clients
 
 CREATE TABLE transactions
 (
-    id         UUID PRIMARY KEY,
+    transaction_id         UUID PRIMARY KEY,
     quantity   FLOAT(10) NOT NULL,
-    client_id  UUID REFERENCES clients (id),
+    client_id  UUID REFERENCES clients (client_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -15,8 +15,13 @@ import lombok.experimental.FieldDefaults;
 @Embeddable
 public class Adress {
 
+    @Column(nullable = false, length = 8)
     String cep;
+
+    @Column(nullable = false)
     String state;
+
+    @Column(nullable = false)
     String street;
 
 }
