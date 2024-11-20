@@ -2,7 +2,6 @@ package dev.rayan.model.bitcoin;
 
 
 import dev.rayan.model.client.Client;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -33,15 +32,14 @@ public class Transaction extends PanacheEntityBase {
     @JoinColumn(name = "client_id", nullable = false)
     Client client;
 
-    @Column(name = "quantity", nullable = false)
-    float bitcoinQuantity;
+    @Column(nullable = false)
+    float quantity;
 
     @Column(name = "created_at")
-    @CreationTimestamp
-    LocalDateTime createdAt;
+    final LocalDateTime createdAt = LocalDateTime.now();
 
-    public Transaction(float bitcoinQuantity, Client client) {
-        this.bitcoinQuantity = bitcoinQuantity;
+    public Transaction(float quantity, Client client) {
+        this.quantity = quantity;
         this.client = client;
     }
 }

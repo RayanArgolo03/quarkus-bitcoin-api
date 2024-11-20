@@ -21,8 +21,8 @@ public interface QuoteRestClient {
     @Timeout(value = 2, unit = ChronoUnit.SECONDS)
     @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
     @Fallback(fallbackMethod = "fallback")
-    Bitcoin quote();
+    Optional<Bitcoin> quote();
 
-    default Bitcoin fallback() { return null; }
+    default Optional<Bitcoin> fallback() {return Optional.empty();}
 
 }

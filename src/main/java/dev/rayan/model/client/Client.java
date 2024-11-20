@@ -47,8 +47,7 @@ public class Client {
     Set<Transaction> transactions;
 
     @Column(name = "created_at")
-    @CreationTimestamp
-    LocalDateTime createdAt;
+    LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "last_update")
     @UpdateTimestamp

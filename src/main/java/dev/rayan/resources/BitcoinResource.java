@@ -1,16 +1,15 @@
 package dev.rayan.resources;
 
-import dev.rayan.model.bitcoin.Bitcoin;
+import dev.rayan.dto.respose.BitcoinQuotedResponseDTO;
 import dev.rayan.services.BitcoinService;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
 @Path(BitcoinResource.RESOUCE_PATH)
-@ApplicationScoped
 public final class BitcoinResource {
 
     public static final String RESOUCE_PATH = "/api/v1/bitcoins";
@@ -25,21 +24,23 @@ public final class BitcoinResource {
     @Path("/quote")
     public Response quote() {
 
-        log.info("Quoting bitcoin in external API");
-        final Bitcoin bitcoin = service.quote();
+        try {
+            log.info("Quoting bitcoin in external API");
+            final BitcoinQuotedResponseDTO dto = service.getMappedBitcoin();
 
-        //Use fail first principle
-        if (bitcoin == null) {
-            log.error("Server unavailable!");
+            log.info("Quoted!");
+            return Response.ok(dto)
+                    .build();
 
-            return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+        } catch (WebApplicationException e) {
+
+            log.errorf("Server unavailable! %s", e.getMessage());
+
+            return Response.status(e.getResponse().getStatus())
                     .entity("Bitcoin API is down!")
                     .build();
         }
 
-        log.info("Quoted!");
-        return Response.ok(service.mapBitcoinQuoted())
-                .build();
     }
 
 }
