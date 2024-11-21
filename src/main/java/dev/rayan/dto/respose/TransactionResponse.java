@@ -1,6 +1,6 @@
 package dev.rayan.dto.respose;
 
-public record TransactionResponseDTO(
+public record TransactionResponse(
         String currentValue,
         String valueDate,
         String unitsPurchased,

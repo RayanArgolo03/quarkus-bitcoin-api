@@ -1,12 +1,11 @@
 package dev.rayan.services;
 
 import dev.rayan.adapters.BitcoinQuoteAdapter;
-import dev.rayan.dto.respose.BitcoinQuotedResponseDTO;
+import dev.rayan.dto.respose.BitcoinQuotedResponse;
 import dev.rayan.mappers.BitcoinMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 
 import static jakarta.ws.rs.core.Response.Status.*;
 
@@ -19,7 +18,7 @@ public final class BitcoinService {
     @Inject
     BitcoinQuoteAdapter adapter;
 
-    public BitcoinQuotedResponseDTO getMappedBitcoin() {
+    public BitcoinQuotedResponse getMappedBitcoin() {
         return adapter.quote()
                 .map(mapper::bitcoinToBitcoinQuoteResponse)
                 .orElseThrow(() -> new WebApplicationException("", SERVICE_UNAVAILABLE));

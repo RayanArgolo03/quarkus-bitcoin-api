@@ -1,8 +1,8 @@
 package dev.rayan.services;
 
 import dev.rayan.adapters.BitcoinQuoteAdapter;
-import dev.rayan.dto.request.TransactionRequestDTO;
-import dev.rayan.dto.respose.TransactionResponseDTO;
+import dev.rayan.dto.request.TransactionRequest;
+import dev.rayan.dto.respose.TransactionResponse;
 import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
@@ -21,7 +21,7 @@ public final class ClientService {
     @Inject
     BitcoinQuoteAdapter adapter;
 
-    public Transaction createTransaction(final TransactionRequestDTO dto) {
+    public Transaction createTransaction(final TransactionRequest dto) {
         //Todo validate aqui com Hibernate validator e seguindo outros projetos - Estoura exception?
         return new Transaction(dto.bitcoinQuantity(), dto.client());
     }
@@ -31,8 +31,8 @@ public final class ClientService {
                 .orElseThrow(() -> new WebApplicationException("", SERVICE_UNAVAILABLE));
     }
 
-    public TransactionResponseDTO getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
-        return transactionMapper.transactionInfoToTransactionResponseDTO(transaction, bitcoin);
+    public TransactionResponse getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
+        return transactionMapper.transactionInfoToTransactionResponse(transaction, bitcoin);
     }
 
 }

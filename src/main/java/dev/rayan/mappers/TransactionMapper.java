@@ -1,6 +1,6 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.respose.TransactionResponseDTO;
+import dev.rayan.dto.respose.TransactionResponse;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.utils.FormatterUtils;
@@ -29,5 +29,5 @@ public interface TransactionMapper {
                     : FormatterUtils.formatMoney(bitcoin.getLast().multiply(new BigDecimal(transaction.getQuantity())))
                  )
             """)
-    TransactionResponseDTO transactionInfoToTransactionResponseDTO(Transaction transaction, Bitcoin bitcoin);
+    TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, Bitcoin bitcoin);
 }

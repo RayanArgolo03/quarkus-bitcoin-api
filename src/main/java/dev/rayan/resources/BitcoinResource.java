@@ -1,6 +1,6 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.respose.BitcoinQuotedResponseDTO;
+import dev.rayan.dto.respose.BitcoinQuotedResponse;
 import dev.rayan.services.BitcoinService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -26,7 +26,7 @@ public final class BitcoinResource {
 
         try {
             log.info("Quoting bitcoin in external API");
-            final BitcoinQuotedResponseDTO dto = service.getMappedBitcoin();
+            final BitcoinQuotedResponse dto = service.getMappedBitcoin();
 
             log.info("Quoted!");
             return Response.ok(dto)
