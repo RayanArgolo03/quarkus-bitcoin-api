@@ -47,6 +47,7 @@ public final class ClientResource {
 
             log.errorf("Bitcoin API is down! %s", e.getMessage());
 
+            //Todo created e URI Info no retorno
             return Response.status(e.getResponse().getStatus())
                     .entity(service.getMappedTransaction(transaction, null))
                     .build();
