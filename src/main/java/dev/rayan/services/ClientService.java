@@ -23,7 +23,7 @@ public final class ClientService {
 
     public Transaction createTransaction(final TransactionRequest dto) {
         //Todo validate aqui com Hibernate validator e seguindo outros projetos - Estoura exception?
-        return new Transaction(dto.bitcoinQuantity(), dto.client());
+        return new Transaction(dto.quantity(), dto.client());
     }
 
     public Bitcoin quote() {

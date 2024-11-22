@@ -12,9 +12,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
-import jakarta.ws.rs.ext.ExceptionMapper;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -36,7 +34,7 @@ public final class ClientResource {
     @POST
     @Transactional
     @Path("/buy-bitcoins")
-    public Response buy(final TransactionRequest dto) {
+    public Response buyBitcoins(final TransactionRequest dto) {
 
         log.info("Creating transaction");
         final Transaction transaction = service.createTransaction(dto);
@@ -44,13 +42,14 @@ public final class ClientResource {
         log.info("Persisting transaction");
         Transaction.persist(transaction);
 
-        log.info("Creating URI");
-        URI uri = uriInfo.getBaseUriBuilder()
-                .path(ClientResource.class, "buy")
+        log.info("Creating resource URI");
+        final URI uri = uriInfo.getRequestUriBuilder()
+                .path("{id}")
                 .resolveTemplate("id", transaction.getId())
                 .build();
 
         try {
+
             log.info("Quoting bitcoin using Adapter to display information");
             final Bitcoin quote = service.quote();
 
@@ -60,14 +59,12 @@ public final class ClientResource {
 
         } catch (WebApplicationException e) {
 
-            log.errorf("Bitcoin API is down! %s", e.getMessage());
-
+            log.errorf("Bitcoin API is down, value and date unavailable! %s", e.getMessage());
             return Response.created(uri)
                     .entity(service.getMappedTransaction(transaction, null))
                     .build();
 
         }
-
     }
 
 }

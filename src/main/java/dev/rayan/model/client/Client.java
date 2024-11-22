@@ -51,6 +51,6 @@ public class Client {
 
     @Column(name = "last_update")
     @UpdateTimestamp
-    LocalDateTime lastUpdate;
+    LocalDateTime lastUpdate = null;
 
 }
