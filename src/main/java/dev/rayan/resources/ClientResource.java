@@ -7,13 +7,15 @@ import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.services.ClientService;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.WebApplicationException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
+import org.mapstruct.Mapper;
 
 import java.net.URI;
 
@@ -34,7 +36,7 @@ public final class ClientResource {
     @POST
     @Transactional
     @Path("/buy-bitcoins")
-    public Response buyBitcoins(final TransactionRequest dto) {
+    public Response buyBitcoins(@Valid final TransactionRequest dto) {
 
         log.info("Creating transaction");
         final Transaction transaction = service.createTransaction(dto);

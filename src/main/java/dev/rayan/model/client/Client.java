@@ -3,6 +3,8 @@ package dev.rayan.model.client;
 
 import dev.rayan.model.bitcoin.Transaction;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Null;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
