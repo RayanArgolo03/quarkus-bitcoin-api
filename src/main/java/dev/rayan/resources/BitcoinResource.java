@@ -1,11 +1,9 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.respose.BitcoinQuotedResponse;
 import dev.rayan.services.BitcoinService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
@@ -24,23 +22,9 @@ public final class BitcoinResource {
     @Path("/quote")
     public Response quote() {
 
-        try {
-            log.info("Quoting bitcoin in external API");
-            final BitcoinQuotedResponse dto = service.getMappedBitcoin();
-
-            log.info("Quoted!");
-            return Response.ok(dto)
-                    .build();
-
-        } catch (WebApplicationException e) {
-
-            log.errorf("Server unavailable! %s", e.getMessage());
-
-            return Response.status(e.getResponse().getStatus())
-                    .entity("Bitcoin API is down!")
-                    .build();
-        }
-
+        log.info("Quoting bitcoin in external API");
+        return Response.ok(service.getMappedBitcoin())
+                .build();
     }
 
 }

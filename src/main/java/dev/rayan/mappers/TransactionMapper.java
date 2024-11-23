@@ -12,22 +12,18 @@ import java.math.BigDecimal;
 @Mapper(componentModel = "jakarta-cdi", imports = {FormatterUtils.class, BigDecimal.class})
 public interface TransactionMapper {
 
-    @Mapping(target = "currentValue", expression = """
-            java( (bitcoin == null) ? "Bitcoin server unavailable": FormatterUtils.formatMoney(bitcoin.getLast()))
-            """)
-
-    @Mapping(target = "valueDate", expression = """
-            java( (bitcoin == null) ? "Bitcoin server unavailable" : FormatterUtils.formatDate(bitcoin.getTime()))
-            """)
-
+    @Mapping(target = "currentValue", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast()))")
+    @Mapping(target = "valueDate", expression = "java(FormatterUtils.formatDate(bitcoin.getTime()))")
     @Mapping(target = "unitsPurchased", expression = "java(String.format(\"%f\", transaction.getQuantity()))")
     @Mapping(target = "purchaseDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
-
-    @Mapping(target = "total", expression = """
-            java( (bitcoin == null)
-                    ? "Bitcoin value unavailable"
-                    : FormatterUtils.formatMoney(bitcoin.getLast().multiply(new BigDecimal(transaction.getQuantity())))
-                 )
-            """)
+    @Mapping(target = "total", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast().multiply(new BigDecimal(transaction.getQuantity()))))")
     TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, Bitcoin bitcoin);
+
+
+    @Mapping(target = "currentValue", source = "message")
+    @Mapping(target = "valueDate", source = "message")
+    @Mapping(target = "unitsPurchased", expression = "java(String.format(\"%f\", transaction.getQuantity()))")
+    @Mapping(target = "purchaseDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
+    @Mapping(target = "total", source = "message")
+    TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, String message);
 }

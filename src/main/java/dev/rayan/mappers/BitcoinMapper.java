@@ -1,6 +1,6 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.respose.BitcoinQuotedResponse;
+import dev.rayan.dto.respose.BitcoinResponse;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.utils.FormatterUtils;
 import org.mapstruct.Mapper;
@@ -11,6 +11,6 @@ public interface BitcoinMapper {
 
     @Mapping(target = "price", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast()))")
     @Mapping(target = "date", expression = "java(FormatterUtils.formatDate(bitcoin.getTime()))")
-    BitcoinQuotedResponse bitcoinToBitcoinQuoteResponse(Bitcoin bitcoin);
+    BitcoinResponse bitcoinToBitcoinQuoteResponse(Bitcoin bitcoin);
 
 }
