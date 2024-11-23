@@ -1,5 +1,5 @@
 
-# Tráfego de Bicoins utilizando Quarkus Java + JAX-RS + CDI + Panache Hibernate + Postgres + Postman + Rest Assured + Docker
+# Bitcoins Exchange utilizando Quarkus Java + JAX-RS + CDI + Panache Hibernate Validator + Postgres + Postman + Rest Assured + Docker + Flyway 
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
