@@ -1,6 +1,7 @@
 package dev.rayan.model.client;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Null;
@@ -15,6 +16,8 @@ import java.util.Set;
 import java.util.UUID;
 
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
@@ -46,6 +49,7 @@ public class Client {
     String password;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     Set<Transaction> transactions;
 
     @Column(name = "created_at")

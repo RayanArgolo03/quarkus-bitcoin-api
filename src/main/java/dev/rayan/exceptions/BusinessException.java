@@ -14,7 +14,14 @@ public final class BusinessException extends RuntimeException {
 
     private final Set<? extends ConstraintViolation<?>> violations;
 
+    //Use to violations exceptions
     public BusinessException(Set<? extends ConstraintViolation<?>> violations) {
         this.violations = violations;
+    }
+
+    //Use to business exceptions
+    public BusinessException(String message) {
+        super(message);
+        violations = null;
     }
 }

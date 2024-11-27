@@ -23,8 +23,7 @@ public final class ExceptionResponse {
     Set<ExceptionMessage> errors;
 
     //Exception message, inner record
-    private record ExceptionMessage(String field, String message) {
-    }
+    private record ExceptionMessage(String field, String message) { }
 
     //Validator params constructor
     public ExceptionResponse(Set<? extends ConstraintViolation<?>> violations) {

@@ -14,16 +14,9 @@ public interface TransactionMapper {
 
     @Mapping(target = "currentValue", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast()))")
     @Mapping(target = "valueDate", expression = "java(FormatterUtils.formatDate(bitcoin.getTime()))")
-    @Mapping(target = "unitsPurchased", expression = "java(String.format(\"%f\", transaction.getQuantity()))")
-    @Mapping(target = "purchaseDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
+    @Mapping(target = "units", expression = "java(String.format(\"%f\", transaction.getQuantity()))")
+    @Mapping(target = "transactionDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
     @Mapping(target = "total", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast().multiply(new BigDecimal(transaction.getQuantity()))))")
     TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, Bitcoin bitcoin);
 
-
-    @Mapping(target = "currentValue", source = "message")
-    @Mapping(target = "valueDate", source = "message")
-    @Mapping(target = "unitsPurchased", expression = "java(String.format(\"%f\", transaction.getQuantity()))")
-    @Mapping(target = "purchaseDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
-    @Mapping(target = "total", source = "message")
-    TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, String message);
 }

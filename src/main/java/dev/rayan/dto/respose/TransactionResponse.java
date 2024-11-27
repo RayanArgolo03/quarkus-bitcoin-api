@@ -3,8 +3,9 @@ package dev.rayan.dto.respose;
 public record TransactionResponse(
         String currentValue,
         String valueDate,
-        String unitsPurchased,
-        String purchaseDate,
+        String units,
+        String transactionDate,
+        String type,
         String total) {
 }
 
