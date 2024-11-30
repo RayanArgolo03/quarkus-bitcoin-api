@@ -25,9 +25,12 @@ import java.util.UUID;
 @Table(name = "clients")
 public class Client {
 
+
+    //TODO REMOVE SETTER
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "client_id")
+    @Setter
     UUID id;
 
     @Column(name = "first_name", nullable = false)

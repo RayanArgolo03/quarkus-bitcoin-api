@@ -20,12 +20,12 @@ CREATE TABLE clients
 );
 
 -- create enum type
-CREATE TYPE type_enum AS ENUM ('BUY', 'SALE');
+CREATE TYPE type_enum AS ENUM ('PURCHASE', 'SALE');
 
 CREATE TABLE transactions
 (
     transaction_id UUID PRIMARY KEY,
-    quantity       FLOAT(10) NOT NULL,
+    quantity       NUMERIC NOT NULL,
     client_id      UUID REFERENCES clients (client_id),
     type           type_enum      NOT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -42,5 +42,5 @@ VALUES (GEN_RANDOM_UUID(), 'Ja', 'pe', '72651432871', '21840200', 'Fa', 'Fe', 'j
 -- mocking transactions
 
 INSERT INTO transactions
-VALUES (GEN_RANDOM_UUID(), 0.00001, '8c878e6f-ee13-4a37-a208-7510c2638944', 'SALE')
+VALUES (GEN_RANDOM_UUID(), 0.00001, '8c878e6f-ee13-4a37-a208-7510c2638944', 'PURCHASE');
 

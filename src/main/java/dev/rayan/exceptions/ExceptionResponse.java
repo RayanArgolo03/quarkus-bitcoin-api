@@ -1,6 +1,7 @@
 package dev.rayan.exceptions;
 
 import jakarta.validation.ConstraintViolation;
+import jakarta.ws.rs.core.Response;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -23,7 +24,8 @@ public final class ExceptionResponse {
     Set<ExceptionMessage> errors;
 
     //Exception message, inner record
-    private record ExceptionMessage(String field, String message) { }
+    private record ExceptionMessage(String field, String message) {
+    }
 
     //Validator params constructor
     public ExceptionResponse(Set<? extends ConstraintViolation<?>> violations) {
@@ -31,19 +33,30 @@ public final class ExceptionResponse {
         this.status = BAD_REQUEST.getStatusCode();
 
         this.errors = violations.stream()
-                .map(v -> new ExceptionMessage(v.getPropertyPath().toString(), v.getMessage()))
+                .map(this::createExceptionMessage)
                 .collect(Collectors.toSet());
     }
 
-    //Simple exception constructor
-    public ExceptionResponse(String message) {
-        this.title = INTERNAL_SERVER_ERROR.name();
-        this.status = INTERNAL_SERVER_ERROR.getStatusCode();
+    //Simple exception constructor, business and api exception
+    public ExceptionResponse(String message, Response.Status status) {
+        this.title = status.name();
+        this.status = status.getStatusCode();
 
         this.errors = Set.of(
                 new ExceptionMessage(null, message)
         );
     }
 
+    //Create ExceptionMessage record to Exception error body
+    //Path example: sellBitcoins.request.quantity
+    private ExceptionMessage createExceptionMessage(final ConstraintViolation<?> violation) {
 
+        final String[] fieldPath = violation.getPropertyPath()
+                .toString()
+                .split("\\.");
+
+        final String field = fieldPath[fieldPath.length - 1];
+
+        return new ExceptionMessage(field, violation.getMessage());
+    }
 }

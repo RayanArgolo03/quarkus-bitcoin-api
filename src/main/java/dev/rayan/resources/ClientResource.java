@@ -1,17 +1,19 @@
 package dev.rayan.resources;
 
-
 import dev.rayan.dto.request.TransactionRequest;
+import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.exceptions.ApiException;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
-import dev.rayan.services.ClientService;
+import dev.rayan.model.client.Client;
+import dev.rayan.services.TransactionService;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
@@ -32,25 +34,22 @@ public final class ClientResource {
     Logger log;
 
     @Inject
-    ClientService service;
+    TransactionService service;
 
     @POST
     @Transactional
     @Path("/buy-bitcoins")
-    public Response buyBitcoins(final TransactionRequest request) {
+    public Response buyBitcoins(@Valid final TransactionRequest request) {
 
         //Todo valida se cliente está logado
 
-        log.info("Persisting transaction");
-        final Transaction transaction = service.persistTransaction(request, TransactionType.BUY);
+        log.info("Persisting buy transaction");
+        final Transaction transaction = service.persistTransaction(request, TransactionType.PURCHASE);
 
         log.info("Creating resource URI");
-        final URI uri = uriInfo.getRequestUriBuilder()
-                .path("{id}")
-                .resolveTemplate("id", transaction.getId())
-                .build();
+        final URI uri = service.createUri(uriInfo, transaction.getId());
 
-        log.info("Quoting bitcoin using Adapter to display information");
+        log.info("Quoting bitcoin");
         final Bitcoin quote = service.quoteBitcoin();
 
         return Response.created(uri)
@@ -59,21 +58,43 @@ public final class ClientResource {
     }
 
 
-    @GET()
+    @POST
+    @Transactional
     @Path("/sell-bitcoins")
-    public Response sellBitcoins(final TransactionRequest request) {
+    public Response sellBitcoins(@Valid final TransactionRequest request) {
 
         //Todo verifica se cliente está logado
 
         log.info("Find all transactions");
-        List<Transaction> transactions = service.findAll(request);
+        final List<Transaction> transactions = service.findAllTransactions(request.client());
 
-        log.info("Validate quantity");
+        log.info("Validate sale quantity");
         service.validateQuantity(transactions, request.quantity());
 
-        //Todo testa e retorna URI do objeto criado
+        log.info("Persisting sale transaction");
+        final Transaction transaction = service.persistTransaction(request, TransactionType.SALE);
 
-        return Response.ok(Transaction.listAll())
+        log.info("Creating resource URI");
+        final URI uri = service.createUri(uriInfo, transaction.getId());
+
+        log.info("Quoting bitcoin");
+        final Bitcoin bitcoin = service.quoteBitcoin();
+
+        return Response.created(uri)
+                .entity(service.getMappedTransaction(transaction, bitcoin))
+                .build();
+    }
+
+    @GET
+    @Path("/wallet/transactions")
+    public Response findTransactionSummaryByType(final Client client, @Valid @QueryParam("type") final TransactionType transactionType) {
+
+        //Todo cliente precisa estar logado
+
+        log.info("Finding transactions by type");
+        final TransactionSummaryByTypeResponse response = service.findTransactionsByType(client, transactionType);
+
+        return Response.ok(response)
                 .build();
     }
 

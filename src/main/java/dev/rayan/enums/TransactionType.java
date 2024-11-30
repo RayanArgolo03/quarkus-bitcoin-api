@@ -1,3 +1,5 @@
 package dev.rayan.enums;
 
-public enum TransactionType {BUY, SALE}
+import jakarta.validation.constraints.NotNull;
+
+public enum TransactionType {PURCHASE, SALE}

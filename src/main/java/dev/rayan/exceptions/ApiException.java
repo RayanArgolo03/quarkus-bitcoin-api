@@ -1,11 +1,8 @@
 package dev.rayan.exceptions;
 
-import dev.rayan.dto.request.TransactionRequest;
-import jakarta.validation.ConstraintViolation;
 import lombok.Getter;
 
 import java.io.Serial;
-import java.util.Set;
 
 @Getter
 public final class ApiException extends RuntimeException {

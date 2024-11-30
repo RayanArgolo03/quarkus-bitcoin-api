@@ -9,21 +9,20 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLArrayJdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 
 @Entity
 @Table(name = "transactions")
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @DynamicInsert
 public class Transaction extends PanacheEntityBase {
 
@@ -37,7 +36,7 @@ public class Transaction extends PanacheEntityBase {
     Client client;
 
     @Column(nullable = false)
-    float quantity;
+    BigDecimal quantity;
 
     @Column(name = "created_at")
     final LocalDateTime createdAt = LocalDateTime.now();
@@ -47,7 +46,7 @@ public class Transaction extends PanacheEntityBase {
     @Column(nullable = false)
     TransactionType type;
 
-    public Transaction(float quantity, Client client, TransactionType type) {
+    public Transaction(BigDecimal quantity, Client client, TransactionType type) {
         this.quantity = quantity;
         this.client = client;
         this.type = type;
