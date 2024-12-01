@@ -20,6 +20,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public final class TransactionService {
@@ -49,15 +50,14 @@ public final class TransactionService {
 
     public TransactionSummaryByTypeResponse findTransactionsByType(final Client client, final TransactionType type) {
 
+        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
+
         final String query = """
                 SELECT
                     CAST(COUNT(*) AS STRING) transactionsMade,
                     CAST(SUM(quantity) AS STRING) quantity
-                    TO_CHAR(MIN(createdAt), 'YYYY-MM-DD HH24:mi') first,
-                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last,
-                    CAST(MAX(createdAt) - MIN(createdAt) AS STRING) periodBetweenFirstAndLast
                 FROM Transaction
-                WHERE AND client = ?1 AND type = ?2
+                WHERE client = ?1 AND type = ?2
                 """;
 
         return Transaction.find(query, client, type)

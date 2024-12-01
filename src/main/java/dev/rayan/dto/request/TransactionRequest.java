@@ -2,8 +2,6 @@ package dev.rayan.dto.request;
 
 import dev.rayan.model.client.Client;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;

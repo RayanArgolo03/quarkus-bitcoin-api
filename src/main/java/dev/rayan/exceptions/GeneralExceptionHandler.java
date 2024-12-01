@@ -1,6 +1,8 @@
 package dev.rayan.exceptions;
 
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -19,17 +21,15 @@ public final class GeneralExceptionHandler implements ExceptionMapper<Exception>
     @Override
     public Response toResponse(final Exception e) {
 
-        if (e instanceof BusinessException ee) {
-            log.errorf("Bussiness exception!");
+        final Response.Status status = (e instanceof BusinessException)
+                ? BAD_REQUEST
+                : (e instanceof NotFoundException)
+                ? NOT_FOUND
+                : INTERNAL_SERVER_ERROR;
 
-            return Response.status(BAD_REQUEST)
-                    .entity(new ExceptionResponse(ee.getMessage(), BAD_REQUEST))
-                    .build();
-        }
-
-        log.errorf("Server error!");
-        return Response.status(INTERNAL_SERVER_ERROR)
-                .entity(new ExceptionResponse(e.getMessage(), INTERNAL_SERVER_ERROR))
+        log.errorf("Exception! %s", e.getMessage());
+        return Response.status(status)
+                .entity(new ExceptionResponse(e.getMessage(), status))
                 .build();
     }
 

@@ -10,6 +10,7 @@ import dev.rayan.services.TransactionService;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -86,15 +87,14 @@ public final class ClientResource {
     }
 
     @GET
-    @Path("/wallet/transactions")
-    public Response findTransactionSummaryByType(final Client client, @Valid @QueryParam("type") final TransactionType transactionType) {
+    @Path("/wallet")
+    public Response findTransactionSummaryByType(final Client client,
+                                                  @QueryParam("type") final TransactionType transactionType) {
 
         //Todo cliente precisa estar logado
 
         log.info("Finding transactions by type");
-        final TransactionSummaryByTypeResponse response = service.findTransactionsByType(client, transactionType);
-
-        return Response.ok(response)
+        return Response.ok(service.findTransactionsByType(client, transactionType))
                 .build();
     }
 
