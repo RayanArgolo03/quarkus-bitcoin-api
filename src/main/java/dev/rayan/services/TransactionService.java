@@ -11,6 +11,7 @@ import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.UriInfo;
@@ -48,21 +49,39 @@ public final class TransactionService {
         return Transaction.list("client", client);
     }
 
-    public TransactionSummaryByTypeResponse findTransactionsByType(final Client client, final TransactionType type) {
+    public List<TransactionSummaryByTypeResponse> findTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
 
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
-        final String query = """
-                SELECT
-                    CAST(COUNT(*) AS STRING) transactionsMade,
-                    CAST(SUM(quantity) AS STRING) quantity
-                FROM Transaction
-                WHERE client = ?1 AND type = ?2
-                """;
+        final Parameters parameters = Parameters.with("client", client);
+        if (!types.isEmpty()) parameters.and("types", types);
 
-        return Transaction.find(query, client, type)
+        return Transaction.find(createQueryFindTransactionsSummaryByType(client, types), parameters)
                 .project(TransactionSummaryByTypeResponse.class)
-                .firstResult();
+                .stream().toList();
+    }
+
+    private String createQueryFindTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
+
+        final StringBuilder sb = new StringBuilder("SELECT \n")
+                .append("CAST(type AS STRING), \n")
+                .append("CAST(COUNT(*) AS STRING) transactionsMade, \n")
+                .append("CAST(SUM(quantity) AS STRING) quantity, \n")
+                .append("TO_CHAR(MIN(createdAt), 'YYYY-MM-DD HH24:mi') first, \n")
+                .append("TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last, \n")
+                .append("""
+                        CONCAT(
+                        TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt)), ' day(s)'
+                        ) periodBetweenFirstAndLast
+                        \n""")
+                .append("FROM Transaction \n")
+                .append("WHERE client = :client");
+
+        if (!types.isEmpty()) sb.append(" AND type IN (:types)");
+
+        sb.append("\n GROUP BY type");
+
+        return sb.toString();
     }
 
     public void validateQuantity(final List<Transaction> transactions, final BigDecimal quantity) {

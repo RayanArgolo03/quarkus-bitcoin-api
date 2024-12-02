@@ -1,8 +1,8 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.TransactionRequest;
-import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionType;
+import dev.rayan.exceptions.ApiException;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
@@ -10,12 +10,9 @@ import dev.rayan.services.TransactionService;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
@@ -87,14 +84,12 @@ public final class ClientResource {
     }
 
     @GET
-    @Path("/wallet")
-    public Response findTransactionSummaryByType(final Client client,
-                                                  @QueryParam("type") final TransactionType transactionType) {
-
+    @Path("/wallet/summary")
+    public Response findTransactionsSummaryByType(final Client client,
+                                                  @Valid() @QueryParam("type") final List<TransactionType> types) {
         //Todo cliente precisa estar logado
-
         log.info("Finding transactions by type");
-        return Response.ok(service.findTransactionsByType(client, transactionType))
+        return Response.ok(service.findTransactionsSummaryByType(client, types))
                 .build();
     }
 
