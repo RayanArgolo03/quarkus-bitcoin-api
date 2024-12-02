@@ -1,5 +1,5 @@
 
-# Bitcoins Exchange utilizando Quarkus Java + JAX-RS + CDI + Panache Hibernate Validator + Postgres + Postman + Rest Assured + Docker + Flyway 
+# MVP Bitcoins Exchange utilizando Quarkus Java + JAX-RS + Panache Hibernate Validator + Postgres + Insomnia + Rest Assured + Docker + Flyway + JWT com geração de relatórios no Excel ou TXT
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -46,12 +46,10 @@
 - 🚧
 
 ### Feito Com
-
-Tecnologias utilizadas no projeto: 🚧
-<!--  - [JAVA](https://www.java.com/pt_BR/download/) - Java é uma linguagem de programação e plataforma computacional lançada pela primeira vez pela Sun Microsystems em 1995. Existem muitas aplicações e sites que não funcionarão, a menos que você tenha o Java instalado, e mais desses são criados todos os dias;
+- [JAVA](https://www.java.com/pt_BR/download/) - Java é uma linguagem de programação e plataforma computacional lançada pela primeira vez pela Sun Microsystems em 1995. Existem muitas aplicações e sites que não funcionarão, a menos que você tenha o Java instalado, e mais desses são criados todos os dias;
 - [Quarkus](https://quarkus.io/) - A Red Hat lançou o Quarkus, um framework Java nativo do Kubernetes feito sob medida para o GraalVM e OpenJDK HotSpot. O Quarkus visa tornar o java uma plataforma líder em ambientes serverless e Kubernetes, oferecendo aos desenvolvedores um modelo unificado de programação reativa e imperativa;
 - [Hibernate](http://hibernate.org/) - O Hibernate é um framework para o mapeamento objeto-relacional escrito na linguagem Java.
-- [Hibernate Validator](https://hibernate.org/validator/)) - Permite implementar validações dos dados -->
+- [Hibernate Validator](https://hibernate.org/validator/) - Permite implementar validações dos dados das requisições
 
 <!-- GETTING STARTED -->
 
@@ -217,8 +215,4 @@ Fique a vontade para contribuir com o projeto.
 
 After merging your receipt request to done, you can delete a branch from yours. -->
 
-## :memo: License
-
-This project is under the MIT license. See the [LICENSE](LICENSE.md) for details.
-
----
+## Prazo para conclusão: 02/01/2025 ❗❗
