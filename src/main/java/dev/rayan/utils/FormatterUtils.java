@@ -1,6 +1,5 @@
 package dev.rayan.utils;
 
-import jakarta.persistence.PreUpdate;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

@@ -1,9 +1,12 @@
 package dev.rayan.services;
 
 import dev.rayan.adapters.BitcoinQuoteAdapter;
+import dev.rayan.dto.request.TransactionReportRequest;
 import dev.rayan.dto.request.TransactionRequest;
+import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.dto.respose.TransactionResponse;
 import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
+import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.exceptions.ApiException;
 import dev.rayan.exceptions.BusinessException;
@@ -20,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,7 +38,7 @@ public final class TransactionService {
 
     public Bitcoin quoteBitcoin() {
         return adapter.quote()
-                .orElseThrow(() -> new ApiException("Server unavailable"));
+                .orElseThrow(() -> new ApiException("Server unavailable, cannot quote bitcoin!"));
     }
 
     public Transaction persistTransaction(final TransactionRequest request, final TransactionType type) {
@@ -56,12 +60,12 @@ public final class TransactionService {
         final Parameters parameters = Parameters.with("client", client);
         if (!types.isEmpty()) parameters.and("types", types);
 
-        return Transaction.find(createQueryFindTransactionsSummaryByType(client, types), parameters)
+        return Transaction.find(createQueryFindTransactionsSummaryByType(types), parameters)
                 .project(TransactionSummaryByTypeResponse.class)
                 .stream().toList();
     }
 
-    private String createQueryFindTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
+    private String createQueryFindTransactionsSummaryByType(final List<TransactionType> types) {
 
         final StringBuilder sb = new StringBuilder("SELECT \n")
                 .append("CAST(type AS STRING), \n")
@@ -82,6 +86,38 @@ public final class TransactionService {
         sb.append("\n GROUP BY type");
 
         return sb.toString();
+    }
+
+    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
+
+        final String query = createQueryFindTransactionReport();
+
+        final LocalDate initDate = period.getInitDate();
+        final LocalDate finalDate = period.getFinalDate();
+
+        return Transaction.find(query, client, initDate, finalDate)
+                .project(TransactionReportResponse.class)
+                .firstResult();
+    }
+
+    private String createQueryFindTransactionReport() {
+        return """
+                SELECT
+                    COUNT(*) transactionsMade,
+                    (SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') totalPurchased,
+                    (SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE') firstPurchase,
+                    (SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE') lastPurchase,
+                    (SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') totalSold,
+                    (SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE') firstSold,
+                    (SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE') lastSold,
+                    MAX(createdAt) lastTransaction
+                FROM
+                    Transaction
+                WHERE
+                    client = :client
+                AND
+                    CAST(createdAt AS DATE) BETWEEN :initDate AND :finalDate
+                """;
     }
 
     public void validateQuantity(final List<Transaction> transactions, final BigDecimal quantity) {
@@ -112,6 +148,7 @@ public final class TransactionService {
         return transactionMapper.transactionInfoToTransactionResponse(transaction, bitcoin);
     }
 
+
     //Receives any ID type: UUID or Numbers implementation (int, long, float)
     public <T extends Comparable<T>> URI createUri(final UriInfo uriInfo, final T id) {
         return uriInfo.getRequestUriBuilder()
@@ -119,5 +156,7 @@ public final class TransactionService {
                 .resolveTemplate("id", id)
                 .build();
     }
+
+
 }
 

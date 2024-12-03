@@ -1,8 +1,9 @@
 package dev.rayan.resources;
 
+import dev.rayan.dto.request.TransactionReportRequest;
 import dev.rayan.dto.request.TransactionRequest;
+import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.exceptions.ApiException;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
@@ -12,7 +13,6 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
@@ -85,11 +85,31 @@ public final class ClientResource {
 
     @GET
     @Path("/wallet/summary")
-    public Response findTransactionsSummaryByType(final Client client,
-                                                  @Valid() @QueryParam("type") final List<TransactionType> types) {
+    public Response findTransactionsSummaryByType(final Client client, @QueryParam("type") final List<TransactionType> types) {
+
         //Todo cliente precisa estar logado
         log.info("Finding transactions by type");
         return Response.ok(service.findTransactionsSummaryByType(client, types))
+                .build();
+    }
+
+    @GET
+    @Path("/wallet/report")
+    public Response generateTransactionReport(final Client client, @Valid @BeanParam final TransactionReportRequest request) {
+
+
+        log.info("Quoting bitcoin");
+        final Bitcoin bitcoin = service.quoteBitcoin();
+
+        log.info("Finding transaction report");
+        final TransactionReportResponse transactionReport = service.findTransactionReport(client, request.period());
+
+        //Todo set bitcoins attributes in response
+
+        //Todo generate report
+
+        log.info("Generating report by file type chosed");
+        return Response.ok()
                 .build();
     }
 

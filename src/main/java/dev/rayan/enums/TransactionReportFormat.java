@@ -3,13 +3,12 @@ package dev.rayan.enums;
 import lombok.Getter;
 
 @Getter
-public enum TransactionType {
-
-    PURCHASE("Purchase"), SALE("Sale");
+public enum TransactionReportFormat {
+    EXCEL("Excel"), TXT("Txt");
 
     private final String value;
 
-    TransactionType(String value) {
+    TransactionReportFormat(String value) {
         this.value = value;
     }
 
