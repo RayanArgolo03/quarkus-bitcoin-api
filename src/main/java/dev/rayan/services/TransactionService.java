@@ -129,11 +129,17 @@ public final class TransactionService {
     public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
 
         response.setValuePurchased(FormatterUtils.formatMoney(
-                bitcoin.getLast().multiply(new Bitcoin())
+                bitcoin.getLast().multiply(new BigDecimal(response.getTotalPurchased()))
         ));
 
-    }
+        response.setValueSold(FormatterUtils.formatMoney(
+                bitcoin.getLast().multiply(new BigDecimal(response.getTotalSold()))
+        ));
 
+        response.setBitcoinDate(FormatterUtils.formatDate(
+                bitcoin.getTime()
+        ));
+    }
 
     public void validateQuantity(final List<Transaction> transactions, final BigDecimal quantity) {
 
