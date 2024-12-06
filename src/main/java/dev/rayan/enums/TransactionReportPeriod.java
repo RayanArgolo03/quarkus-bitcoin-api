@@ -1,15 +1,17 @@
 package dev.rayan.enums;
 
-import dev.rayan.utils.DateUtils;
+import dev.rayan.enums.interfaces.BaseEnum;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.MonthDay;
+import java.time.Year;
 
 @Getter
-public enum TransactionReportPeriod {
+public enum TransactionReportPeriod implements BaseEnum<TransactionReportPeriod> {
 
     CURRENT_YEAR(
-            LocalDate.of(DateUtils.YEAR_NUMBER - 1, DateUtils.MONTH_NUMBER, DateUtils.DAY_NUMBER),
+            LocalDate.of(Year.now().getValue() - 1, MonthDay.now().getMonth().getValue(), MonthDay.now().getDayOfMonth()),
             LocalDate.now(),
             "Current year"
     );
@@ -24,8 +26,16 @@ public enum TransactionReportPeriod {
         this.value = value;
     }
 
+    //Base enum getter
+    @Override
+    public String getValue() {
+        return value;
+    }
+
     @Override
     public String toString() {
         return value;
     }
+
+
 }

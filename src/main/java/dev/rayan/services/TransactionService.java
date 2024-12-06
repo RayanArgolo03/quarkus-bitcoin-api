@@ -1,7 +1,6 @@
 package dev.rayan.services;
 
 import dev.rayan.adapters.BitcoinQuoteAdapter;
-import dev.rayan.dto.request.TransactionReportRequest;
 import dev.rayan.dto.request.TransactionRequest;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.dto.respose.TransactionResponse;
@@ -14,6 +13,7 @@ import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
+import dev.rayan.utils.FormatterUtils;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.URI;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +54,7 @@ public final class TransactionService {
 
     public List<TransactionSummaryByTypeResponse> findTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
 
+        //Todo remove
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
         final Parameters parameters = Parameters.with("client", client);
@@ -64,6 +64,7 @@ public final class TransactionService {
                 .project(TransactionSummaryByTypeResponse.class)
                 .stream().toList();
     }
+
 
     private String createQueryFindTransactionsSummaryByType(final List<TransactionType> types) {
 
@@ -75,7 +76,8 @@ public final class TransactionService {
                 .append("TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last, \n")
                 .append("""
                         CONCAT(
-                        TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt)), ' day(s)'
+                            TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt)), 
+                            ' day(s)'
                         ) periodBetweenFirstAndLast
                         \n""")
                 .append("FROM Transaction \n")
@@ -90,12 +92,16 @@ public final class TransactionService {
 
     public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
 
+        //Todo remove
+        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
+
         final String query = createQueryFindTransactionReport();
 
-        final LocalDate initDate = period.getInitDate();
-        final LocalDate finalDate = period.getFinalDate();
+        final Parameters parameters = Parameters.with("client", client)
+                .and("initDate", period.getInitDate())
+                .and("finalDate", period.getFinalDate());
 
-        return Transaction.find(query, client, initDate, finalDate)
+        return Transaction.find(query, parameters)
                 .project(TransactionReportResponse.class)
                 .firstResult();
     }
@@ -103,14 +109,14 @@ public final class TransactionService {
     private String createQueryFindTransactionReport() {
         return """
                 SELECT
-                    COUNT(*) transactionsMade,
-                    (SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') totalPurchased,
-                    (SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE') firstPurchase,
-                    (SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE') lastPurchase,
-                    (SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') totalSold,
-                    (SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE') firstSold,
-                    (SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE') lastSold,
-                    MAX(createdAt) lastTransaction
+                    CAST(COUNT(*) AS STRING) transactionsMade,
+                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') AS STRING) totalPurchased,
+                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') firstPurchase,
+                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') lastPurchase,
+                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') AS STRING) totalSold,
+                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') firstSold,
+                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') lastSold,
+                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
                 FROM
                     Transaction
                 WHERE
@@ -119,6 +125,15 @@ public final class TransactionService {
                     CAST(createdAt AS DATE) BETWEEN :initDate AND :finalDate
                 """;
     }
+
+    public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
+
+        response.setValuePurchased(FormatterUtils.formatMoney(
+                bitcoin.getLast().multiply(new Bitcoin())
+        ));
+
+    }
+
 
     public void validateQuantity(final List<Transaction> transactions, final BigDecimal quantity) {
 

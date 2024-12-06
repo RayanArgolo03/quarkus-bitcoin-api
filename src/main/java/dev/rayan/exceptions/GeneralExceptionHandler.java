@@ -1,6 +1,7 @@
 package dev.rayan.exceptions;
 
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -23,8 +24,8 @@ public final class GeneralExceptionHandler implements ExceptionMapper<Exception>
 
         final Response.Status status = (e instanceof BusinessException)
                 ? BAD_REQUEST
-                : (e instanceof NotFoundException)
-                ? NOT_FOUND
+                : (e instanceof WebApplicationException ee)
+                ? ee.getResponse().getStatusInfo().toEnum()
                 : INTERNAL_SERVER_ERROR;
 
         log.errorf("Exception! %s", e.getMessage());

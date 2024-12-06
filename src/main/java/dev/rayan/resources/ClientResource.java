@@ -1,13 +1,16 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.TransactionReportRequest;
 import dev.rayan.dto.request.TransactionRequest;
 import dev.rayan.dto.respose.TransactionReportResponse;
+import dev.rayan.enums.TransactionReportFormat;
+import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
+import dev.rayan.enums.validation.EnumValidator;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
 import dev.rayan.services.TransactionService;
+import dev.rayan.utils.ConverterEnumUtils;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -85,31 +88,46 @@ public final class ClientResource {
 
     @GET
     @Path("/wallet/summary")
-    public Response findTransactionsSummaryByType(final Client client, @QueryParam("type") final List<TransactionType> types) {
+    public Response findTransactionsSummaryByType(final Client client, @QueryParam("type") final List<String> types) {
 
         //Todo cliente precisa estar logado
+        log.info("Mapping string types to enum");
+        final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);
+
         log.info("Finding transactions by type");
-        return Response.ok(service.findTransactionsSummaryByType(client, types))
+        return Response.ok(service.findTransactionsSummaryByType(client, transactionTypes))
                 .build();
     }
 
     @GET
     @Path("/wallet/report")
-    public Response generateTransactionReport(final Client client, @Valid @BeanParam final TransactionReportRequest request) {
+    public Response generateTransactionReport(final Client client,
+                                              @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
+                                              @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period) {
 
+        //Todo cliente precisa estar logado
 
+        //Todo estoura exception aqui se não conseguir conectar com API
         log.info("Quoting bitcoin");
         final Bitcoin bitcoin = service.quoteBitcoin();
 
-        log.info("Finding transaction report");
-        final TransactionReportResponse transactionReport = service.findTransactionReport(client, request.period());
+        log.info("Mapping string period to enum");
+        final TransactionReportPeriod transactionPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
 
-        //Todo set bitcoins attributes in response
+        log.infof("Finding transaction report on %s", transactionPeriod);
+        final TransactionReportResponse response = service.findTransactionReport(client, transactionPeriod);
 
-        //Todo generate report
+        //Todo continuar aqui
+        log.info("Setting bitcoin attributes in response");
+        service.setBitcoinAttributesInResponse(response, bitcoin);
 
-        log.info("Generating report by file type chosed");
-        return Response.ok()
+        log.info("Mapping string format to enum");
+        final TransactionReportFormat transactionFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
+
+        log.infof("Generating report in format %s", transactionFormat);
+        //Todo
+
+        return Response.ok(response)
                 .build();
     }
 
