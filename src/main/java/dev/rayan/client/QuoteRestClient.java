@@ -12,10 +12,8 @@ import javax.swing.text.html.Option;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
-@RegisterRestClient(baseUri = QuoteRestClient.BASE_URI)
+@RegisterRestClient(baseUri = "https://brasilbitcoin.com.br/API/prices/BTC")
 public interface QuoteRestClient {
-
-    String BASE_URI = "https://brasilbitcoin.com.br/API/prices/BTC";
 
     @GET
     @Timeout(value = 2, unit = ChronoUnit.SECONDS)
@@ -23,6 +21,8 @@ public interface QuoteRestClient {
     @Fallback(fallbackMethod = "fallback")
     Optional<Bitcoin> quote();
 
-    default Optional<Bitcoin> fallback() {return Optional.empty();}
+    default Optional<Bitcoin> fallback() {
+        return Optional.empty();
+    }
 
 }

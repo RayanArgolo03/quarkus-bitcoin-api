@@ -37,7 +37,7 @@ public final class TransactionService {
 
     public Bitcoin quoteBitcoin() {
         return adapter.quote()
-                .orElseThrow(() -> new ApiException("Server unavailable, cannot quote bitcoin!"));
+                .orElseThrow(() -> new ApiException("Cannot quote bitcoin"));
     }
 
     public Transaction persistTransaction(final TransactionRequest request, final TransactionType type) {
@@ -128,17 +128,23 @@ public final class TransactionService {
 
     public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
 
-        response.setValuePurchased(FormatterUtils.formatMoney(
-                bitcoin.getLast().multiply(new BigDecimal(response.getTotalPurchased()))
-        ));
+        String valuePurchased = "Sever unavailable",
+                valueSold = "Sever unavailable",
+                bitcoinDate = "Sever unavailable";
 
-        response.setValueSold(FormatterUtils.formatMoney(
-                bitcoin.getLast().multiply(new BigDecimal(response.getTotalSold()))
-        ));
+        if (bitcoin != null) {
+            valuePurchased = FormatterUtils.formatMoney(calculateTransactionTotal(bitcoin.getLast(), response.getTotalPurchased()));
+            valueSold = FormatterUtils.formatMoney(calculateTransactionTotal(bitcoin.getLast(), response.getTotalSold()));
+            bitcoinDate = FormatterUtils.formatDate(bitcoin.getTime());
+        }
 
-        response.setBitcoinDate(FormatterUtils.formatDate(
-                bitcoin.getTime()
-        ));
+        response.setValuePurchased(valuePurchased);
+        response.setValueSold(valueSold);
+        response.setBitcoinDate(bitcoinDate);
+    }
+
+    public BigDecimal calculateTransactionTotal(final BigDecimal last, final String quantity) {
+        return last.multiply(new BigDecimal(quantity));
     }
 
     public void validateQuantity(final List<Transaction> transactions, final BigDecimal quantity) {

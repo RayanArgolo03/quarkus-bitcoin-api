@@ -27,7 +27,7 @@ public final class ExceptionResponse {
     private record ExceptionMessage(String field, String message) {
     }
 
-    //Validator params constructor
+    //ConstraintViolations constructor
     public ExceptionResponse(Set<? extends ConstraintViolation<?>> violations) {
         this.title = BAD_REQUEST.name();
         this.status = BAD_REQUEST.getStatusCode();
@@ -37,7 +37,7 @@ public final class ExceptionResponse {
                 .collect(Collectors.toSet());
     }
 
-    //Simple exception constructor, business and api exception
+    //Simple exception constructor
     public ExceptionResponse(String message, Response.Status status) {
         this.title = status.name();
         this.status = status.getStatusCode();
@@ -55,7 +55,8 @@ public final class ExceptionResponse {
                 .toString()
                 .split("\\.");
 
-        final String field = fieldPath[fieldPath.length - 1];
+        final int last = fieldPath.length - 1;
+        final String field = fieldPath[last];
 
         return new ExceptionMessage(field, violation.getMessage());
     }

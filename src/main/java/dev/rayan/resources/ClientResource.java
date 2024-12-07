@@ -6,9 +6,12 @@ import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.enums.validation.EnumValidator;
+import dev.rayan.exceptions.ApiException;
+import dev.rayan.factory.ReportFileFactory;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
+import dev.rayan.report.ReportFile;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
 import jakarta.inject.Inject;
@@ -47,11 +50,11 @@ public final class ClientResource {
         log.info("Persisting buy transaction");
         final Transaction transaction = service.persistTransaction(request, TransactionType.PURCHASE);
 
-        log.info("Creating resource URI");
-        final URI uri = service.createUri(uriInfo, transaction.getId());
-
         log.info("Quoting bitcoin");
         final Bitcoin quote = service.quoteBitcoin();
+
+        log.info("Creating resource URI");
+        final URI uri = service.createUri(uriInfo, transaction.getId());
 
         return Response.created(uri)
                 .entity(service.getMappedTransaction(transaction, quote))
@@ -75,11 +78,11 @@ public final class ClientResource {
         log.info("Persisting sale transaction");
         final Transaction transaction = service.persistTransaction(request, TransactionType.SALE);
 
-        log.info("Creating resource URI");
-        final URI uri = service.createUri(uriInfo, transaction.getId());
-
         log.info("Quoting bitcoin");
         final Bitcoin bitcoin = service.quoteBitcoin();
+
+        log.info("Creating resource URI");
+        final URI uri = service.createUri(uriInfo, transaction.getId());
 
         return Response.created(uri)
                 .entity(service.getMappedTransaction(transaction, bitcoin))
@@ -107,27 +110,33 @@ public final class ClientResource {
 
         //Todo cliente precisa estar logado
 
-        //Todo estoura exception aqui se não conseguir conectar com API
-        log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = service.quoteBitcoin();
-
         log.info("Mapping string period to enum");
         final TransactionReportPeriod transactionPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
 
         log.infof("Finding transaction report on %s", transactionPeriod);
         final TransactionReportResponse response = service.findTransactionReport(client, transactionPeriod);
 
-        //Todo continuar aqui
-        log.info("Setting bitcoin attributes in response");
-        service.setBitcoinAttributesInResponse(response, bitcoin);
+        //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
+        try {
+            log.info("Quoting bitcoin");
+            final Bitcoin bitcoin = service.quoteBitcoin();
+
+            log.info("Sucess! Setting bitcoin attributes in response");
+            service.setBitcoinAttributesInResponse(response, bitcoin);
+
+        } catch (ApiException e) {
+            log.infof("%s! Setting null bitcoin attributes in response", e.getMessage());
+            service.setBitcoinAttributesInResponse(response, null);
+        }
 
         log.info("Mapping string format to enum");
         final TransactionReportFormat transactionFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
 
         log.infof("Generating report in format %s", transactionFormat);
-        //Todo
+        final ReportFile reportFile = ReportFileFactory.createReportFile(transactionFormat);
+        reportFile.generateReport(response);
 
-        return Response.ok(response)
+        return Response.ok("Report created and downloaded!")
                 .build();
     }
 

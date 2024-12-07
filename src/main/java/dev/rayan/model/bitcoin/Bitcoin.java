@@ -9,10 +9,9 @@ import lombok.experimental.FieldDefaults;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@NoArgsConstructor(force = true)
+@NoArgsConstructor(force = true, access = AccessLevel.PRIVATE)
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-
 public final class Bitcoin {
 
     BigDecimal last;
