@@ -13,7 +13,7 @@ public enum TransactionReportPeriod implements BaseEnum<TransactionReportPeriod>
     CURRENT_YEAR(
             LocalDate.of(Year.now().getValue() - 1, MonthDay.now().getMonth().getValue(), MonthDay.now().getDayOfMonth()),
             LocalDate.now(),
-            "Current year"
+            "Current Year"
     );
 
     private final LocalDate initDate;

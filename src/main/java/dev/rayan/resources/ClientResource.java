@@ -11,7 +11,8 @@ import dev.rayan.factory.ReportFileFactory;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.report.ReportFile;
+import dev.rayan.report.ExcelReportAbstract;
+import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
 import jakarta.inject.Inject;
@@ -19,10 +20,12 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -106,7 +109,8 @@ public final class ClientResource {
     @Path("/wallet/report")
     public Response generateTransactionReport(final Client client,
                                               @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
-                                              @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period) {
+                                              @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period)
+            throws IllegalAccessException, IOException {
 
         //Todo cliente precisa estar logado
 
@@ -129,14 +133,28 @@ public final class ClientResource {
             service.setBitcoinAttributesInResponse(response, null);
         }
 
-        log.info("Mapping string format to enum");
+        log.info("Mapping string report format to enum");
         final TransactionReportFormat transactionFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
 
+        //Todo
         log.infof("Generating report in format %s", transactionFormat);
-        final ReportFile reportFile = ReportFileFactory.createReportFile(transactionFormat);
-        reportFile.generateReport(response);
+        final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(transactionFormat);
+        reportAbstractFile.generateReport(response, transactionPeriod);
 
         return Response.ok("Report created and downloaded!")
+                .build();
+    }
+
+    @GET
+    @Path("/testing")
+    public Response testing()
+            throws IllegalAccessException, IOException {
+
+        ReportFileFactory.createReportAbstractFile(TransactionReportFormat.EXCEL)
+                .generateReport(new TransactionReportResponse(
+                        "a", "a", "a", "a", "a", "a", "a", "a"
+                ), TransactionReportPeriod.CURRENT_YEAR);
+        return Response.ok("Report generated and downloaded!")
                 .build();
     }
 
