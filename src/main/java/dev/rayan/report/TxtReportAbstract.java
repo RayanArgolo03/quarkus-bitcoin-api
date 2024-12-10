@@ -6,7 +6,7 @@ import dev.rayan.enums.TransactionReportPeriod;
 public final class TxtReportAbstract extends ReportAbstractFile {
 
     @Override
-    public void generateReport(final TransactionReportResponse response, final TransactionReportPeriod period) {
+    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod period) {
 
     }
 }

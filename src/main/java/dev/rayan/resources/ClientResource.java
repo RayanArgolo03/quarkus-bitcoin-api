@@ -11,7 +11,6 @@ import dev.rayan.factory.ReportFileFactory;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.report.ExcelReportAbstract;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
@@ -20,7 +19,6 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
@@ -139,7 +137,7 @@ public final class ClientResource {
         //Todo
         log.infof("Generating report in format %s", transactionFormat);
         final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(transactionFormat);
-        reportAbstractFile.generateReport(response, transactionPeriod);
+        reportAbstractFile.createReport(response, transactionPeriod);
 
         return Response.ok("Report created and downloaded!")
                 .build();
@@ -151,7 +149,7 @@ public final class ClientResource {
             throws IllegalAccessException, IOException {
 
         ReportFileFactory.createReportAbstractFile(TransactionReportFormat.EXCEL)
-                .generateReport(new TransactionReportResponse(
+                .createReport(new TransactionReportResponse(
                         "a", "a", "a", "a", "a", "a", "a", "a"
                 ), TransactionReportPeriod.CURRENT_YEAR);
         return Response.ok("Report generated and downloaded!")

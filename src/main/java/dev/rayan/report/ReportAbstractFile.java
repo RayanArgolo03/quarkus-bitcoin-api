@@ -15,6 +15,6 @@ public abstract class ReportAbstractFile {
             String.format("%s/Downloads/%s%s", USER_HOME, FILE_NAME, EXTENSION)
     );
 
-    public abstract void generateReport(TransactionReportResponse response, TransactionReportPeriod period) throws IllegalAccessException, IOException;
+    public abstract void createReport(TransactionReportResponse response, TransactionReportPeriod period) throws IllegalAccessException, IOException;
 
 }

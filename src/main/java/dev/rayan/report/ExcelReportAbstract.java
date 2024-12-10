@@ -4,13 +4,13 @@ import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.RegionUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.IntStream;
 
@@ -20,22 +20,20 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
     private final static String FILE_NAME = "transactions_report";
     private final static String EXTENSION = ".xlsx";
 
-    @Override
-    public void generateReport(final TransactionReportResponse response, final TransactionReportPeriod period)
-            throws IllegalAccessException, IOException {
+    private final static String REPORT_NAME = "report";
+    private final static String FONT_NAME = "Aptos Narrow";
 
+    @Override
+    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod period)
+            throws IllegalAccessException, IOException {
 
         try (Workbook workbook = new XSSFWorkbook();
              OutputStream output = new FileOutputStream(createDownloadPath())) {
 
-            final Sheet sheet = workbook.createSheet("report");
+            final Sheet sheet = workbook.createSheet(REPORT_NAME);
 
-            //Todo precisam ser fontes e cell styles diferentes
-            final CellStyle cellStyle = workbook.createCellStyle();
-            final Font font = workbook.createFont();
-
-            createReportTitle(cellStyle, sheet, font, period.toString());
-            createReportInfo(cellStyle, sheet, font, response.getFieldsAndValues());
+            createReportTitle(workbook.createCellStyle(), sheet, workbook.createFont(), period.toString());
+            createReportInfo(workbook.createCellStyle(), sheet, workbook.createFont(), response.getFieldsAndValues());
 
             workbook.write(output);
         }
@@ -54,15 +52,15 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
         return downloadPath;
     }
 
-    private void createReportTitle(final CellStyle cellStyle, final Sheet sheet, final Font font, final String period) {
+    private void createReportTitle(final CellStyle style, final Sheet sheet, final Font font, final String period) {
 
         //Creating the title rows cells and cells: A, B and C columns
-        final int initRow = 0, finalRow = 2;
-        IntStream.rangeClosed(initRow, finalRow).forEach(rowIndex -> {
+        final int firstRow = 0, lastRow = 2;
+        IntStream.rangeClosed(firstRow, lastRow).forEach(rowIndex -> {
             Row row = sheet.createRow(rowIndex);
-            row.createCell(initRow);
-            row.createCell(finalRow - 1);
-            row.createCell(finalRow);
+            row.createCell(firstRow);
+            row.createCell(lastRow - 1);
+            row.createCell(lastRow);
         });
 
         //Merging cells - Merged
@@ -70,86 +68,87 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
         sheet.addMergedRegion(titleRange);
 
         //Align cells in center
-        alignCells(cellStyle, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
-        //Adding borders style and color
-        createBorders(titleRange, sheet);
-
-       /* Optional: setting borders colors
-        final int colorIndex = IndexedColors.BLACK.getIndex();
-        RegionUtil.setBottomBorderColor(colorIndex, titleRange, sheet);*/
+        alignCells(style, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
         //Creating font format title
-        formatFont(font, (short) 16, true);
-        cellStyle.setFont(font);
+        formatFont(font, (short) 16, true, true, IndexedColors.DARK_RED);
+        style.setFont(font);
 
         //Getting merged cell, adding style and title
-        final Cell titleCell = sheet.getRow(initRow).getCell(initRow);
-        titleCell.setCellStyle(cellStyle);
+        final Cell titleCell = sheet.getRow(firstRow).getCell(firstRow);
+        titleCell.setCellStyle(style);
         titleCell.setCellValue(period);
 
         //Indent column
-        sheet.autoSizeColumn(initRow);
+        formatIndent(sheet, firstRow);
     }
 
 
-    //Todo continuar corrigindo: precisa passar cellstyle diferente?
-    private void createReportInfo(final CellStyle cellStyle, final Sheet sheet, final Font font, final Map<String, String> fieldsAndValues) {
+    private void createReportInfo(final CellStyle style, final Sheet sheet, final Font font, final Map<String, String> fieldsAndValues) {
 
-        //Modifyning font format to fields and attributes
-        formatFont(font, (short) 14, false);
-
-        //Adding background solid pattern to paint
-        cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        //Formating info font
+        formatFont(font, (short) 14, false, false, null);
+        style.setFont(font);
 
         //Aling cells
-        alignCells(cellStyle, HorizontalAlignment.LEFT, VerticalAlignment.CENTER);
+        alignCells(style, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
-        //Row 4 in excel, after Report Title
-        int rowIndex = 3;
+        //Writing values
+        int rowIndex = 2;
+        final int lastRow = fieldsAndValues.size(), fieldColumn = 0, attributeColumn = 1;
+
         for (String field : fieldsAndValues.keySet()) {
 
             Row row = sheet.createRow(rowIndex);
-            createFormattedCell(row.createCell(0), cellStyle, IndexedColors.ROYAL_BLUE.getIndex(), field);
+
+            //Create field and attribute columns
+            formatCell(row.createCell(fieldColumn), style, field);
 
             String attribute = fieldsAndValues.get(field);
-            createFormattedCell(row.createCell(1), cellStyle, IndexedColors.ROSE.getIndex(), attribute);
+            formatCell(row.createCell(attributeColumn), style, attribute);
 
             rowIndex++;
         }
 
-        //Indent field and value row
-        sheet.autoSizeColumn(0);
-        sheet.autoSizeColumn(1);
-
+        //Indent columns
+        formatIndent(sheet, fieldColumn, attributeColumn);
     }
 
-    private void alignCells(final CellStyle cellStyle, final HorizontalAlignment horizontal, final VerticalAlignment vertical) {
-        cellStyle.setAlignment(horizontal);
-        cellStyle.setVerticalAlignment(vertical);
+    private void formatCell(final Cell cell, final CellStyle style, final String value) {
+        cell.setCellValue(value);
+        cell.setCellStyle(style);
     }
 
-    private void formatFont(final Font font, final short size, final boolean isBold) {
-        font.setFontName("Aptos Narrow");
+    private void alignCells(final CellStyle style, final HorizontalAlignment horizontal, final VerticalAlignment vertical) {
+        style.setAlignment(horizontal);
+        style.setVerticalAlignment(vertical);
+    }
+
+    private void formatFont(final Font font, final short size, final boolean isBold, final boolean hasUndeline, final IndexedColors color) {
+
+        font.setFontName(FONT_NAME);
         font.setFontHeightInPoints(size);
         font.setBold(isBold);
+
+        if (hasUndeline) font.setUnderline(Font.U_SINGLE);
+        if (color != null) font.setColor(color.getIndex());
+
     }
 
-    private void createBorders(final CellRangeAddress titleRange, final Sheet sheet) {
-        RegionUtil.setBorderBottom(BorderStyle.THIN, titleRange, sheet);
-        RegionUtil.setBorderTop(BorderStyle.THIN, titleRange, sheet);
-        RegionUtil.setBorderRight(BorderStyle.THIN, titleRange, sheet);
-        RegionUtil.setBorderLeft(BorderStyle.THIN, titleRange, sheet);
+//    private void formatBorders(final CellRangeAddress titleRange, final Sheet sheet) {
+//        RegionUtil.setBorderBottom(BorderStyle.THIN, titleRange, sheet);
+//        RegionUtil.setBorderTop(BorderStyle.THIN, titleRange, sheet);
+//        RegionUtil.setBorderRight(BorderStyle.THIN, titleRange, sheet);
+//        RegionUtil.setBorderLeft(BorderStyle.THIN, titleRange, sheet);
+//
+//        /* Optional: setting borders colors
+//        final int colorIndex = IndexedColors.BLACK.getIndex();
+//        RegionUtil.setBottomBorderColor(colorIndex, titleRange, sheet);*/
+//    }
+
+    private void formatIndent(final Sheet sheet, final int... columns) {
+        Arrays.stream(columns).forEach(sheet::autoSizeColumn);
     }
 
-    private void createFormattedCell(final Cell cell, final CellStyle cellStyle, final short colorIndex, final String value) {
-
-        //Setting background color
-        cellStyle.setFillForegroundColor(colorIndex);
-
-        //Creating and format
-        cell.setCellStyle(cellStyle);
-        cell.setCellValue(value);
-    }
 
 }
