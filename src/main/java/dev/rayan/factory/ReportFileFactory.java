@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ReportFileFactory {
 
-    public static ReportAbstractFile createReportAbstractFile(final TransactionReportFormat format) {
+    public static ReportAbstractFile createReportAbstractFile(final TransactionReportFormat reportFormat) {
 
-        return switch (format) {
+        return switch (reportFormat) {
             case EXCEL -> new ExcelReportAbstract();
             case TXT -> new TxtReportAbstract();
             default -> throw new IllegalArgumentException("Invalit report format!");

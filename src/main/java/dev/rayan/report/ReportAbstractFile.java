@@ -11,10 +11,28 @@ public abstract class ReportAbstractFile {
 
     private static final String USER_HOME = System.getProperty("user.home");
 
-    protected static final BiFunction<String, String, File> DOWNLOAD_PATH_FUNCTION = (FILE_NAME, EXTENSION) -> new File(
-            String.format("%s/Downloads/%s%s", USER_HOME, FILE_NAME, EXTENSION)
+    private static final BiFunction<String, String, File> DOWNLOAD_PATH_FUNCTION = (fileName, extension) -> new File(
+            String.format("%s/Downloads/%s%s", USER_HOME, fileName, extension)
     );
 
     public abstract void createReport(TransactionReportResponse response, TransactionReportPeriod period) throws IllegalAccessException, IOException;
+
+    public abstract String getFileName();
+
+    public abstract String getExtension();
+
+    public File createDownloadPath() {
+
+        File downloadPath = DOWNLOAD_PATH_FUNCTION.apply(getFileName(), getExtension());
+        int version = 1;
+
+        while (downloadPath.exists()) {
+            downloadPath.renameTo(DOWNLOAD_PATH_FUNCTION.apply(getFileName() + " (" + version + ")", getExtension()));
+            version++;
+        }
+
+        return downloadPath;
+    }
+
 
 }

@@ -17,39 +17,33 @@ import java.util.stream.IntStream;
 
 public final class ExcelReportAbstract extends ReportAbstractFile {
 
-    private final static String FILE_NAME = "transactions_report";
-    private final static String EXTENSION = ".xlsx";
-
-    private final static String REPORT_NAME = "report";
+    private final static String SHEET_NAME = "report";
     private final static String FONT_NAME = "Aptos Narrow";
 
     @Override
-    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod period)
+    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod reportPeriod)
             throws IllegalAccessException, IOException {
 
         try (Workbook workbook = new XSSFWorkbook();
-             OutputStream output = new FileOutputStream(createDownloadPath())) {
+             OutputStream output = new FileOutputStream(super.createDownloadPath())) {
 
-            final Sheet sheet = workbook.createSheet(REPORT_NAME);
+            final Sheet sheet = workbook.createSheet(SHEET_NAME);
 
-            createReportTitle(workbook.createCellStyle(), sheet, workbook.createFont(), period.toString());
+            createReportTitle(workbook.createCellStyle(), sheet, workbook.createFont(), reportPeriod.toString());
             createReportInfo(workbook.createCellStyle(), sheet, workbook.createFont(), response.getFieldsAndValues());
 
             workbook.write(output);
         }
     }
 
-    private File createDownloadPath() {
+    @Override
+    public String getFileName() {
+        return "transactions_report";
+    }
 
-        File downloadPath = DOWNLOAD_PATH_FUNCTION.apply(FILE_NAME, EXTENSION);
-        long currentVersion = 1;
-
-        while (downloadPath.exists()) {
-            downloadPath = DOWNLOAD_PATH_FUNCTION.apply(FILE_NAME + " (" + currentVersion + ")", EXTENSION);
-            currentVersion++;
-        }
-
-        return downloadPath;
+    @Override
+    public String getExtension() {
+        return ".xlsx";
     }
 
     private void createReportTitle(final CellStyle style, final Sheet sheet, final Font font, final String period) {
@@ -95,7 +89,7 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
 
         //Writing values
         int rowIndex = 2;
-        final int lastRow = fieldsAndValues.size(), fieldColumn = 0, attributeColumn = 1;
+        final int fieldColumn = 0, attributeColumn = 1;
 
         for (String field : fieldsAndValues.keySet()) {
 

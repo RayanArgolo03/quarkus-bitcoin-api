@@ -113,46 +113,34 @@ public final class ClientResource {
         //Todo cliente precisa estar logado
 
         log.info("Mapping string period to enum");
-        final TransactionReportPeriod transactionPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
+        final TransactionReportPeriod reportPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
 
-        log.infof("Finding transaction report on %s", transactionPeriod);
-        final TransactionReportResponse response = service.findTransactionReport(client, transactionPeriod);
+        log.infof("Finding transaction report on %s", reportPeriod);
+        final TransactionReportResponse reportResponse = service.findTransactionReport(client, reportPeriod);
 
         //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
         try {
             log.info("Quoting bitcoin");
             final Bitcoin bitcoin = service.quoteBitcoin();
 
-            log.info("Sucess! Setting bitcoin attributes in response");
-            service.setBitcoinAttributesInResponse(response, bitcoin);
+            //Todo verifique o motivos dos dados não serem retornados ao TransactionReponse
+            log.info("Sucess! Setting bitcoin attributes in reportResponse");
+            service.setBitcoinAttributesInResponse(reportResponse, bitcoin);
 
         } catch (ApiException e) {
-            log.infof("%s! Setting null bitcoin attributes in response", e.getMessage());
-            service.setBitcoinAttributesInResponse(response, null);
+            log.infof("%s! Setting null bitcoin attributes in reportResponse", e.getMessage());
+            service.setBitcoinAttributesInResponse(reportResponse, null);
         }
 
         log.info("Mapping string report format to enum");
-        final TransactionReportFormat transactionFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
+        final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
 
         //Todo
-        log.infof("Generating report in format %s", transactionFormat);
-        final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(transactionFormat);
-        reportAbstractFile.createReport(response, transactionPeriod);
+        log.infof("Generating report in format %s", reportFormat);
+        final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(reportFormat);
+        reportAbstractFile.createReport(reportResponse, reportPeriod);
 
         return Response.ok("Report created and downloaded!")
-                .build();
-    }
-
-    @GET
-    @Path("/testing")
-    public Response testing()
-            throws IllegalAccessException, IOException {
-
-        ReportFileFactory.createReportAbstractFile(TransactionReportFormat.EXCEL)
-                .createReport(new TransactionReportResponse(
-                        "a", "a", "a", "a", "a", "a", "a", "a"
-                ), TransactionReportPeriod.CURRENT_YEAR);
-        return Response.ok("Report generated and downloaded!")
                 .build();
     }
 

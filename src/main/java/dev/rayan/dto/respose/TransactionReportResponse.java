@@ -16,6 +16,7 @@ import java.util.Map;
 @Getter
 public final class TransactionReportResponse {
 
+    //General attribute
     String transactionsMade;
 
     //Purchase attributes
@@ -33,6 +34,8 @@ public final class TransactionReportResponse {
     String valueSold;
     String firstSold;
     String lastSold;
+
+    //General attribute
     String lastTransaction;
 
     //Bitcoin quoting date

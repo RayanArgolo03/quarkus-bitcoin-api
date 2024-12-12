@@ -14,9 +14,13 @@ import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
 import dev.rayan.utils.FormatterUtils;
+import io.quarkus.hibernate.orm.panache.Panache;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.Parameter;
+import jakarta.persistence.Query;
 import jakarta.ws.rs.core.UriInfo;
 
 import java.math.BigDecimal;
@@ -90,40 +94,60 @@ public final class TransactionService {
         return sb.toString();
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
+    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod reportPeriod) {
 
         //Todo remove
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
-        final String query = createQueryFindTransactionReport();
+        Object singleResult = createQueryFindTransactionReport()
+                .setParameter("clientId", client.getId())
+                .setParameter("initDate", reportPeriod.getInitDate())
+                .setParameter("finalDate", reportPeriod.getFinalDate())
+                .getSingleResult();
 
-        final Parameters parameters = Parameters.with("client", client)
-                .and("initDate", period.getInitDate())
-                .and("finalDate", period.getFinalDate());
+        return (TransactionReportResponse) singleResult;
 
-        return Transaction.find(query, parameters)
-                .project(TransactionReportResponse.class)
-                .firstResult();
     }
 
-    private String createQueryFindTransactionReport() {
-        return """
-                SELECT
-                    CAST(COUNT(*) AS STRING) transactionsMade,
-                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') AS STRING) totalPurchased,
-                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') firstPurchase,
-                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') lastPurchase,
-                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') AS STRING) totalSold,
-                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') firstSold,
-                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') lastSold,
-                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
-                FROM
-                    Transaction
-                WHERE
-                    client = :client
-                AND
-                    CAST(createdAt AS DATE) BETWEEN :initDate AND :finalDate
-                """;
+    private Query createQueryFindTransactionReport() {
+        return Panache.getEntityManager().createNativeQuery("""
+                        WITH general_attributes AS (
+                            SELECT client_id, COUNT(*)::TEXT transactionsMade, TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastTransaction
+                            FROM transactions
+                            WHERE client_id = :clientId
+                            GROUP BY client_id
+                        ),
+                                        
+                        purchase_attributes AS (
+                            SELECT
+                                 client_id,
+                                 SUM(quantity) FILTER (WHERE type = 'PURCHASE')::TEXT totalPurchased,
+                                 TO_CHAR(MIN(created_at), 'YYYY-MM-DD HH24:mi') firstPurchase,
+                                 TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastPurchase
+                            FROM transactions
+                            WHERE client_id = :clientId
+                            AND created_at BETWEEN :initDate AND :finalDate
+                            GROUP BY client_id
+                        ),
+                                        
+                        sale_attributes AS (
+                            SELECT
+                                 client_id,
+                                 SUM(quantity) FILTER (WHERE type = 'SALE')::TEXT totalSold,
+                                 TO_CHAR(MIN(created_at), 'YYYY-MM-DD HH24:mi') firstSold,
+                                 TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastSold
+                            FROM transactions
+                            WHERE client_id = :clientId
+                            AND created_at BETWEEN :initDate AND :finalDate
+                            GROUP BY client_id
+                        )
+                                        
+                        SELECT transactionsMade, totalPurchased, firstPurchase, lastPurchase, totalSold, firstSold, lastSold, lastTransaction
+                        FROM general_attributes
+                        NATURAL JOIN purchase_attributes
+                        NATURAL JOIN sale_attributes
+                        """,
+                TransactionReportResponse.class);
     }
 
     public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
