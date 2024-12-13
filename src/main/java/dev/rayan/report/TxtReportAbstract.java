@@ -13,7 +13,7 @@ public final class TxtReportAbstract extends ReportAbstractFile {
     public void createReport(final TransactionReportResponse reportResponse, final TransactionReportPeriod period)
             throws IOException, IllegalAccessException {
 
-        try (PrintWriter writer = new PrintWriter(super.createDownloadPath())) {
+        try (PrintWriter writer = new PrintWriter(super.createFile())) {
             createReportTitle(writer, period.toString());
             createReportInfo(writer, reportResponse.getFieldsAndValues());
         }

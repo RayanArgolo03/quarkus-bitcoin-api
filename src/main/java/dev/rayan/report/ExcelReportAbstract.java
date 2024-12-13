@@ -6,7 +6,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -25,7 +24,7 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
             throws IllegalAccessException, IOException {
 
         try (Workbook workbook = new XSSFWorkbook();
-             OutputStream output = new FileOutputStream(super.createDownloadPath())) {
+             OutputStream output = new FileOutputStream(super.createFile())) {
 
             final Sheet sheet = workbook.createSheet(SHEET_NAME);
 
