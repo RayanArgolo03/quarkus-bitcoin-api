@@ -95,6 +95,7 @@ public final class ClientResource {
     public Response findTransactionsSummaryByType(final Client client, @QueryParam("type") final List<String> types) {
 
         //Todo cliente precisa estar logado
+
         log.info("Mapping string types to enum");
         final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);
 
@@ -105,9 +106,9 @@ public final class ClientResource {
 
     @GET
     @Path("/wallet/report")
-    public Response generateTransactionReport(final Client client,
-                                              @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
-                                              @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period)
+    public Response createTransactionReport(final Client client,
+                                            @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
+                                            @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period)
             throws IllegalAccessException, IOException {
 
         //Todo cliente precisa estar logado
@@ -143,5 +144,7 @@ public final class ClientResource {
         return Response.ok("Report created and downloaded!")
                 .build();
     }
+
+
 
 }

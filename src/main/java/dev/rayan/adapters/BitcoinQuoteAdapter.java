@@ -17,6 +17,7 @@ public final class BitcoinQuoteAdapter {
     QuoteRestClient quoteRestClient;
 
     public Optional<Bitcoin> quote() {
-        return quoteRestClient.quote();}
+        return quoteRestClient.quote();
+    }
 
 }

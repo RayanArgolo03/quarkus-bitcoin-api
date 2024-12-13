@@ -16,6 +16,7 @@ import dev.rayan.model.client.Client;
 import dev.rayan.utils.FormatterUtils;
 import io.quarkus.hibernate.orm.panache.Panache;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -64,90 +65,64 @@ public final class TransactionService {
         final Parameters parameters = Parameters.with("client", client);
         if (!types.isEmpty()) parameters.and("types", types);
 
-        return Transaction.find(createQueryFindTransactionsSummaryByType(types), parameters)
+        return createQueryFindTransactionsSummaryByType(types, parameters)
                 .project(TransactionSummaryByTypeResponse.class)
                 .stream().toList();
     }
 
 
-    private String createQueryFindTransactionsSummaryByType(final List<TransactionType> types) {
+    private PanacheQuery<Transaction> createQueryFindTransactionsSummaryByType(final List<TransactionType> types, final Parameters parameters) {
 
-        final StringBuilder sb = new StringBuilder("SELECT \n")
-                .append("CAST(type AS STRING), \n")
-                .append("CAST(COUNT(*) AS STRING) transactionsMade, \n")
-                .append("CAST(SUM(quantity) AS STRING) quantity, \n")
-                .append("TO_CHAR(MIN(createdAt), 'YYYY-MM-DD HH24:mi') first, \n")
-                .append("TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last, \n")
-                .append("""
-                        CONCAT(
-                            TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt)), 
-                            ' day(s)'
-                        ) periodBetweenFirstAndLast
-                        \n""")
-                .append("FROM Transaction \n")
-                .append("WHERE client = :client");
+        String query = """
+                      SELECT
+                          CAST(type AS STRING),
+                          CAST(COUNT(*) AS STRING) transactionsMade,
+                          CAST(SUM(quantity) AS STRING) quantity,
+                          TO_CHAR(MIN(createdAt), 'YYYY-MM-DD HH24:mi') first,
+                          TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last,
+                          CONCAT(
+                              TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt) ),
+                              ' day(s)'
+                          ) periodBetweenFirstAndLast
+                       FROM Transaction
+                       WHERE client = :client
+                """;
 
-        if (!types.isEmpty()) sb.append(" AND type IN (:types)");
+        if (!types.isEmpty()) query += " AND type IN (:types)";
+        query += " GROUP BY type";
 
-        sb.append("\n GROUP BY type");
-
-        return sb.toString();
+        return Transaction.find(query, parameters);
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod reportPeriod) {
+    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
 
         //Todo remove
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
-        Object singleResult = createQueryFindTransactionReport()
-                .setParameter("clientId", client.getId())
-                .setParameter("initDate", reportPeriod.getInitDate())
-                .setParameter("finalDate", reportPeriod.getFinalDate())
-                .getSingleResult();
+        final Parameters parameters = Parameters.with("client", client)
+                .and("initDate", period.getInitDate())
+                .and("finalDate", period.getFinalDate());
 
-        return (TransactionReportResponse) singleResult;
-
+        return createQueryFindTransactionReport(parameters)
+                .project(TransactionReportResponse.class)
+                .firstResult();
     }
 
-    private Query createQueryFindTransactionReport() {
-        return Panache.getEntityManager().createNativeQuery("""
-                        WITH general_attributes AS (
-                            SELECT client_id, COUNT(*)::TEXT transactionsMade, TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastTransaction
-                            FROM transactions
-                            WHERE client_id = :clientId
-                            GROUP BY client_id
-                        ),
-                                        
-                        purchase_attributes AS (
-                            SELECT
-                                 client_id,
-                                 SUM(quantity) FILTER (WHERE type = 'PURCHASE')::TEXT totalPurchased,
-                                 TO_CHAR(MIN(created_at), 'YYYY-MM-DD HH24:mi') firstPurchase,
-                                 TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastPurchase
-                            FROM transactions
-                            WHERE client_id = :clientId
-                            AND created_at BETWEEN :initDate AND :finalDate
-                            GROUP BY client_id
-                        ),
-                                        
-                        sale_attributes AS (
-                            SELECT
-                                 client_id,
-                                 SUM(quantity) FILTER (WHERE type = 'SALE')::TEXT totalSold,
-                                 TO_CHAR(MIN(created_at), 'YYYY-MM-DD HH24:mi') firstSold,
-                                 TO_CHAR(MAX(created_at), 'YYYY-MM-DD HH24:mi') lastSold
-                            FROM transactions
-                            WHERE client_id = :clientId
-                            AND created_at BETWEEN :initDate AND :finalDate
-                            GROUP BY client_id
-                        )
-                                        
-                        SELECT transactionsMade, totalPurchased, firstPurchase, lastPurchase, totalSold, firstSold, lastSold, lastTransaction
-                        FROM general_attributes
-                        NATURAL JOIN purchase_attributes
-                        NATURAL JOIN sale_attributes
-                        """,
-                TransactionReportResponse.class);
+    private PanacheQuery<Transaction> createQueryFindTransactionReport(final Parameters parameters) {
+        return Transaction.find("""
+                SELECT
+                    CAST(COUNT(*) AS STRING) transactionsMade,
+                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') AS STRING) totalPurchased,
+                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') firstPurchase,
+                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') lastPurchase,
+                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') AS STRING) totalSold,
+                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') firstSold,
+                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') lastSold,
+                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
+                FROM Transaction
+                WHERE client = :client
+                AND createdAt BETWEEN :initDate AND :finalDate
+                """, parameters);
     }
 
     public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
