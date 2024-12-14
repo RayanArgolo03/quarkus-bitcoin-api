@@ -10,10 +10,10 @@ import java.nio.file.Paths;
 
 public abstract class ReportAbstractFile {
 
-    public abstract void createReport(TransactionReportResponse response, TransactionReportPeriod period) throws IllegalAccessException, IOException;
-
     private static final String USER_HOME = System.getProperty("user.home");
     private static final String DOWNLOAD_FOLDER = "Downloads";
+
+    public abstract void createReport(TransactionReportResponse response, TransactionReportPeriod period) throws IllegalAccessException, IOException;
 
     public abstract String getFileName();
 
@@ -24,9 +24,7 @@ public abstract class ReportAbstractFile {
         int version = 0;
         File file = getFilePath(version);
 
-        for (version = 1; file.exists(); version++) {
-            file = getFilePath(version);
-        }
+        for (version = 1; file.exists(); version++) file = getFilePath(version);
 
         return file;
     }

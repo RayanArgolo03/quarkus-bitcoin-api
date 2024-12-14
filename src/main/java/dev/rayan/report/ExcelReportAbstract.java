@@ -140,7 +140,8 @@ public final class ExcelReportAbstract extends ReportAbstractFile {
 //    }
 
     private void formatIndent(final Sheet sheet, final int... columns) {
-        Arrays.stream(columns).forEach(sheet::autoSizeColumn);
+        Arrays.stream(columns)
+                .forEach(sheet::autoSizeColumn);
     }
 
 

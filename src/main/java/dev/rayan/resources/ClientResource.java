@@ -124,8 +124,7 @@ public final class ClientResource {
             log.info("Quoting bitcoin");
             final Bitcoin bitcoin = service.quoteBitcoin();
 
-            //Todo verifique o motivos dos dados não serem retornados ao TransactionReponse
-            log.info("Sucess! Setting bitcoin attributes in reportResponse");
+            log.info("Setting bitcoin attributes in reportResponse");
             service.setBitcoinAttributesInResponse(reportResponse, bitcoin);
 
         } catch (ApiException e) {
@@ -136,7 +135,6 @@ public final class ClientResource {
         log.info("Mapping string report format to enum");
         final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
 
-        //Todo
         log.infof("Generating report in format %s", reportFormat);
         final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(reportFormat);
         reportAbstractFile.createReport(reportResponse, reportPeriod);

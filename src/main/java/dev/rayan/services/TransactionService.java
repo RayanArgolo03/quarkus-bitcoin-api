@@ -125,21 +125,24 @@ public final class TransactionService {
                 """, parameters);
     }
 
-    public void setBitcoinAttributesInResponse(final TransactionReportResponse response, final Bitcoin bitcoin) {
+    public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final Bitcoin bitcoin) {
 
-        String valuePurchased = "Sever unavailable",
-                valueSold = "Sever unavailable",
-                bitcoinDate = "Sever unavailable";
+        if (bitcoin == null) {
+            final String value = "Sever unavailable";
 
-        if (bitcoin != null) {
-            valuePurchased = FormatterUtils.formatMoney(calculateTransactionTotal(bitcoin.getLast(), response.getTotalPurchased()));
-            valueSold = FormatterUtils.formatMoney(calculateTransactionTotal(bitcoin.getLast(), response.getTotalSold()));
-            bitcoinDate = FormatterUtils.formatDate(bitcoin.getTime());
+            reportResponse.setValuePurchased(value);
+            reportResponse.setValueSold(value);
+            reportResponse.setBitcoinDate(value);
+
+            return;
         }
 
-        response.setValuePurchased(valuePurchased);
-        response.setValueSold(valueSold);
-        response.setBitcoinDate(bitcoinDate);
+        final BigDecimal valuePurchased = calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalPurchased());
+        final BigDecimal valueSold = calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalSold());
+
+        reportResponse.setValuePurchased(FormatterUtils.formatMoney(valuePurchased));
+        reportResponse.setValueSold(FormatterUtils.formatMoney(valueSold));
+        reportResponse.setBitcoinDate(FormatterUtils.formatDate(bitcoin.getTime()));
     }
 
     public BigDecimal calculateTransactionTotal(final BigDecimal last, final String quantity) {
