@@ -1,5 +1,6 @@
 package dev.rayan.resources;
 
+import dev.rayan.dto.request.TransactionFiltersRequest;
 import dev.rayan.dto.request.TransactionRequest;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
@@ -39,7 +40,7 @@ public final class ClientResource {
     Logger log;
 
     @Inject
-    TransactionService service;
+    TransactionService transactionService;
 
     @POST
     @Transactional
@@ -49,16 +50,16 @@ public final class ClientResource {
         //Todo valida se cliente está logado
 
         log.info("Persisting buy transaction");
-        final Transaction transaction = service.persistTransaction(request, TransactionType.PURCHASE);
+        final Transaction transaction = transactionService.persistTransaction(request, TransactionType.PURCHASE);
 
         log.info("Quoting bitcoin");
-        final Bitcoin quote = service.quoteBitcoin();
+        final Bitcoin quote = transactionService.quoteBitcoin();
 
         log.info("Creating resource URI");
-        final URI uri = service.createUri(uriInfo, transaction.getId());
+        final URI uri = transactionService.createUri(uriInfo, transaction.getId());
 
         return Response.created(uri)
-                .entity(service.getMappedTransaction(transaction, quote))
+                .entity(transactionService.getMappedTransaction(transaction, quote))
                 .build();
     }
 
@@ -71,28 +72,28 @@ public final class ClientResource {
         //Todo verifica se cliente está logado
 
         log.info("Find all transactions");
-        final List<Transaction> transactions = service.findAllTransactions(request.client());
+        final List<Transaction> transactions = transactionService.findAllTransactions(request.client());
 
         log.info("Validate sale quantity");
-        service.validateQuantity(transactions, request.quantity());
+        transactionService.validateQuantity(transactions, request.quantity());
 
         log.info("Persisting sale transaction");
-        final Transaction transaction = service.persistTransaction(request, TransactionType.SALE);
+        final Transaction transaction = transactionService.persistTransaction(request, TransactionType.SALE);
 
         log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = service.quoteBitcoin();
+        final Bitcoin bitcoin = transactionService.quoteBitcoin();
 
         log.info("Creating resource URI");
-        final URI uri = service.createUri(uriInfo, transaction.getId());
+        final URI uri = transactionService.createUri(uriInfo, transaction.getId());
 
         return Response.created(uri)
-                .entity(service.getMappedTransaction(transaction, bitcoin))
+                .entity(transactionService.getMappedTransaction(transaction, bitcoin))
                 .build();
     }
 
     @GET
-    @Path("/wallet/summary")
-    public Response findTransactionsSummaryByType(final Client client, @QueryParam("type") final List<String> types) {
+    @Path("/wallet/summary-by-types")
+    public Response findTransactionsSummaryByTypes(final Client client, @QueryParam("type") final List<String> types) {
 
         //Todo cliente precisa estar logado
 
@@ -100,7 +101,17 @@ public final class ClientResource {
         final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);
 
         log.info("Finding transactions by type");
-        return Response.ok(service.findTransactionsSummaryByType(client, transactionTypes))
+        return Response.ok(transactionService.findTransactionsSummaryByType(client, transactionTypes))
+                .build();
+    }
+
+    @GET
+    @Path("/wallet/summary-by-filters")
+    public Response findTransactionsSummaryByFilters(final Client client, @BeanParam @Valid final TransactionFiltersRequest request) {
+        //Todo cliente precisa estar logado
+
+        log.info("Finding transactions summary by filters");
+        return Response.ok(transactionService.findTransactionSummaryByFilters(client, request))
                 .build();
     }
 
@@ -117,19 +128,19 @@ public final class ClientResource {
         final TransactionReportPeriod reportPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
 
         log.infof("Finding transaction report on %s", reportPeriod);
-        final TransactionReportResponse reportResponse = service.findTransactionReport(client, reportPeriod);
+        final TransactionReportResponse reportResponse = transactionService.findTransactionReport(client, reportPeriod);
 
         //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
         try {
             log.info("Quoting bitcoin");
-            final Bitcoin bitcoin = service.quoteBitcoin();
+            final Bitcoin bitcoin = transactionService.quoteBitcoin();
 
             log.info("Setting bitcoin attributes in reportResponse");
-            service.setBitcoinAttributesInResponse(reportResponse, bitcoin);
+            transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoin);
 
         } catch (ApiException e) {
             log.infof("%s! Setting null bitcoin attributes in reportResponse", e.getMessage());
-            service.setBitcoinAttributesInResponse(reportResponse, null);
+            transactionService.setBitcoinAttributesInResponse(reportResponse, null);
         }
 
         log.info("Mapping string report format to enum");
@@ -142,7 +153,6 @@ public final class ClientResource {
         return Response.ok("Report created and downloaded!")
                 .build();
     }
-
 
 
 }

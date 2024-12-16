@@ -1,9 +1,11 @@
 package dev.rayan.services;
 
 import dev.rayan.adapters.BitcoinQuoteAdapter;
+import dev.rayan.dto.request.TransactionFiltersRequest;
 import dev.rayan.dto.request.TransactionRequest;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.dto.respose.TransactionResponse;
+import dev.rayan.dto.respose.TransactionSummaryByFiltersResponse;
 import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
@@ -18,6 +20,7 @@ import io.quarkus.hibernate.orm.panache.Panache;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.Parameter;
@@ -67,7 +70,7 @@ public final class TransactionService {
 
         return createQueryFindTransactionsSummaryByType(types, parameters)
                 .project(TransactionSummaryByTypeResponse.class)
-                .stream().toList();
+                .list();
     }
 
 
@@ -109,6 +112,7 @@ public final class TransactionService {
     }
 
     private PanacheQuery<Transaction> createQueryFindTransactionReport(final Parameters parameters) {
+
         return Transaction.find("""
                 SELECT
                     CAST(COUNT(*) AS STRING) transactionsMade,
@@ -123,6 +127,35 @@ public final class TransactionService {
                 WHERE client = :client
                 AND createdAt BETWEEN :initDate AND :finalDate
                 """, parameters);
+    }
+
+    public List<TransactionSummaryByFiltersResponse> findTransactionSummaryByFilters(final Client client, final TransactionFiltersRequest request) {
+
+        final Parameters parameters = Parameters.with("client", client)
+                .and("startDate", request.getStartDate())
+                .and("endDate", request.getEndDate())
+                .and("minQuantity", request.getMinQuantity())
+                .and("maxQuantity", request.getMaxQuantity());
+
+        return createQueryFindTransactionSummaryByFilters(request, parameters)
+                .project(TransactionSummaryByFiltersResponse.class)
+                .page(request.getPageIndex(), request.getPageSize())
+                .list();
+    }
+
+    private PanacheQuery<Transaction> createQueryFindTransactionSummaryByFilters(final TransactionFiltersRequest request, final Parameters parameters) {
+
+        final Sort sort = Sort.by("createdAt", request.getSortByMadeAtDirection())
+                .and("type", request.getSortByType())
+                .and("quantity", request.getSortByQuantityDirection());
+
+        return Transaction.find("""
+                SELECT TO_CHAR(createdAt, 'YYYY-MM-DD') madeAt, CAST(quantity AS STRING), CAST(type AS STRING)
+                FROM Transaction
+                WHERE client = :client
+                AND DATE(createdAt) BETWEEN :startDate AND :endDate
+                AND quantity BETWEEN :minQuantity AND :maxQuantity
+                """, sort, parameters);
     }
 
     public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final Bitcoin bitcoin) {
@@ -186,6 +219,6 @@ public final class TransactionService {
                 .build();
     }
 
-
 }
+
 
