@@ -7,12 +7,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TransactionFiltersRequest {
 
     @NotNull(message = "Start date required!")

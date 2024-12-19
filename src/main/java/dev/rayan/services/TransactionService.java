@@ -22,6 +22,7 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 
 import java.math.BigDecimal;
@@ -68,7 +69,6 @@ public final class TransactionService {
         //Todo remove
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
-
         final Optional<Transaction> optional = Transaction.find(
                 "client = ?1 AND quantity = ?2",
                 Sort.by("createdAt", sortCreatedAt),
@@ -87,9 +87,12 @@ public final class TransactionService {
         final Parameters parameters = Parameters.with("client", client);
         if (!types.isEmpty()) parameters.and("types", types);
 
-        return createQueryFindTransactionsSummaryByType(types, parameters)
+        final List<TransactionSummaryByTypeResponse> transactions = createQueryFindTransactionsSummaryByType(types, parameters)
                 .project(TransactionSummaryByTypeResponse.class)
                 .list();
+
+        if (transactions.isEmpty()) throw new NotFoundException("Transactions not found!");
+        return transactions;
     }
 
 
@@ -116,45 +119,6 @@ public final class TransactionService {
         return Transaction.find(query, parameters);
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
-
-        //Todo remove
-        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
-
-        final Parameters parameters = Parameters.with("client", client)
-                .and("startDate", period.getStartDate())
-                .and("endDate", period.getEndDate());
-
-        final Optional<TransactionReportResponse> optional = createQueryFindTransactionReport(parameters)
-                .project(TransactionReportResponse.class)
-                .firstResultOptional();
-
-        return optional
-                .orElseThrow(() -> new BusinessException("You haven´t made transactions yet!"));
-    }
-
-    private PanacheQuery<Transaction> createQueryFindTransactionReport(final Parameters parameters) {
-
-        return Transaction.find("""                
-                SELECT
-                    CAST(COUNT(*) AS STRING) transactionsMade,
-                   
-                    CAST(SUM(CASE WHEN type = 'PURCHASE' THEN quantity END) AS STRING) totalPurchased,
-                    TO_CHAR(MIN(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi') firstPurchase,
-                    TO_CHAR(MAX(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi') lastPurchase,
-                    
-                    COALESCE( CAST(SUM(CASE WHEN type = 'SALE' THEN quantity END) AS STRING), '0') totalSold,
-                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstSold,
-                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastSold,
-                    
-                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
-                FROM Transaction
-                WHERE client = :client
-                AND DATE(createdAt) BETWEEN :startDate AND :endDate
-                GROUP BY client
-                """, parameters);
-    }
-
     public List<TransactionSummaryByFiltersResponse> findTransactionSummaryByFilters(final Client client, final TransactionFiltersRequest request) {
 
         //Todo remove
@@ -166,10 +130,13 @@ public final class TransactionService {
                 .and("minQuantity", request.getMinQuantity())
                 .and("maxQuantity", request.getMaxQuantity());
 
-        return createQueryFindTransactionSummaryByFilters(request, parameters)
+        final List<TransactionSummaryByFiltersResponse> transactions = createQueryFindTransactionSummaryByFilters(request, parameters)
                 .project(TransactionSummaryByFiltersResponse.class)
                 .page(request.getPageIndex(), request.getPageSize())
                 .list();
+
+        if (transactions.isEmpty()) throw new NotFoundException("Transactions not found!");
+        return transactions;
     }
 
     private PanacheQuery<Transaction> createQueryFindTransactionSummaryByFilters(final TransactionFiltersRequest request, final Parameters parameters) {
@@ -187,6 +154,44 @@ public final class TransactionService {
                 """, sort, parameters);
     }
 
+    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
+
+        //Todo remove
+        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
+
+        final Parameters parameters = Parameters.with("client", client)
+                .and("startDate", period.getStartDate())
+                .and("endDate", period.getEndDate());
+
+        final Optional<TransactionReportResponse> optional = createQueryFindTransactionReport(parameters)
+                .project(TransactionReportResponse.class)
+                .firstResultOptional();
+
+        return optional
+                .orElseThrow(() -> new NotFoundException("You haven´t made transactions yet!"));
+    }
+
+    private PanacheQuery<Transaction> createQueryFindTransactionReport(final Parameters parameters) {
+
+        return Transaction.find("""                
+                SELECT
+                    CAST(COUNT(*) AS STRING) transactionsMade,
+                   
+                    COALESCE( CAST(SUM(CASE WHEN type = 'PURCHASE' THEN quantity END) AS STRING), '0') totalPurchased,
+                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstPurchase,
+                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastPurchase,
+                    
+                    COALESCE( CAST(SUM(CASE WHEN type = 'SALE' THEN quantity END) AS STRING), '0') totalSold,
+                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstSold,
+                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastSold,
+                    
+                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
+                FROM Transaction
+                WHERE client = :client
+                AND DATE(createdAt) BETWEEN :startDate AND :endDate
+                GROUP BY client
+                """, parameters);
+    }
 
     public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final Bitcoin bitcoin) {
 
@@ -244,7 +249,7 @@ public final class TransactionService {
 
     //Receives any ID type: UUID or Numbers implementation (int, long, float)
     public <T extends Comparable<T>> URI createUri(final UriInfo uriInfo, final T id) {
-        return uriInfo.getRequestUriBuilder()
+        return uriInfo.getAbsolutePathBuilder()
                 .path("{id}")
                 .resolveTemplate("id", id)
                 .build();

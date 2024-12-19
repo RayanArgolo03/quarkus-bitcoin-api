@@ -4,13 +4,11 @@ package dev.rayan.model.client;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Null;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -25,7 +23,6 @@ import java.util.UUID;
 @Table(name = "clients")
 public class Client {
 
-
     //TODO REMOVE SETTER
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -39,8 +36,14 @@ public class Client {
     @Column(nullable = false)
     String surname;
 
+    @Column(name = "birth_date", nullable = false)
+    LocalDate birthDate;
+
     @Column(nullable = false, length = 11)
     String cpf;
+
+    @Column(nullable = false)
+    String email;
 
     @Embedded
     Adress adress;
@@ -58,8 +61,8 @@ public class Client {
     @Column(name = "created_at")
     LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "last_update")
+    @Column(name = "updated_at")
     @UpdateTimestamp
-    LocalDateTime lastUpdate = null;
+    LocalDateTime updatedAt = null;
 
 }

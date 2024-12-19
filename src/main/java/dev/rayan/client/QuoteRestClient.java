@@ -16,7 +16,7 @@ import java.util.Optional;
 public interface QuoteRestClient {
 
     @GET
-    @Timeout(value = 2)
+    @Timeout(value = 2, unit = ChronoUnit.SECONDS)
     @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
     @Fallback(fallbackMethod = "fallback")
     Optional<Bitcoin> quote();
