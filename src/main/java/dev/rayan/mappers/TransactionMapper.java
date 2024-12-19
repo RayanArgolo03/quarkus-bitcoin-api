@@ -13,14 +13,16 @@ import java.math.BigDecimal;
 @Mapper(componentModel = "jakarta-cdi", imports = {FormatterUtils.class, BigDecimal.class})
 public interface TransactionMapper {
 
-    @Mapping(target = "currentValue", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast()))")
-    @Mapping(target = "valueDate", expression = "java(FormatterUtils.formatDate(bitcoin.getTime()))")
+    default String getDefaultMessage(){ return "Server unavailable"; }
+
+    @Mapping(target = "currentValue", expression = "java( (bitcoin.getLast() == null) ? getDefaultMessage() : FormatterUtils.formatMoney(bitcoin.getLast()))")
+    @Mapping(target = "valueDate", expression = "java( (bitcoin.getLast() == null) ? getDefaultMessage() : FormatterUtils.formatDate(bitcoin.getTime()))")
 
 
     @Mapping(target = "units", expression = "java(transaction.getQuantity().toString())")
     @Mapping(target = "transactionDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
     @Mapping(target = "type", expression = "java(transaction.getType().toString())")
-    @Mapping(target = "total", expression = "java(FormatterUtils.formatMoney(bitcoin.getLast().multiply(transaction.getQuantity())))")
+    @Mapping(target = "total", expression = "java((bitcoin.getLast() == null) ? getDefaultMessage() : FormatterUtils.formatMoney(bitcoin.getLast().multiply(transaction.getQuantity())))")
     TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, Bitcoin bitcoin);
 
 }

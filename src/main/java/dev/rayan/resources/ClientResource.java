@@ -9,6 +9,7 @@ import dev.rayan.enums.TransactionType;
 import dev.rayan.enums.validation.EnumValidator;
 import dev.rayan.exceptions.ApiException;
 import dev.rayan.factory.ReportFileFactory;
+import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
@@ -59,15 +60,17 @@ public final class ClientResource {
         log.info("Persisting buy transaction");
         final Transaction transaction = transactionService.persistTransaction(request, TransactionType.PURCHASE);
 
-        log.info("Quoting bitcoin");
-        final Bitcoin quote = transactionService.quoteBitcoin();
-
         log.info("Creating resource URI");
         final URI uri = transactionService.createUri(uriInfo, transaction.getId());
 
+        log.info("Quoting bitcoin");
+        final Bitcoin quote = transactionService.quoteBitcoin();
+
+        log.info("Returning mapped transaction");
         return Response.created(uri)
                 .entity(transactionService.getMappedTransaction(transaction, quote))
                 .build();
+
     }
 
 
@@ -175,17 +178,11 @@ public final class ClientResource {
         final TransactionReportResponse reportResponse = transactionService.findTransactionReport(client, reportPeriod);
 
         //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
-        try {
-            log.info("Quoting bitcoin");
-            final Bitcoin bitcoin = transactionService.quoteBitcoin();
+        log.info("Quoting bitcoin");
+        final Bitcoin bitcoin = transactionService.quoteBitcoin();
 
-            log.info("Setting bitcoin attributes in reportResponse");
-            transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoin);
-
-        } catch (ApiException e) {
-            log.infof("%s Setting null bitcoin attributes in reportResponse", e.getMessage());
-            transactionService.setBitcoinAttributesInResponse(reportResponse, null);
-        }
+        log.info("Setting bitcoin attributes in reportResponse");
+        transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoin);
 
         log.info("Mapping string report format to enum");
         final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
@@ -198,10 +195,8 @@ public final class ClientResource {
             return Response.ok("Report created and downloaded!")
                     .build();
 
-        } catch (IllegalAccessException | IOException  e) {
-            return Response.status(INTERNAL_SERVER_ERROR)
-                    .entity("Server error! Contact the support in Linkedin: rayan_argolo")
-                    .build();
+        } catch (IllegalAccessException | IOException e) {
+            throw new WebApplicationException("Server error! Contact the support in Linkedin: rayan_argolo", INTERNAL_SERVER_ERROR);
         }
     }
 

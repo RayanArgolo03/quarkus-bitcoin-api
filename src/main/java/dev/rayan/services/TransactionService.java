@@ -43,7 +43,7 @@ public final class TransactionService {
 
     public Bitcoin quoteBitcoin() {
         return adapter.quote()
-                .orElseThrow(() -> new ApiException("Cannot quote bitcoin!"));
+                .orElse(null);
     }
 
     public Transaction persistTransaction(final TransactionRequest request, final TransactionType type) {
