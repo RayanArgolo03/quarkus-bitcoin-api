@@ -25,11 +25,15 @@ CREATE TYPE type_enum AS ENUM ('PURCHASE', 'SALE');
 CREATE TABLE transactions
 (
     transaction_id UUID PRIMARY KEY,
-    quantity       NUMERIC NOT NULL,
+    quantity       NUMERIC   NOT NULL,
     client_id      UUID REFERENCES clients (client_id),
-    type           type_enum      NOT NULL,
+    type           type_enum NOT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- create transactions indexes for queries
+CREATE INDEX IF NOT EXISTS idx_type ON transactions (type);
+CREATE INDEX IF NOT EXISTS idx_client ON transactions (client_id);
 
 -- mocking clients
 

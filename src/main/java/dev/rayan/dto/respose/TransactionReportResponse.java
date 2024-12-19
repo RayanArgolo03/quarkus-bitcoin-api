@@ -44,7 +44,7 @@ public final class TransactionReportResponse {
     String bitcoinDate;
 
     //Declaring exception in assinature because the compiler not capture exception in stream
-    public Map<String, String> getFieldsAndValues() throws IllegalAccessException{
+    public Map<String, String> getFieldsAndValues() throws IllegalAccessException {
 
         //LinkedHashMap preserve original insertion order
         final Map<String, String> fieldsAndValues = new LinkedHashMap<>();

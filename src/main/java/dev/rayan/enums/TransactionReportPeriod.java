@@ -9,21 +9,18 @@ import java.time.*;
 public enum TransactionReportPeriod implements BaseEnum<TransactionReportPeriod> {
 
     CURRENT_YEAR(
-            LocalDateTime.of(
-                    LocalDate.of(Year.now().getValue() - 1, MonthDay.now().getMonth().getValue(), MonthDay.now().getDayOfMonth()),
-                    LocalTime.now()
-            ),
+            LocalDate.of(Year.now().getValue() - 1, MonthDay.now().getMonth().getValue(), MonthDay.now().getDayOfMonth()),
             "Current Year"
     );
 
-    private final LocalDateTime initDate;
-    private final LocalDateTime finalDate;
+    private final LocalDate startDate;
+    private final LocalDate endDate;
     private final String value;
 
-    TransactionReportPeriod(LocalDateTime initDate, String value) {
-        this.initDate = initDate;
+    TransactionReportPeriod(LocalDate startDate, String value) {
+        this.startDate = startDate;
         //Is always current date
-        this.finalDate = LocalDateTime.now();
+        this.endDate = LocalDate.now();
         this.value = value;
     }
 

@@ -16,15 +16,12 @@ import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
 import dev.rayan.utils.FormatterUtils;
-import io.quarkus.hibernate.orm.panache.Panache;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.Parameter;
-import jakarta.persistence.Query;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.UriInfo;
 
 import java.math.BigDecimal;
@@ -32,6 +29,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -45,7 +43,7 @@ public final class TransactionService {
 
     public Bitcoin quoteBitcoin() {
         return adapter.quote()
-                .orElseThrow(() -> new ApiException("Cannot quote bitcoin"));
+                .orElseThrow(() -> new ApiException("Cannot quote bitcoin!"));
     }
 
     public Transaction persistTransaction(final TransactionRequest request, final TransactionType type) {
@@ -59,6 +57,27 @@ public final class TransactionService {
     public List<Transaction> findAllTransactions(final Client client) {
         return Transaction.list("client", client);
     }
+
+    public Transaction findTransactionById(final UUID id) {
+        final Optional<Transaction> optional = Transaction.findByIdOptional(id);
+        return optional.orElseThrow(() -> new NotFoundException("Transaction not found!"));
+    }
+
+    public Transaction findTransactionByQuantity(final Client client, final BigDecimal quantity, final Sort.Direction sortCreatedAt) {
+
+        //Todo remove
+        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
+
+
+        final Optional<Transaction> optional = Transaction.find(
+                "client = ?1 AND quantity = ?2",
+                Sort.by("createdAt", sortCreatedAt),
+                client, quantity
+        ).firstResultOptional();
+
+        return optional.orElseThrow(() -> new NotFoundException("Transaction not found!"));
+    }
+
 
     public List<TransactionSummaryByTypeResponse> findTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
 
@@ -103,33 +122,43 @@ public final class TransactionService {
         client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
         final Parameters parameters = Parameters.with("client", client)
-                .and("initDate", period.getInitDate())
-                .and("finalDate", period.getFinalDate());
+                .and("startDate", period.getStartDate())
+                .and("endDate", period.getEndDate());
 
-        return createQueryFindTransactionReport(parameters)
+        final Optional<TransactionReportResponse> optional = createQueryFindTransactionReport(parameters)
                 .project(TransactionReportResponse.class)
-                .firstResult();
+                .firstResultOptional();
+
+        return optional
+                .orElseThrow(() -> new BusinessException("You haven´t made transactions yet!"));
     }
 
     private PanacheQuery<Transaction> createQueryFindTransactionReport(final Parameters parameters) {
 
-        return Transaction.find("""
+        return Transaction.find("""                
                 SELECT
                     CAST(COUNT(*) AS STRING) transactionsMade,
-                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'PURCHASE') AS STRING) totalPurchased,
-                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') firstPurchase,
-                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'PURCHASE'), 'YYYY-MM-DD HH24:mi') lastPurchase,
-                    CAST((SELECT SUM(quantity) FROM Transaction t WHERE type = 'SALE') AS STRING) totalSold,
-                    TO_CHAR((SELECT MIN(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') firstSold,
-                    TO_CHAR((SELECT MAX(createdAt) FROM Transaction t WHERE type = 'SALE'), 'YYYY-MM-DD HH24:mi') lastSold,
+                   
+                    CAST(SUM(CASE WHEN type = 'PURCHASE' THEN quantity END) AS STRING) totalPurchased,
+                    TO_CHAR(MIN(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi') firstPurchase,
+                    TO_CHAR(MAX(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi') lastPurchase,
+                    
+                    COALESCE( CAST(SUM(CASE WHEN type = 'SALE' THEN quantity END) AS STRING), '0') totalSold,
+                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstSold,
+                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastSold,
+                    
                     TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
                 FROM Transaction
                 WHERE client = :client
-                AND createdAt BETWEEN :initDate AND :finalDate
+                AND DATE(createdAt) BETWEEN :startDate AND :endDate
+                GROUP BY client
                 """, parameters);
     }
 
     public List<TransactionSummaryByFiltersResponse> findTransactionSummaryByFilters(final Client client, final TransactionFiltersRequest request) {
+
+        //Todo remove
+        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
 
         final Parameters parameters = Parameters.with("client", client)
                 .and("startDate", request.getStartDate())
@@ -158,24 +187,27 @@ public final class TransactionService {
                 """, sort, parameters);
     }
 
+
     public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final Bitcoin bitcoin) {
 
-        if (bitcoin == null) {
-            final String value = "Sever unavailable";
+        String value = "Server unavailable", valuePurchased = value, valueSold = value, bitcoinDate = value;
 
-            reportResponse.setValuePurchased(value);
-            reportResponse.setValueSold(value);
-            reportResponse.setBitcoinDate(value);
+        if (bitcoin != null) {
 
-            return;
+            valuePurchased = FormatterUtils.formatMoney(
+                    calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalPurchased())
+            );
+
+            valueSold = FormatterUtils.formatMoney(
+                    calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalSold())
+            );
+
+            bitcoinDate = FormatterUtils.formatDate(bitcoin.getTime());
         }
 
-        final BigDecimal valuePurchased = calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalPurchased());
-        final BigDecimal valueSold = calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalSold());
-
-        reportResponse.setValuePurchased(FormatterUtils.formatMoney(valuePurchased));
-        reportResponse.setValueSold(FormatterUtils.formatMoney(valueSold));
-        reportResponse.setBitcoinDate(FormatterUtils.formatDate(bitcoin.getTime()));
+        reportResponse.setValuePurchased(valuePurchased);
+        reportResponse.setValueSold(valueSold);
+        reportResponse.setBitcoinDate(bitcoinDate);
     }
 
     public BigDecimal calculateTransactionTotal(final BigDecimal last, final String quantity) {
@@ -210,7 +242,6 @@ public final class TransactionService {
         return transactionMapper.transactionInfoToTransactionResponse(transaction, bitcoin);
     }
 
-
     //Receives any ID type: UUID or Numbers implementation (int, long, float)
     public <T extends Comparable<T>> URI createUri(final UriInfo uriInfo, final T id) {
         return uriInfo.getRequestUriBuilder()
@@ -218,6 +249,7 @@ public final class TransactionService {
                 .resolveTemplate("id", id)
                 .build();
     }
+
 
 }
 

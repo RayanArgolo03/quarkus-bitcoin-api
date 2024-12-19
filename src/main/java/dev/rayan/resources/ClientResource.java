@@ -15,9 +15,12 @@ import dev.rayan.model.client.Client;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
+import io.quarkus.panache.common.Sort;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -25,8 +28,12 @@ import jakarta.ws.rs.core.UriInfo;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
+
+import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 @Path(ClientResource.RESOUCE_PATH)
 public final class ClientResource {
@@ -92,7 +99,7 @@ public final class ClientResource {
     }
 
     @GET
-    @Path("/wallet/summary-by-types")
+    @Path("/transactions/summary-by-types")
     public Response findTransactionsSummaryByTypes(final Client client, @QueryParam("type") final List<String> types) {
 
         //Todo cliente precisa estar logado
@@ -106,7 +113,7 @@ public final class ClientResource {
     }
 
     @GET
-    @Path("/wallet/summary-by-filters")
+    @Path("/transactions/summary-by-filters")
     public Response findTransactionsSummaryByFilters(final Client client, @BeanParam @Valid final TransactionFiltersRequest request) {
         //Todo cliente precisa estar logado
 
@@ -116,11 +123,48 @@ public final class ClientResource {
     }
 
     @GET
-    @Path("/wallet/report")
+    @Path("/transactions/{id}")
+    public Response findTransactionById(@PathParam("id") final UUID id) {
+
+        //Todo client precisa estar logado
+
+        log.info("Finding transaction by id");
+        final Transaction transaction = transactionService.findTransactionById(id);
+
+        log.info("Quoting bitcoin");
+        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+
+        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoin))
+                .build();
+    }
+
+    @GET
+    @Path("/transactions/last-transaction-by-quantity")
+    public Response findTransactionByQuantity(final Client client,
+                                              @QueryParam("quantity")
+                                              @DecimalMin(value = "0", inclusive = false, message = "Quantity must be greater than 0!!")
+                                              @NotNull(message = "Quantity required!") final BigDecimal quantity,
+                                              @QueryParam("sortCreatedAt")
+                                              @DefaultValue("Ascending") final Sort.Direction sortCreatedAtDirection) {
+
+        //Todo client precisa estar logado
+
+        log.infof("Finding transaction by quantity and sort created at %s", sortCreatedAtDirection);
+        final Transaction transaction = transactionService.findTransactionByQuantity(client, quantity, sortCreatedAtDirection);
+
+        log.info("Quoting bitcoin");
+        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+
+        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoin))
+                .build();
+    }
+
+
+    @GET
+    @Path("/transactions/report")
     public Response createTransactionReport(final Client client,
                                             @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
-                                            @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period)
-            throws IllegalAccessException, IOException {
+                                            @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period) {
 
         //Todo cliente precisa estar logado
 
@@ -139,20 +183,26 @@ public final class ClientResource {
             transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoin);
 
         } catch (ApiException e) {
-            log.infof("%s! Setting null bitcoin attributes in reportResponse", e.getMessage());
+            log.infof("%s Setting null bitcoin attributes in reportResponse", e.getMessage());
             transactionService.setBitcoinAttributesInResponse(reportResponse, null);
         }
 
         log.info("Mapping string report format to enum");
         final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
 
-        log.infof("Generating report in format %s", reportFormat);
-        final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(reportFormat);
-        reportAbstractFile.createReport(reportResponse, reportPeriod);
+        try {
+            log.infof("Generating report in format %s", reportFormat);
+            final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(reportFormat);
+            reportAbstractFile.createReport(reportResponse, reportPeriod);
 
-        return Response.ok("Report created and downloaded!")
-                .build();
+            return Response.ok("Report created and downloaded!")
+                    .build();
+
+        } catch (IllegalAccessException | IOException  e) {
+            return Response.status(INTERNAL_SERVER_ERROR)
+                    .entity("Server error! Contact the support in Linkedin: rayan_argolo")
+                    .build();
+        }
     }
-
 
 }
