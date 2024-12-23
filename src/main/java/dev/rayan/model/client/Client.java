@@ -3,6 +3,11 @@ package dev.rayan.model.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
+import io.quarkus.elytron.security.common.BcryptUtil;
+import io.quarkus.security.jpa.Password;
+import io.quarkus.security.jpa.Roles;
+import io.quarkus.security.jpa.UserDefinition;
+import io.quarkus.security.jpa.Username;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -19,15 +24,14 @@ import java.util.UUID;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
+@UserDefinition
 @Entity
 @Table(name = "clients")
 public class Client {
 
-    //TODO REMOVE SETTER
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "client_id")
-    @Setter
     UUID id;
 
     @Column(name = "first_name", nullable = false)
@@ -39,20 +43,26 @@ public class Client {
     @Column(name = "birth_date", nullable = false)
     LocalDate birthDate;
 
-    @Column(nullable = false, length = 11)
+    @Column(nullable = false, length = 11, unique = true)
     String cpf;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     String email;
 
     @Embedded
-    Adress adress;
+    Address address;
 
-    @Column(name = "user_name", nullable = false, unique = true)
+    @Username
+    @Column(name = "username", nullable = false, unique = true)
     String username;
 
+    @Password
     @Column(nullable = false)
     String password;
+
+    @Roles
+    @Column(nullable = false)
+    String roles;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -64,5 +74,14 @@ public class Client {
     @Column(name = "updated_at")
     @UpdateTimestamp
     LocalDateTime updatedAt = null;
+
+    public static void setRoleAndEncryptPassword(final Client client) {
+        client.password = BcryptUtil.bcryptHash(client.password);
+
+        client.roles = (client.username.equals("admin"))
+                ? "admin"
+                : "user";
+    }
+
 
 }

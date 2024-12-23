@@ -2,7 +2,6 @@ package dev.rayan.model.client;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.Embedded;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
 @Embeddable
-public class Adress {
+public class Address {
 
     @Column(nullable = false, length = 8)
     String cep;

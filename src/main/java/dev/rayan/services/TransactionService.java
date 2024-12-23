@@ -9,7 +9,6 @@ import dev.rayan.dto.respose.TransactionSummaryByFiltersResponse;
 import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.exceptions.ApiException;
 import dev.rayan.exceptions.BusinessException;
 import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
@@ -22,7 +21,6 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 
 import java.math.BigDecimal;
@@ -37,7 +35,7 @@ import java.util.UUID;
 public final class TransactionService {
 
     @Inject
-    TransactionMapper transactionMapper;
+    TransactionMapper mapper;
 
     @Inject
     BitcoinQuoteAdapter adapter;
@@ -64,27 +62,22 @@ public final class TransactionService {
         return optional.orElseThrow(() -> new NotFoundException("Transaction not found!"));
     }
 
-    public Transaction findTransactionByQuantity(final Client client, final BigDecimal quantity, final Sort.Direction sortCreatedAt) {
 
-        //Todo remove
-        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
+    public Transaction findTransactionByQuantity(final UUID clientId, final BigDecimal quantity, final Sort.Direction sortCreatedAt) {
 
         final Optional<Transaction> optional = Transaction.find(
-                "client = ?1 AND quantity = ?2",
+                "client.id = ?1 AND quantity = ?2",
                 Sort.by("createdAt", sortCreatedAt),
-                client, quantity
+                clientId, quantity
         ).firstResultOptional();
 
         return optional.orElseThrow(() -> new NotFoundException("Transaction not found!"));
     }
 
 
-    public List<TransactionSummaryByTypeResponse> findTransactionsSummaryByType(final Client client, final List<TransactionType> types) {
+    public List<TransactionSummaryByTypeResponse> findTransactionsSummaryByType(final UUID clientId, final List<TransactionType> types) {
 
-        //Todo remove
-        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
-
-        final Parameters parameters = Parameters.with("client", client);
+        final Parameters parameters = Parameters.with("clientId", clientId);
         if (!types.isEmpty()) parameters.and("types", types);
 
         final List<TransactionSummaryByTypeResponse> transactions = createQueryFindTransactionsSummaryByType(types, parameters)
@@ -110,7 +103,7 @@ public final class TransactionService {
                               ' day(s)'
                           ) periodBetweenFirstAndLast
                        FROM Transaction
-                       WHERE client = :client
+                       WHERE client.id = :clientId
                 """;
 
         if (!types.isEmpty()) query += " AND type IN (:types)";
@@ -119,12 +112,9 @@ public final class TransactionService {
         return Transaction.find(query, parameters);
     }
 
-    public List<TransactionSummaryByFiltersResponse> findTransactionSummaryByFilters(final Client client, final TransactionFiltersRequest request) {
+    public List<TransactionSummaryByFiltersResponse> findTransactionSummaryByFilters(final UUID clientId, final TransactionFiltersRequest request) {
 
-        //Todo remove
-        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
-
-        final Parameters parameters = Parameters.with("client", client)
+        final Parameters parameters = Parameters.with("clientId", clientId)
                 .and("startDate", request.getStartDate())
                 .and("endDate", request.getEndDate())
                 .and("minQuantity", request.getMinQuantity())
@@ -148,18 +138,15 @@ public final class TransactionService {
         return Transaction.find("""
                 SELECT TO_CHAR(createdAt, 'YYYY-MM-DD') madeAt, CAST(quantity AS STRING), CAST(type AS STRING)
                 FROM Transaction
-                WHERE client = :client
+                WHERE client.id = :clientId
                 AND DATE(createdAt) BETWEEN :startDate AND :endDate
                 AND quantity BETWEEN :minQuantity AND :maxQuantity
                 """, sort, parameters);
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
+    public TransactionReportResponse findTransactionReport(final UUID clientId, final TransactionReportPeriod period) {
 
-        //Todo remove
-        client.setId(UUID.fromString("8c878e6f-ee13-4a37-a208-7510c2638944"));
-
-        final Parameters parameters = Parameters.with("client", client)
+        final Parameters parameters = Parameters.with("clientId", clientId)
                 .and("startDate", period.getStartDate())
                 .and("endDate", period.getEndDate());
 
@@ -187,7 +174,7 @@ public final class TransactionService {
                     
                     TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
                 FROM Transaction
-                WHERE client = :client
+                WHERE client.id = :clientId
                 AND DATE(createdAt) BETWEEN :startDate AND :endDate
                 GROUP BY client
                 """, parameters);
@@ -244,7 +231,7 @@ public final class TransactionService {
     }
 
     public TransactionResponse getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
-        return transactionMapper.transactionInfoToTransactionResponse(transaction, bitcoin);
+        return mapper.transactionInfoToTransactionResponse(transaction, bitcoin);
     }
 
     //Receives any ID type: UUID or Numbers implementation (int, long, float)

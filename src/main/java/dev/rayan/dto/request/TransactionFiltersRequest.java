@@ -1,5 +1,6 @@
 package dev.rayan.dto.request;
 
+import io.quarkus.arc.All;
 import io.quarkus.panache.common.Sort;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -8,14 +9,15 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TransactionFiltersRequest {
 
     @NotNull(message = "Start date required!")
