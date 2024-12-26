@@ -10,6 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
-public final class ClientRepository implements PanacheRepositoryBase<Client, UUID> {
+public final class CredentialRepository implements PanacheRepositoryBase<Credential, UUID> {
+
+    public Optional<Credential> findCredential(final CredentialRequest request) {
+        return Optional.empty();
+    }
 
 }

@@ -21,12 +21,10 @@ import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.core.UriInfo;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,7 +43,7 @@ public final class TransactionService {
                 .orElse(null);
     }
 
-    public Transaction persistTransaction(final TransactionRequest request, final TransactionType type) {
+    public Transaction persist(final TransactionRequest request, final TransactionType type) {
 
         final Transaction transaction = new Transaction(request.quantity(), request.client(), type);
         Transaction.persist(transaction);
@@ -232,14 +230,6 @@ public final class TransactionService {
 
     public TransactionResponse getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
         return mapper.transactionInfoToTransactionResponse(transaction, bitcoin);
-    }
-
-    //Receives any ID type: UUID or Numbers implementation (int, long, float)
-    public <T extends Comparable<T>> URI createUri(final UriInfo uriInfo, final T id) {
-        return uriInfo.getAbsolutePathBuilder()
-                .path("{id}")
-                .resolveTemplate("id", id)
-                .build();
     }
 
 

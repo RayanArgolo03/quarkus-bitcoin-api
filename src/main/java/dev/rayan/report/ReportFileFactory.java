@@ -1,4 +1,4 @@
-package dev.rayan.factory;
+package dev.rayan.report;
 
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.report.ExcelReportAbstract;

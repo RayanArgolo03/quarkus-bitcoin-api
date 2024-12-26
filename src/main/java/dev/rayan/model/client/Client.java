@@ -4,10 +4,6 @@ package dev.rayan.model.client;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
 import io.quarkus.elytron.security.common.BcryptUtil;
-import io.quarkus.security.jpa.Password;
-import io.quarkus.security.jpa.Roles;
-import io.quarkus.security.jpa.UserDefinition;
-import io.quarkus.security.jpa.Username;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,10 +20,9 @@ import java.util.UUID;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
-@UserDefinition
 @Entity
 @Table(name = "clients")
-public class Client {
+public final class Client {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,23 +41,8 @@ public class Client {
     @Column(nullable = false, length = 11, unique = true)
     String cpf;
 
-    @Column(nullable = false, unique = true)
-    String email;
-
     @Embedded
     Address address;
-
-    @Username
-    @Column(name = "username", nullable = false, unique = true)
-    String username;
-
-    @Password
-    @Column(nullable = false)
-    String password;
-
-    @Roles
-    @Column(nullable = false)
-    String roles;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -74,14 +54,6 @@ public class Client {
     @Column(name = "updated_at")
     @UpdateTimestamp
     LocalDateTime updatedAt = null;
-
-    public static void setRoleAndEncryptPassword(final Client client) {
-        client.password = BcryptUtil.bcryptHash(client.password);
-
-        client.roles = (client.username.equals("admin"))
-                ? "admin"
-                : "user";
-    }
 
 
 }
