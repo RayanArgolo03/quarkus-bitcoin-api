@@ -21,7 +21,7 @@ public final class ConstraintViolationHandler implements ExceptionMapper<Constra
     @Override
     public Response toResponse(final ConstraintViolationException e) {
 
-        log.errorf("Exception! %s", e.getMessage());
+        log.errorf("Exceptions: %s", e.getMessage());
         return Response.status(BAD_REQUEST)
                 .entity(new ExceptionResponse(e.getConstraintViolations()))
                 .build();

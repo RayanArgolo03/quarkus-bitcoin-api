@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE)
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public final class Bitcoin {
+public class Bitcoin {
 
     BigDecimal last;
     LocalDateTime time = LocalDateTime.now();

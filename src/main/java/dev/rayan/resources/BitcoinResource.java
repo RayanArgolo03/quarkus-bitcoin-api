@@ -18,6 +18,8 @@ import jakarta.ws.rs.core.SecurityContext;
 import org.jboss.logging.Logger;
 
 @Path(BitcoinResource.RESOUCE_PATH)
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public final class BitcoinResource {
 
     public static final String RESOUCE_PATH = "/api/v1/bitcoins";

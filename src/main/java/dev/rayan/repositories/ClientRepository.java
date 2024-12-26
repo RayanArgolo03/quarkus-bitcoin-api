@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @ApplicationScoped
 public final class ClientRepository implements PanacheRepositoryBase<Client, UUID> {
+
 }
