@@ -64,7 +64,7 @@ public final class ClientResource {
         log.info("Creating uri redirect info");
         final URI redirectUri = uriInfo.getBaseUriBuilder()
                 .path(RESOUCE_PATH + "/{clientId}/transactions/summary-by-types")
-                .resolveTemplate("clientId", credential.getId())
+                .resolveTemplate("clientId", credential)
                 .build();
 
         return Response.seeOther(redirectUri)

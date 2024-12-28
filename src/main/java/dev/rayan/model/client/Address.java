@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
 @Embeddable
-public class Address {
+public final class Address {
 
     @Column(nullable = false, length = 8)
     String cep;
