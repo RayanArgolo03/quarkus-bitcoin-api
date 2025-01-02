@@ -46,6 +46,14 @@
   "roles": {
     "realm": [
       {
+        "id": "3fc80564-13ac-4e7b-9986-322f571e82bc",
+        "name": "confidential",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "36382947-8ffa-4a8a-9881-2b7eeb84f800",
+        "attributes": {}
+      },
+      {
         "id": "8c1abe12-62fe-4a06-ae0d-f5fb67dddbb0",
         "name": "admin",
         "composite": false,
@@ -56,6 +64,45 @@
       {
         "id": "5afce544-6a3c-495f-b805-fd737cf5081e",
         "name": "user",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "36382947-8ffa-4a8a-9881-2b7eeb84f800",
+        "attributes": {}
+      },
+      {
+        "id": "2b6632ed-9e3b-4e28-86ed-1d0239c7cefc",
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "36382947-8ffa-4a8a-9881-2b7eeb84f800",
+        "attributes": {}
+      },
+      {
+        "id": "d70f9032-c77a-4aca-88d8-d914ee2905a4",
+        "name": "default-roles-quarkus",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization"
+          ],
+          "client": {
+            "account": [
+              "manage-account",
+              "view-profile"
+            ]
+          }
+        },
+        "clientRole": false,
+        "containerId": "36382947-8ffa-4a8a-9881-2b7eeb84f800",
+        "attributes": {}
+      },
+      {
+        "id": "5dbf8bd3-db6f-4394-94f9-b311d08baf4c",
+        "name": "offline_access",
+        "description": "${role_offline-access}",
         "composite": false,
         "clientRole": false,
         "containerId": "36382947-8ffa-4a8a-9881-2b7eeb84f800",
@@ -281,6 +328,22 @@
         {
           "id": "df147a91-6da7-4bbc-866c-f30cf99b2637",
           "name": "uma_protection",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "0ac5df91-e044-4051-bd03-106a3a5fb9cc",
+          "attributes": {}
+        },
+        {
+          "id": "df247a91-6da7-4bbc-866c-f30cf99b2637",
+          "name": "user",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "0ac5df91-e044-4051-bd03-106a3a5fb9cc",
+          "attributes": {}
+        },
+        {
+          "id": "df347a91-6da7-4bbc-866c-f30cf99b2637",
+          "name": "admin",
           "composite": false,
           "clientRole": true,
           "containerId": "0ac5df91-e044-4051-bd03-106a3a5fb9cc",
@@ -2311,7 +2374,7 @@
   "users": [
     {
       "id": "af134cab-f41c-4675-b141-205f975db679",
-      "username": "rayan",
+      "username": "admin",
       "enabled": true,
       "totp": false,
       "emailVerified": false,
@@ -2341,8 +2404,38 @@
       "groups": []
     },
     {
+      "id": "eb4123a3-b722-4798-9af5-8957f823657a",
+      "username": "alice",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "hashedSaltedValue": "A3okqV2T/ybXTVEgKfosoSjP8Yc9IZbFP/SY4cEd6hag7TABQrQ6nUSuwagGt96l8cw1DTijO75PqX6uiTXMzw==",
+          "salt": "sl4mXx6T9FypPH/s9TngfQ==",
+          "hashIterations": 27500,
+          "counter": 0,
+          "algorithm": "pbkdf2-sha256",
+          "digits": 0,
+          "period": 0,
+          "createdDate": 1554245879116,
+          "config": {}
+        }
+      ],
+      "disableableCredentialTypes": [
+        "password"
+      ],
+      "requiredActions": [],
+      "realmRoles": [
+        "user"
+      ],
+      "notBefore": 0,
+      "groups": []
+    },
+    {
       "id": "1eed6a8e-a853-4597-b4c6-c4c2533546a0",
-      "username": "soros",
+      "username": "jdoe",
       "enabled": true,
       "totp": false,
       "emailVerified": false,
@@ -2365,6 +2458,7 @@
       ],
       "requiredActions": [],
       "realmRoles": [
+        "confidential",
         "user"
       ],
       "notBefore": 0,
