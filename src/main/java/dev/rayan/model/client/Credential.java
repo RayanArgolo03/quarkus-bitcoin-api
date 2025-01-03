@@ -6,6 +6,9 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.DynamicInsert;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
@@ -31,6 +34,9 @@ public class Credential {
     @OneToOne(mappedBy = "credential")
     @PrimaryKeyJoinColumn
     Client client;
+
+    @Column(name = "created_at")
+    final ZonedDateTime createdAt = ZonedDateTime.now();
 
     public Credential(String email, String password) {
         this.email = email;

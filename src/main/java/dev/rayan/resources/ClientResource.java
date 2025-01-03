@@ -1,7 +1,6 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.*;
-import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
@@ -25,6 +24,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import org.jboss.logging.Logger;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.common.util.KeycloakUriBuilder;
+import org.keycloak.representations.idm.UserRepresentation;
 
 import java.io.IOException;
 import java.net.URI;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static java.lang.String.format;
 
 @Path(ClientResource.RESOUCE_PATH)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -49,26 +52,26 @@ public final class ClientResource {
     @Inject
     Logger log;
 
+    //Todo adicionar usuários do Migrations no Keycloak ao iniciar aplicação
+
     @POST
     @Transactional
     @PermitAll
     @Path("/sign-up")
     public Response createClientCredential(@Valid final CredentialRequest request) {
 
-        log.info("Creating client credential");
+        log.info("Persisting client credential in database and keycloak");
         final Credential credential = facade.persistCredential(request);
 
-        log.info("Login");
-        final CredentialResponse response = facade.login(request);
-
-        log.info("Creating uri redirect info");
-        final URI redirectUri = uriInfo.getBaseUriBuilder()
-                .path(RESOUCE_PATH + "/{clientId}/transactions/summary-by-types")
-                .resolveTemplate("clientId", credential)
+        log.info("Creating uri info");
+        final URI uri = uriInfo.getAbsolutePathBuilder()
+                .path("/{id}")
+                .resolveTemplate("id", credential.getId())
                 .build();
 
-        return Response.seeOther(redirectUri)
-                .header("Authorization", "Bearer " + response.token())
+        //Front-end redirect to the login page after confirmation
+        return Response.created(uri)
+                .entity(format("The confirmation email was sent to %s", credential.getEmail()))
                 .build();
     }
 
@@ -77,8 +80,11 @@ public final class ClientResource {
     @Path("/login")
     public Response login(@Valid final CredentialRequest request) {
 
+        //Todo refresh token se cliente já estiver logado
+        //Todo verifica se cliente confirmou email, se não estoura exception
+
         log.info("Login");
-        final CredentialResponse response = facade.login(request);
+        facade.login(request);
 
         return Response.ok()
                 .entity("Welcome again!")
@@ -86,11 +92,9 @@ public final class ClientResource {
     }
 
     @POST
-    @RolesAllowed("client")
+    @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final ClientRequest request, @CookieParam("Authorization") final String token) {
-
-        System.out.println(token);
+    public Response createClient(@Valid final ClientRequest request, @HeaderParam("Authorization") final String token) {
 
         log.info("Creating client");
         final Client client = facade.persistClient(request);
@@ -110,6 +114,7 @@ public final class ClientResource {
     @Path("/{id}")
     @Authenticated
     public Response findClientById(@PathParam("id") @NotNull(message = "Required id!") final UUID id) {
+
 
         log.info("Finding client by id");
         final Client client = facade.findClientById(id);
@@ -179,10 +184,12 @@ public final class ClientResource {
     @RolesAllowed("client")
     @Path("/{clientId}/transactions/summary-by-types")
     public Response findTransactionsSummaryByTypes(@Context final SecurityContext context,
+                                                   @HeaderParam("Authorization") final String token,
                                                    @PathParam("clientId") final UUID clientId,
-                                                   @QueryParam("type") final List<String> types,
-                                                   @HeaderParam("Authorization") final String token) {
-        System.out.println("asas");
+                                                   @QueryParam("type") final List<String> types) {
+
+        System.out.println();
+        facade.findClientById(clientId);
 
         log.info("Mapping string types to enum");
         final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);

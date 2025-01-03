@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS credentials
 (
     client_id UUID PRIMARY KEY,
     email     VARCHAR(55)  NOT NULL UNIQUE,
-    password  VARCHAR(100) NOT NULL
+    password  VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS clients

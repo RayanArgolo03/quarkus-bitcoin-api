@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "clients")
-public final class Client {
+public class Client {
 
     @Id
     @Column(name = "client_id")

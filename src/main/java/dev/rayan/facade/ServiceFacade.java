@@ -13,11 +13,11 @@ import dev.rayan.model.client.Client;
 import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
+import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,10 +35,21 @@ public final class ServiceFacade {
     @Inject
     CredentialService credentialService;
 
+    @Inject
+    KeycloakService keycloakService;
 
-    public Credential persistCredential(final CredentialRequest request) {return credentialService.persist(request);}
 
-    public CredentialResponse login(final CredentialRequest request) {return credentialService.login(request);}
+    public Credential persistCredential(final CredentialRequest request) {
+
+        final Credential credential = credentialService.persist(request);
+        keycloakService.persistCredential(credential);
+
+        return credential;
+    }
+
+    public void login(final CredentialRequest request) {
+        credentialService.login(request);
+    }
 
     public Client persistClient(final ClientRequest request) {
         return clientService.persist(request);
@@ -48,7 +59,9 @@ public final class ServiceFacade {
         return clientService.getMappedClient(client);
     }
 
-    public Client findClientById(final UUID id) {return clientService.findById(id);}
+    public Client findClientById(final UUID id) {
+        return clientService.findById(id);
+    }
 
     public Bitcoin quoteBitcoin() {
         return transactionService.quoteBitcoin();

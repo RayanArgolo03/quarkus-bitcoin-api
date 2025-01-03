@@ -7,6 +7,7 @@ import dev.rayan.model.client.Client;
 import dev.rayan.repositories.ClientRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.Optional;
@@ -33,7 +34,7 @@ public final class ClientService {
 
     public Client findById(final UUID id) {
         final Optional<Client> optional = repository.findByIdOptional(id);
-        return optional.orElseThrow(() -> new NotFoundException("Client not found!"));
+        return optional.orElseThrow(() -> new NotFoundException("You need to complete the register!"));
     }
 
     public ClientResponse getMappedClient(final Client client) {
