@@ -1,26 +1,57 @@
 package dev.rayan.services;
 
 import dev.rayan.model.client.Credential;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Response;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-@RequestScoped
+@ApplicationScoped
 public class KeycloakService {
 
-    @Inject
+    @ConfigProperty(name = "keycloak.admin-client.server-url")
+    String serverUrl;
+
+    @ConfigProperty(name = "keycloak.realm")
+    String realm;
+
+    @ConfigProperty(name = "keycloak.client-id")
+    String clientId;
+
+    @ConfigProperty(name = "keycloak.secret")
+    String secret;
+
+    @ConfigProperty(name = "keycloak.username")
+    String username;
+
+    @ConfigProperty(name = "keycloak.password")
+    String password;
+
+    @ConfigProperty(name = "keycloak.grant-type")
+    String grantType;
+
     Keycloak keycloak;
 
-    @ConfigProperty(name = "quarkus.keycloak.admin-client.realm")
-    String realm;
+    @PostConstruct
+    public void initKeycloak() {
+        keycloak = KeycloakBuilder.builder()
+                .serverUrl(serverUrl)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(secret)
+                .grantType(grantType)
+                .username(username)
+                .password(password)
+                .build();
+    }
 
     @PreDestroy
     public void closeKeycloak() {
@@ -50,22 +81,25 @@ public class KeycloakService {
         return userRepresentation;
     }
 
-    private List<String> getRealmRoles(final String email) {
-        return (email.equals("rayan@admin"))
-                ? List.of("user", "admin")
-                : List.of("user");
-    }
-
     private List<CredentialRepresentation> createUserPassword(final String password) {
 
         final CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
 
         credentialRepresentation.setType(CredentialRepresentation.PASSWORD);
         credentialRepresentation.setValue(password);
-        //If needs modify in the next login credentialRepresentation.setTemporary(false);
+        //If needs modify in the next login credentialRepresentation.setTemporary(true);
 
         return new ArrayList<>(List.of(credentialRepresentation));
     }
 
+    private List<String> getRealmRoles(final String email) {
+        return (email.equals("rayan@admin"))
+                ? List.of("user", "admin")
+                : List.of("user");
+    }
+
 
 }
+
+
+

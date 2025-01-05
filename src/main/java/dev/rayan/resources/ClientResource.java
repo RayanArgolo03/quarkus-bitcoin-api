@@ -24,9 +24,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import org.jboss.logging.Logger;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.common.util.KeycloakUriBuilder;
-import org.keycloak.representations.idm.UserRepresentation;
 
 import java.io.IOException;
 import java.net.URI;
@@ -51,8 +48,6 @@ public final class ClientResource {
 
     @Inject
     Logger log;
-
-    //Todo adicionar usuários do Migrations no Keycloak ao iniciar aplicação
 
     @POST
     @Transactional
@@ -85,6 +80,8 @@ public final class ClientResource {
 
         log.info("Login");
         facade.login(request);
+
+        //Todo loga no keycloak
 
         return Response.ok()
                 .entity("Welcome again!")
