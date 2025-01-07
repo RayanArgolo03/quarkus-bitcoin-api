@@ -1,6 +1,7 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.*;
+import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
@@ -10,11 +11,9 @@ import dev.rayan.facade.ServiceFacade;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.model.client.Credential;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.report.ReportFileFactory;
 import dev.rayan.utils.ConverterEnumUtils;
-import io.quarkus.rest.client.reactive.runtime.BasicAuthUtil;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -24,10 +23,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
-import org.eclipse.microprofile.jwt.Claim;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
-import org.keycloak.authorization.client.AuthzClient;
 
 import java.io.IOException;
 import java.net.URI;
@@ -60,22 +57,22 @@ public final class ClientResource {
     @Transactional
     @PermitAll
     @Path("/sign-up")
-    public Response createClientCredential(@Valid final CredentialRequest request) {
+    public Response createCredential(@Valid final CredentialRequest request) {
 
         log.info("Persisting client credential in database and keycloak");
-        final Credential credential = facade.persistCredential(request);
+        final CredentialResponse response = facade.persistCredential(request);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("/{id}")
-                .resolveTemplate("id", credential.getId())
+                .resolveTemplate("id", response.id())
                 .build();
 
         //Todo envie email ao usuário e espere confirmação
 
         //Front-end redirect to the login page after confirmation
         return Response.created(uri)
-                .entity(format("The confirmation email was sent to %s", credential.getEmail()))
+                .entity(format("The confirmation email was sent to %s", response.email()))
                 .build();
     }
 

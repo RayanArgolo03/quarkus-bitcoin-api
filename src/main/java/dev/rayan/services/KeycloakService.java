@@ -1,13 +1,14 @@
 package dev.rayan.services;
 
+import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.model.client.Credential;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import lombok.AllArgsConstructor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logging.Logger;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -19,9 +20,12 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 @ApplicationScoped
 public class KeycloakService {
+
+    //Todo refatore
 
     @ConfigProperty(name = "keycloak.admin-client.server-url")
     String serverUrl;
@@ -35,47 +39,77 @@ public class KeycloakService {
     @ConfigProperty(name = "keycloak.secret")
     String secret;
 
-    @ConfigProperty(name = "keycloak.username")
+    @ConfigProperty(name = "keycloak.admin-username")
     String adminUsername;
 
-    @ConfigProperty(name = "keycloak.password")
+    @ConfigProperty(name = "keycloak.admin-password")
     String adminPassword;
 
-    public void persist(final Credential credential) {
+    private static final String ADMIN_EMAIL = "rayan@gmail.com";
+
+    //Inner Enum to define keycloak roles
+    @AllArgsConstructor
+    public enum QuarkusRoles {
+
+        USER("user"), ADMIN("admin");
+
+        private final String value;
+    }
+
+    public void persist(final CredentialResponse response) {
 
         try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
 
-            final UsersResource users = keycloak.realm(realm).users();
-            users.create(createUserRepresentation(credential)).close();
+            final UsersResource usersResource = keycloak.realm(realm).users();
+            final RolesResource rolesResource = keycloak.realm(realm).roles();
 
-//            assignRolesToUser(users, credential);
+            createUser(usersResource, response);
+            assignRolesToUser(usersResource, rolesResource, response);
         }
     }
 
-    private void assignRolesToUser(final UsersResource users, final Credential credential) {
-        users.get(credential.getId().toString())
+    private void assignRolesToUser(final UsersResource usersResource, final RolesResource rolesResource, final CredentialResponse response) {
+
+        final String userKeycloakId = usersResource.search(response.email())
+                .get(0)
+                .getId();
+
+        final Predicate<RoleRepresentation> isQuarkusRole = role -> role.getName().equals(QuarkusRoles.USER.value) || role.getName().equals(QuarkusRoles.ADMIN.value);
+        final Predicate<RoleRepresentation> isAdminRole = role -> role.getName().equals(QuarkusRoles.ADMIN.value) && response.email().equals(ADMIN_EMAIL);
+
+        final List<RoleRepresentation> roles = rolesResource.list()
+                .stream()
+                .filter(isQuarkusRole)
+                .toList();
+
+        //Remove admin if user not is admin
+        roles.removeIf(isAdminRole);
+
+        usersResource.get(userKeycloakId)
                 .roles()
                 .realmLevel()
-                .add(List.of(new RoleRepresentation("admin", null, false)));
+                .add(roles);
+
     }
 
-    private UserRepresentation createUserRepresentation(final Credential credential) {
+    private void createUser(final UsersResource usersResource, final CredentialResponse response) {
 
         final UserRepresentation userRepresentation = new UserRepresentation();
 
-        userRepresentation.setId(credential.getId().toString());
-        userRepresentation.setUsername(credential.getEmail());
-        userRepresentation.setEmail(credential.getEmail());
-        userRepresentation.setCredentials(createUserPassword(credential.getPassword()));
+        userRepresentation.setId("asasa");
+        userRepresentation.setUsername(response.email());
+        userRepresentation.setEmail(response.email());
+        userRepresentation.setCredentials(createUserPassword(response.password()));
         userRepresentation.setEnabled(true);
 
-        userRepresentation.setCreatedTimestamp(credential.getCreatedAt()
+        userRepresentation.setCreatedTimestamp(response.createdAt()
                 .atZone(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli()
         );
 
-        return userRepresentation;
+        usersResource.create(userRepresentation)
+                .close();
     }
 
     private List<CredentialRepresentation> createUserPassword(final String password) {

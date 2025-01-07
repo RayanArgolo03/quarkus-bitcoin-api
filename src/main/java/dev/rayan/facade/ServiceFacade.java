@@ -39,12 +39,12 @@ public final class ServiceFacade {
     KeycloakService keycloakService;
 
 
-    public Credential persistCredential(final CredentialRequest request) {
+    public CredentialResponse persistCredential(final CredentialRequest request) {
 
-        final Credential credential = credentialService.persist(request);
-        keycloakService.persist(credential);
+        final CredentialResponse response = credentialService.persist(request);
+        keycloakService.persist(response);
 
-        return credential;
+        return response;
     }
 
     public String login(final CredentialRequest request) {
