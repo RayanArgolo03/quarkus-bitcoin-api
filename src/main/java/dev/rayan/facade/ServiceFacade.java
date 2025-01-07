@@ -18,7 +18,6 @@ import dev.rayan.services.TransactionService;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.keycloak.OAuth2Constants;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,13 +42,15 @@ public final class ServiceFacade {
     public Credential persistCredential(final CredentialRequest request) {
 
         final Credential credential = credentialService.persist(request);
-        keycloakService.persistCredential(credential);
+        keycloakService.persist(credential);
 
         return credential;
     }
 
-    public void login(final CredentialRequest request) {
-        credentialService.login(request);
+    public String login(final CredentialRequest request) {
+        return keycloakService.login(
+                credentialService.login(request)
+        );
     }
 
     public Client persistClient(final ClientRequest request) {

@@ -30,7 +30,7 @@ public final class CredentialService {
         return credential;
     }
 
-    public void login(final CredentialRequest request) {
+    public Credential login(final CredentialRequest request) {
 
         //Necessary to display the exception message correctly
         final int statusCode = 401;
@@ -42,6 +42,8 @@ public final class CredentialService {
         if (!BcryptUtil.matches(request.password(), credential.getPassword())) {
             throw new NotAuthorizedException(message, statusCode);
         }
+
+        return credential;
     }
 
 

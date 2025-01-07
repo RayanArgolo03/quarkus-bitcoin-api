@@ -1,18 +1,24 @@
 package dev.rayan.services;
 
 import dev.rayan.model.client.Credential;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
+import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 @ApplicationScoped
 public class KeycloakService {
@@ -30,39 +36,27 @@ public class KeycloakService {
     String secret;
 
     @ConfigProperty(name = "keycloak.username")
-    String username;
+    String adminUsername;
 
     @ConfigProperty(name = "keycloak.password")
-    String password;
+    String adminPassword;
 
-    @ConfigProperty(name = "keycloak.grant-type")
-    String grantType;
+    public void persist(final Credential credential) {
 
-    Keycloak keycloak;
+        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
 
-    @PostConstruct
-    public void initKeycloak() {
-        keycloak = KeycloakBuilder.builder()
-                .serverUrl(serverUrl)
-                .realm(realm)
-                .clientId(clientId)
-                .clientSecret(secret)
-                .grantType(grantType)
-                .username(username)
-                .password(password)
-                .build();
+            final UsersResource users = keycloak.realm(realm).users();
+            users.create(createUserRepresentation(credential)).close();
+
+//            assignRolesToUser(users, credential);
+        }
     }
 
-    @PreDestroy
-    public void closeKeycloak() {
-        keycloak.close();
-    }
-
-    public void persistCredential(final Credential credential) {
-        keycloak.realm(realm)
-                .users()
-                .create(createUserRepresentation(credential))
-                .close();
+    private void assignRolesToUser(final UsersResource users, final Credential credential) {
+        users.get(credential.getId().toString())
+                .roles()
+                .realmLevel()
+                .add(List.of(new RoleRepresentation("admin", null, false)));
     }
 
     private UserRepresentation createUserRepresentation(final Credential credential) {
@@ -74,9 +68,12 @@ public class KeycloakService {
         userRepresentation.setEmail(credential.getEmail());
         userRepresentation.setCredentials(createUserPassword(credential.getPassword()));
         userRepresentation.setEnabled(true);
-        userRepresentation.setCreatedTimestamp(credential.getCreatedAt().toEpochSecond());
-        // Use after email verifyning userRepresentation.setEmailVerified();
-        userRepresentation.setRealmRoles(getRealmRoles(credential.getEmail()));
+
+        userRepresentation.setCreatedTimestamp(credential.getCreatedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        );
 
         return userRepresentation;
     }
@@ -92,12 +89,34 @@ public class KeycloakService {
         return new ArrayList<>(List.of(credentialRepresentation));
     }
 
-    private List<String> getRealmRoles(final String email) {
-        return (email.equals("rayan@admin"))
-                ? List.of("user", "admin")
-                : List.of("user");
+    public String login(final Credential credential) {
+
+        try (Keycloak keycloak = buildKeycloak(credential.getEmail(), credential.getPassword())) {
+
+            AccessTokenResponse token = keycloak.tokenManager().getAccessToken();
+            token.setExpiresIn(Instant.now().plus(Duration.ofHours(1)).toEpochMilli());
+
+            return token.getToken();
+        }
     }
 
+    private Keycloak buildKeycloak(final String username, final String password) {
+
+        final String grantType = (username.equals("admin"))
+                ? OAuth2Constants.CLIENT_CREDENTIALS
+                : OAuth2Constants.PASSWORD;
+
+        return KeycloakBuilder.builder()
+                .serverUrl(serverUrl)
+                .realm(realm)
+                .clientId(clientId)
+                .clientSecret(secret)
+                .grantType(grantType)
+                .username(username)
+                .password(password)
+                .build();
+
+    }
 
 }
 

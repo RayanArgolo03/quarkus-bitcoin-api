@@ -36,7 +36,7 @@ public class Credential {
     Client client;
 
     @Column(name = "created_at")
-    final ZonedDateTime createdAt = ZonedDateTime.now();
+    final LocalDateTime createdAt = LocalDateTime.now();
 
     public Credential(String email, String password) {
         this.email = email;

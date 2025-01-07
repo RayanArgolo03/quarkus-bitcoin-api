@@ -14,6 +14,7 @@ import dev.rayan.model.client.Credential;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.report.ReportFileFactory;
 import dev.rayan.utils.ConverterEnumUtils;
+import io.quarkus.rest.client.reactive.runtime.BasicAuthUtil;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -23,7 +24,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.eclipse.microprofile.jwt.Claim;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
+import org.keycloak.authorization.client.AuthzClient;
 
 import java.io.IOException;
 import java.net.URI;
@@ -49,6 +53,9 @@ public final class ClientResource {
     @Inject
     Logger log;
 
+    @Inject
+    JsonWebToken token;
+
     @POST
     @Transactional
     @PermitAll
@@ -64,6 +71,8 @@ public final class ClientResource {
                 .resolveTemplate("id", credential.getId())
                 .build();
 
+        //Todo envie email ao usuário e espere confirmação
+
         //Front-end redirect to the login page after confirmation
         return Response.created(uri)
                 .entity(format("The confirmation email was sent to %s", credential.getEmail()))
@@ -75,16 +84,12 @@ public final class ClientResource {
     @Path("/login")
     public Response login(@Valid final CredentialRequest request) {
 
-        //Todo refresh token se cliente já estiver logado
-        //Todo verifica se cliente confirmou email, se não estoura exception
+        log.info("Login and generate acess token");
+        final String tokenLogin = facade.login(request);
 
-        log.info("Login");
-        facade.login(request);
-
-        //Todo loga no keycloak
-
+        //Front-end redirect to index page - Print token for demo
         return Response.ok()
-                .entity("Welcome again!")
+                .entity(format("Welcome again! Your token: %s", tokenLogin))
                 .build();
     }
 
@@ -109,10 +114,10 @@ public final class ClientResource {
 
     @GET
     @Path("/{id}")
-    @Authenticated
+    @RolesAllowed("user")
     public Response findClientById(@PathParam("id") @NotNull(message = "Required id!") final UUID id) {
 
-
+        log.info("Token is " + token.getRawToken());
         log.info("Finding client by id");
         final Client client = facade.findClientById(id);
 
