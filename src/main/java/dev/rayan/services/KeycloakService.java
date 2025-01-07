@@ -1,26 +1,34 @@
 package dev.rayan.services;
 
-import dev.rayan.model.client.Credential;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import dev.rayan.dto.respose.CredentialResponse;
+import dev.rayan.dto.respose.CredentialTokensResponse;
+import dev.rayan.exceptions.EmailAlreadyVerifiedException;
+import dev.rayan.exceptions.EmailNotVerifiedException;
+import dev.rayan.exceptions.UserAlreadyLoggedException;
+import jakarta.enterprise.context.RequestScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logging.Logger;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.resource.RolesResource;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.AccessTokenResponse;
+import org.keycloak.admin.client.token.TokenManager;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-@ApplicationScoped
+import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
+import static jakarta.ws.rs.core.Response.Status.GONE;
+import static java.lang.String.format;
+
+@RequestScoped
 public class KeycloakService {
 
     @ConfigProperty(name = "keycloak.admin-client.server-url")
@@ -35,74 +43,172 @@ public class KeycloakService {
     @ConfigProperty(name = "keycloak.secret")
     String secret;
 
-    @ConfigProperty(name = "keycloak.username")
+    @ConfigProperty(name = "keycloak.admin-username")
     String adminUsername;
 
-    @ConfigProperty(name = "keycloak.password")
+    @ConfigProperty(name = "keycloak.admin-password")
     String adminPassword;
 
-    public void persist(final Credential credential) {
+    private static final String ADMIN_USERNAME = "admin@gmail.com";
+    private static final Set<String> QUARKUS_ROLES = Set.of("user", "admin");
+    private static final String FIRST_LOGIN_ATTRIBUTE = "first_login";
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+    public void persist(final CredentialResponse response) {
 
-            final UsersResource users = keycloak.realm(realm).users();
-            users.create(createUserRepresentation(credential)).close();
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final UserResource user = createUser(getUsersResource(keycloak), response);
 
-//            assignRolesToUser(users, credential);
-        }
+        assignRolesToUser(keycloak.realm(realm).roles(), user, response.getEmail());
+        user.sendVerifyEmail();
+
+        closeKeycloak(keycloak);
+
     }
 
-    private void assignRolesToUser(final UsersResource users, final Credential credential) {
-        users.get(credential.getId().toString())
-                .roles()
-                .realmLevel()
-                .add(List.of(new RoleRepresentation("admin", null, false)));
-    }
+    private UserResource createUser(final UsersResource usersResource, final CredentialResponse response) {
 
-    private UserRepresentation createUserRepresentation(final Credential credential) {
+        final UserRepresentation user = new UserRepresentation();
 
-        final UserRepresentation userRepresentation = new UserRepresentation();
+        user.setUsername(response.getEmail());
+        user.setEmail(response.getEmail());
+        user.setCredentials(createUserPassword(response.getPassword()));
+        user.setEnabled(true);
 
-        userRepresentation.setId(credential.getId().toString());
-        userRepresentation.setUsername(credential.getEmail());
-        userRepresentation.setEmail(credential.getEmail());
-        userRepresentation.setCredentials(createUserPassword(credential.getPassword()));
-        userRepresentation.setEnabled(true);
-
-        userRepresentation.setCreatedTimestamp(credential.getCreatedAt()
+        user.setCreatedTimestamp(response.getCreatedAt()
                 .atZone(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli()
         );
 
-        return userRepresentation;
+        //Set custom first_login attibute to verify in login
+        user.setAttributes(
+                Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("true"))
+        );
+
+        usersResource.create(user)
+                .close();
+
+        //Get user id in user created above
+        final String keycloakUserId = usersResource.search(response.getEmail())
+                .get(0)
+                .getId();
+
+        response.setKeycloakUserId(keycloakUserId);
+
+        return getUserResource(usersResource, keycloakUserId);
     }
+
 
     private List<CredentialRepresentation> createUserPassword(final String password) {
 
         final CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
-
         credentialRepresentation.setType(CredentialRepresentation.PASSWORD);
         credentialRepresentation.setValue(password);
-        //If needs modify in the next login credentialRepresentation.setTemporary(true);
 
-        return new ArrayList<>(List.of(credentialRepresentation));
+        return List.of(credentialRepresentation);
     }
 
-    public String login(final Credential credential) {
+    private void assignRolesToUser(final RolesResource rolesResource, final UserResource user, final String username) {
 
-        try (Keycloak keycloak = buildKeycloak(credential.getEmail(), credential.getPassword())) {
+        final Predicate<RoleRepresentation> isQuarkusRole = role -> QUARKUS_ROLES.contains(role.getName());
 
-            AccessTokenResponse token = keycloak.tokenManager().getAccessToken();
-            token.setExpiresIn(Instant.now().plus(Duration.ofHours(1)).toEpochMilli());
+        //Filter user and admin roles, sort by name ascending (admin is first index)
+        final List<RoleRepresentation> roles = rolesResource.list()
+                .stream()
+                .filter(isQuarkusRole)
+                .sorted(Comparator.comparing(RoleRepresentation::getName))
+                .collect(Collectors.toList());
 
-            return token.getToken();
+        //Remove the admin role if not is admin
+        final boolean isAdmin = username.equals(ADMIN_USERNAME);
+        if (!isAdmin) roles.remove(0);
+
+        user.roles()
+                .realmLevel()
+                .add(roles);
+    }
+
+    public void resendVerifyEmail(final String keycloakUserId) {
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
+
+        if (isEmailVerified(user.toRepresentation())) {
+            throw new EmailAlreadyVerifiedException("Email already verified!", GONE);
         }
+
+        user.sendVerifyEmail();
+        closeKeycloak(keycloak);
+    }
+
+    private UsersResource getUsersResource(final Keycloak keycloak) {
+        return keycloak.realm(realm)
+                .users();
+    }
+
+    private UserResource getUserResource(final UsersResource usersResource, final String keycloakUserId) {
+        return usersResource.get(keycloakUserId);
+    }
+
+    public CredentialTokensResponse login(final CredentialResponse response) {
+
+        Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+
+        final UsersResource usersResource = getUsersResource(keycloak);
+
+        final UserRepresentation userRepresentation = usersResource
+                .search(response.getEmail())
+                .get(0);
+
+        final UserResource user = getUserResource(usersResource, userRepresentation.getId());
+
+        if (isFirstLogin(userRepresentation)) {
+
+            //Front-end redirect to the confirmation email
+            if (!isEmailVerified(userRepresentation)) {
+                resendVerifyEmail(userRepresentation.getId());
+                throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", response.getEmail()), FORBIDDEN);
+            }
+
+            userRepresentation.setAttributes(Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("false")));
+            updateUser(user, userRepresentation);
+
+        } else {
+            //Front-end redirect to index page
+            if (!user.getUserSessions().isEmpty()) throw new UserAlreadyLoggedException("Already logged!", FORBIDDEN);
+        }
+
+        keycloak = buildKeycloak(response.getEmail(), response.getPassword());
+
+        final TokenManager manager = keycloak.tokenManager();
+        final CredentialTokensResponse tokensResponse = new CredentialTokensResponse(manager.getAccessTokenString(), manager.refreshToken().getRefreshToken());
+
+        closeKeycloak(keycloak);
+
+        return tokensResponse;
+    }
+
+    private boolean isFirstLogin(final UserRepresentation userRepresentation) {
+
+        final String firstLoginValue = userRepresentation.getAttributes()
+                .get(FIRST_LOGIN_ATTRIBUTE)
+                .get(0);
+
+        return firstLoginValue.equals("true");
+    }
+
+    public void updateUser(final UserResource user, final UserRepresentation userRepresentation) {
+        user.update(userRepresentation);
+    }
+
+
+    private boolean isEmailVerified(final UserRepresentation userRepresentation) {
+        return userRepresentation.isEmailVerified();
     }
 
     private Keycloak buildKeycloak(final String username, final String password) {
 
-        final String grantType = (username.equals("admin"))
+        final String grantType = (username.equals(adminUsername))
                 ? OAuth2Constants.CLIENT_CREDENTIALS
                 : OAuth2Constants.PASSWORD;
 
@@ -118,6 +224,17 @@ public class KeycloakService {
 
     }
 
+    public void validateToken(final JsonWebToken token) {
+
+        //token não ser do usuário (confere por preferred_username)
+
+
+        //token de acesso ter expirado
+    }
+
+    private void closeKeycloak(final Keycloak keycloak) {
+        keycloak.close();
+    }
 }
 
 

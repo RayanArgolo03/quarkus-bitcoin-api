@@ -23,4 +23,10 @@ public final class Address {
     @Column(nullable = false)
     String street;
 
+    @Column(nullable = false)
+    String neighbourhood;
+
+    @Column(nullable = false)
+    Integer houseNumber;
+
 }

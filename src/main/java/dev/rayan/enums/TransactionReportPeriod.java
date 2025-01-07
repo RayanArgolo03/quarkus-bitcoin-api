@@ -1,6 +1,5 @@
 package dev.rayan.enums;
 
-import dev.rayan.enums.interfaces.BaseEnum;
 import lombok.Getter;
 
 import java.time.*;

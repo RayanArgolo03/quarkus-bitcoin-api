@@ -1,7 +1,5 @@
 package dev.rayan.enums;
 
-import dev.rayan.enums.interfaces.BaseEnum;
-
 public enum TransactionReportFormat implements BaseEnum<TransactionReportFormat> {
 
     EXCEL("Excel"),

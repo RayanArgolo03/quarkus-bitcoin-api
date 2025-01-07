@@ -1,4 +1,4 @@
-package dev.rayan.exceptions;
+package dev.rayan.exceptions.handler;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.ws.rs.core.Response;

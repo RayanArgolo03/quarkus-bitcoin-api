@@ -14,16 +14,18 @@ CREATE TABLE IF NOT EXISTS credentials
 
 CREATE TABLE IF NOT EXISTS clients
 (
-    client_id  UUID PRIMARY KEY REFERENCES credentials (client_id) ON DELETE CASCADE,
-    first_name VARCHAR(55) NOT NULL,
-    surname    VARCHAR(55) NOT NULL,
-    birth_date DATE        NOT NULL,
-    cpf        VARCHAR(11) NOT NULL UNIQUE,
-    cep        VARCHAR(8)  NOT NULL,
-    state      VARCHAR(55) NOT NULL,
-    street     VARCHAR(55) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT NULL
+    client_id     UUID PRIMARY KEY REFERENCES credentials (client_id) ON DELETE CASCADE,
+    first_name    VARCHAR(55) NOT NULL,
+    surname       VARCHAR(55) NOT NULL,
+    birth_date    DATE        NOT NULL,
+    cpf           VARCHAR(11) NOT NULL UNIQUE,
+    cep           VARCHAR(8)  NOT NULL,
+    state         VARCHAR(55) NOT NULL,
+    street        VARCHAR(55) NOT NULL,
+    neighbourhood VARCHAR(55) NOT NULL,
+    house_number  INT         NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT NULL
 );
 
 -- create enum type

@@ -1,7 +1,5 @@
 package dev.rayan.enums;
 
-import dev.rayan.enums.interfaces.BaseEnum;
-
 public enum TransactionType implements BaseEnum<TransactionType> {
 
     PURCHASE("Purchase"), SALE("Sale");

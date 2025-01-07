@@ -1,5 +1,6 @@
-package dev.rayan.exceptions;
+package dev.rayan.exceptions.handler;
 
+import dev.rayan.exceptions.BusinessException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -25,7 +26,7 @@ public final class GeneralExceptionHandler implements ExceptionMapper<Exception>
                 ? ee.getResponse().getStatusInfo().toEnum()
                 : INTERNAL_SERVER_ERROR;
 
-        log.errorf("Exception! %s", e.getMessage());
+        log.errorf("Exception: %s, Trace and message: %s", e.getClass().getSimpleName(), e);
         return Response.status(status)
                 .entity(new ExceptionResponse(e.getMessage(), status))
                 .build();

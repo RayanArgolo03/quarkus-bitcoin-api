@@ -1,6 +1,6 @@
 package dev.rayan.utils;
 
-import dev.rayan.enums.interfaces.BaseEnum;
+import dev.rayan.enums.BaseEnum;
 import jakarta.ws.rs.NotFoundException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

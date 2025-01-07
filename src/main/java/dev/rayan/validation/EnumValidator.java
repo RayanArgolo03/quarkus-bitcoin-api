@@ -1,4 +1,4 @@
-package dev.rayan.enums.validation;
+package dev.rayan.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

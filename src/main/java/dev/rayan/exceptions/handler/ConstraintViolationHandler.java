@@ -1,4 +1,4 @@
-package dev.rayan.exceptions;
+package dev.rayan.exceptions.handler;
 
 import jakarta.inject.Inject;
 import jakarta.validation.ConstraintViolationException;
@@ -7,10 +7,7 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
-import java.util.Objects;
-
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
-import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 
 @Provider
 public final class ConstraintViolationHandler implements ExceptionMapper<ConstraintViolationException> {

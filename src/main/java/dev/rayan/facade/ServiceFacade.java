@@ -10,7 +10,6 @@ import dev.rayan.enums.TransactionType;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
@@ -18,6 +17,7 @@ import dev.rayan.services.TransactionService;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,27 +38,30 @@ public final class ServiceFacade {
     @Inject
     KeycloakService keycloakService;
 
+    public CredentialResponse persistCredential(final CredentialRequest request) {
 
-    public Credential persistCredential(final CredentialRequest request) {
+        final CredentialResponse response = credentialService.persist(request);
+        keycloakService.persist(response);
 
-        final Credential credential = credentialService.persist(request);
-        keycloakService.persist(credential);
-
-        return credential;
+        return response;
     }
 
-    public String login(final CredentialRequest request) {
-        return keycloakService.login(
-                credentialService.login(request)
-        );
+    public CredentialTokensResponse login(final CredentialRequest request) {
+        final CredentialResponse response = credentialService.login(request);
+        return keycloakService.login(response);
     }
 
-    public Client persistClient(final ClientRequest request) {
-        return clientService.persist(request);
+    public void sendVerifyEmail(final String keycloakUserId) {
+        keycloakService.resendVerifyEmail(keycloakUserId);
     }
 
-    public ClientResponse getMappedClient(final Client client) {
-        return clientService.getMappedClient(client);
+    public void validateToken(final JsonWebToken token) {
+        keycloakService.validateToken(token);
+    }
+
+    public ClientResponse persistClient(final ClientRequest request) {
+//        return clientService.persist(request);
+        return null;
     }
 
     public Client findClientById(final UUID id) {

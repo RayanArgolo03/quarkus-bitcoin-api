@@ -1,20 +1,21 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.*;
+import dev.rayan.dto.respose.ClientResponse;
+import dev.rayan.dto.respose.CredentialResponse;
+import dev.rayan.dto.respose.CredentialTokensResponse;
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.enums.validation.EnumValidator;
+import dev.rayan.validation.EnumValidator;
 import dev.rayan.facade.ServiceFacade;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.model.client.Credential;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.report.ReportFileFactory;
 import dev.rayan.utils.ConverterEnumUtils;
-import io.quarkus.rest.client.reactive.runtime.BasicAuthUtil;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -24,10 +25,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
-import org.eclipse.microprofile.jwt.Claim;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
-import org.keycloak.authorization.client.AuthzClient;
 
 import java.io.IOException;
 import java.net.URI;
@@ -56,72 +55,96 @@ public final class ClientResource {
     @Inject
     JsonWebToken token;
 
+    @GET
+    @PermitAll
+    @Path("/index-page")
+    public Response index() {
+        return Response.ok("Bitcoin Exchange by Rayan :)")
+                .build();
+    }
+
     @POST
     @Transactional
     @PermitAll
     @Path("/sign-up")
-    public Response createClientCredential(@Valid final CredentialRequest request) {
+    public Response createCredential(@Valid final CredentialRequest request) {
 
         log.info("Persisting client credential in database and keycloak");
-        final Credential credential = facade.persistCredential(request);
+        final CredentialResponse response = facade.persistCredential(request);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("/{id}")
-                .resolveTemplate("id", credential.getId())
+                .resolveTemplate("id", response.getId())
                 .build();
 
-        //Todo envie email ao usuário e espere confirmação
-
-        //Front-end redirect to the login page after confirmation
+        //Front-end redirect to the login page after confirmation verification
+        //The keycloak user id is used in path param to resend the verification email
         return Response.created(uri)
-                .entity(format("The confirmation email was sent to %s", credential.getEmail()))
+                .entity(format("The confirmation email was sent to: %s \nKeycloak user id: %s", response.getEmail(), response.getKeycloakUserId()))
                 .build();
     }
 
-    @GET
+    @PUT
+    @PermitAll
+    @Path("{keycloakUserId}/resent-verify-email")
+    public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
+
+        //Keycloak user id would be extracted by the URL in keycloak expired email response
+        facade.sendVerifyEmail(keycloakUserId);
+
+        //Front-end redirect to the login page after confirmation verification
+        return Response.ok()
+                .entity("Email forwarded!")
+                .build();
+    }
+
+    @POST
     @PermitAll
     @Path("/login")
     public Response login(@Valid final CredentialRequest request) {
 
-        log.info("Login and generate acess token");
-        final String tokenLogin = facade.login(request);
+        log.info("Login and generate tokens");
+        final CredentialTokensResponse response = facade.login(request);
 
-        //Front-end redirect to index page - Print token for demo
+        //Front-end redirect to index-page
         return Response.ok()
-                .entity(format("Welcome again! Your token: %s", tokenLogin))
+                .entity(response)
                 .build();
     }
 
     @POST
     @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final ClientRequest request, @HeaderParam("Authorization") final String token) {
+    public Response createClient(@Valid final ClientRequest request, @Context final SecurityContext context) {
+
+        log.info("Validating token");
+        facade.validateToken(token);
 
         log.info("Creating client");
-        final Client client = facade.persistClient(request);
+        final ClientResponse response = facade.persistClient(request);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("id")
-                .resolveTemplate("{id}", client.getId())
+                .resolveTemplate("{id}", null)
                 .build();
 
         return Response.created(uri)
-                .entity(facade.getMappedClient(client))
+                .entity(request)
                 .build();
     }
 
+
+
     @GET
+    @Authenticated
     @Path("/{id}")
-    @RolesAllowed("user")
     public Response findClientById(@PathParam("id") @NotNull(message = "Required id!") final UUID id) {
 
-        log.info("Token is " + token.getRawToken());
-        log.info("Finding client by id");
         final Client client = facade.findClientById(id);
 
-        return Response.ok(facade.getMappedClient(client))
+        return Response.ok(null)
                 .build();
     }
 
