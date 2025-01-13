@@ -27,7 +27,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
