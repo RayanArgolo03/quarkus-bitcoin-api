@@ -31,7 +31,7 @@ public class Credential {
     @Column(nullable = false)
     String password;
 
-    @OneToOne(mappedBy = "credential")
+    @OneToOne(mappedBy = "credential", fetch = FetchType.LAZY)
     @PrimaryKeyJoinColumn
     Client client;
 

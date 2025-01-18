@@ -15,8 +15,10 @@ import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
 import io.quarkus.panache.common.Sort;
+import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Getter;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
+@Getter
 public final class ServiceFacade {
 
     @Inject
@@ -55,8 +58,9 @@ public final class ServiceFacade {
         keycloakService.resendVerifyEmail(keycloakUserId);
     }
 
-    public void validateToken(final JsonWebToken token) {
-        keycloakService.validateToken(token);
+
+    public CredentialTokensResponse generateToken(final String refreshToken) throws ParseException {
+        return keycloakService.generateNewTokens(refreshToken);
     }
 
     public ClientResponse persistClient(final ClientRequest request) {

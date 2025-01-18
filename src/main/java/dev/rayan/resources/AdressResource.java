@@ -24,11 +24,11 @@ public final class AdressResource {
     Logger log;
 
     @GET
-//    @RolesAllowed("user")
+    @RolesAllowed("user")
     @Path("/{cep}")
     public Response findAdressByCep(@PathParam("cep")
                                     @NotBlank(message = "Required CEP!")
-                                    @Pattern(regexp = "^\\d{8}$", message = "Cep must only 8 numbers and no hyphen!") final String cep) {
+                                    @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!") final String cep) {
         log.info("Finding adress by cep");
         return Response.ok()
                 .entity(service.findAdressByCep(cep))

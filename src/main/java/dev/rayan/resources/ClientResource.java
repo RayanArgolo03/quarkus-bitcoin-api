@@ -8,7 +8,6 @@ import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.validation.EnumValidator;
 import dev.rayan.facade.ServiceFacade;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
@@ -16,7 +15,9 @@ import dev.rayan.model.client.Client;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.report.ReportFileFactory;
 import dev.rayan.utils.ConverterEnumUtils;
+import dev.rayan.validation.EnumValidator;
 import io.quarkus.security.Authenticated;
+import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -25,8 +26,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -50,9 +51,6 @@ public final class ClientResource {
 
     @Inject
     Logger log;
-
-    @Inject
-    JsonWebToken token;
 
     @GET
     @PermitAll
@@ -115,10 +113,7 @@ public final class ClientResource {
     @POST
     @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final ClientRequest request, @Context final SecurityContext context) {
-
-        log.info("Validating token");
-        facade.validateToken(token);
+    public Response createClient(@Valid final ClientRequest request) {
 
         log.info("Creating client");
         final ClientResponse response = facade.persistClient(request);
@@ -134,7 +129,18 @@ public final class ClientResource {
                 .build();
     }
 
+    @GET
+    @PermitAll
+    @Path("/generate-new-tokens")
+    public Response generateNewTokens(@Valid final RefreshTokenRequest request) throws ParseException {
 
+        log.info("Validate and generate new tokens with refresh token");
+        final CredentialTokensResponse response = facade.generateToken(request.refreshToken());
+
+        return Response.ok()
+                .entity(response)
+                .build();
+    }
 
     @GET
     @Authenticated

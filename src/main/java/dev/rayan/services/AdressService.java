@@ -5,7 +5,6 @@ import dev.rayan.dto.respose.AdressResponse;
 import dev.rayan.exceptions.ApiException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.ServerErrorException;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped

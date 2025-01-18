@@ -1,9 +1,8 @@
 package dev.rayan.client;
 
 import dev.rayan.dto.respose.AdressResponse;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
@@ -12,6 +11,8 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 @RegisterRestClient(baseUri = "https://viacep.com.br/ws")
 public interface ViaCepRestClient {
 
@@ -22,7 +23,7 @@ public interface ViaCepRestClient {
     @Path("/{cep}/json/")
     Optional<AdressResponse> findAdressByCep(@PathParam("cep") String cep);
 
-    default Optional<AdressResponse> fallback(String cep) {
+    default Optional<AdressResponse> fallback(final String cep) {
         return Optional.empty();
     }
 
