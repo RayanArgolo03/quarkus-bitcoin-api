@@ -129,6 +129,9 @@ public final class ClientResource {
                 .build();
     }
 
+    /**
+    @param request Token can also be defined as @CookieParam
+    **/
     @GET
     @PermitAll
     @Path("/generate-new-tokens")

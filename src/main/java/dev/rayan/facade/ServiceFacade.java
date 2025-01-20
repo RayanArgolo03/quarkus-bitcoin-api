@@ -18,15 +18,12 @@ import io.quarkus.panache.common.Sort;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import lombok.Getter;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
-@Getter
 public final class ServiceFacade {
 
     @Inject

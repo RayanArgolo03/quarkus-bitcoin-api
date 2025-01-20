@@ -6,6 +6,7 @@ import dev.rayan.exceptions.BusinessException;
 import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
+import dev.rayan.strategy.TokenStrategy;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.RequestScoped;
@@ -61,6 +62,9 @@ public class KeycloakService {
 
     @Inject
     JWTParser tokenValidate;
+
+    @Inject
+    List<TokenStrategy> tokenStrategies;
 
     private static final String ADMIN_EMAIL = "admin@gmail.com";
     private static final Set<String> QUARKUS_ROLES = Set.of("user", "admin");
@@ -184,9 +188,7 @@ public class KeycloakService {
         }
 
         keycloak = buildKeycloak(response.getEmail(), response.getPassword());
-
         final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
-
         closeKeycloak(keycloak);
 
         return tokensResponse;
@@ -195,21 +197,21 @@ public class KeycloakService {
 
     public CredentialTokensResponse generateNewTokens(final String refreshToken) throws ParseException {
 
+        //ParseException never throws because using parseOnly
         final JsonWebToken token = tokenValidate.parseOnly(refreshToken);
-        if (token == null || !token.getClaim("typ").equals("Refresh")) throw new BusinessException("Invalid token!");
+        tokenStrategies.forEach(strategy -> strategy.validateToken(token));
 
         final String keycloakUserId = token.getSubject();
 
         Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
         final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
 
-        final UserRepresentation userRepresentation = user.toRepresentation();
-
         if (tokenIsExpired(token.getExpirationTime())) {
             if (hasSession(user)) logout(user);
             throw new BusinessException("Desconnected, you need to login again!");
         }
 
+        final UserRepresentation userRepresentation = user.toRepresentation();
         final String password = userRepresentation.getCredentials()
                 .get(0)
                 .getValue();
@@ -219,8 +221,7 @@ public class KeycloakService {
     }
 
     private boolean hasSession(final UserResource user) {
-        List<UserSessionRepresentation> userSessions = user.getUserSessions();
-        return !userSessions.isEmpty();
+        return !user.getUserSessions().isEmpty();
     }
 
     public void logout(final UserResource user) {
