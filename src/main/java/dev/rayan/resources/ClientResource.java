@@ -8,6 +8,7 @@ import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
+import dev.rayan.exceptions.BusinessException;
 import dev.rayan.facade.ServiceFacade;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
@@ -26,6 +27,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.jwt.Claim;
+import org.eclipse.microprofile.jwt.ClaimValue;
+import org.eclipse.microprofile.jwt.Claims;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -51,6 +56,10 @@ public final class ClientResource {
 
     @Inject
     Logger log;
+
+    @Inject
+    @Claim(standard = Claims.raw_token)
+    ClaimValue<String> rawToken;
 
     @GET
     @PermitAll
@@ -88,7 +97,7 @@ public final class ClientResource {
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
         //Keycloak user id would be extracted by the URL in keycloak expired email response
-        facade.sendVerifyEmail(keycloakUserId);
+        facade.resentVerifyEmail(keycloakUserId);
 
         //Front-end redirect to the login page after confirmation verification
         return Response.ok()
@@ -107,6 +116,19 @@ public final class ClientResource {
         //Front-end redirect to index-page
         return Response.ok()
                 .entity(response)
+                .build();
+    }
+
+    @DELETE
+    @Authenticated
+    @Path("/logout")
+    public Response logout() throws ParseException {
+
+        log.info("Logout user");
+        facade.logout(rawToken.getValue());
+
+        //Front-end redirect to index page
+        return Response.ok("Sucessfully Logout!")
                 .build();
     }
 
@@ -130,19 +152,30 @@ public final class ClientResource {
     }
 
     /**
-    @param request Token can also be defined as @CookieParam
-    **/
+     * If refresh-token is expired: strategy throws NotAuthorized, logout user and front-end redirect to login.
+     *
+     * @param request Token can also be defined as @CookieParam
+     **/
     @GET
     @PermitAll
     @Path("/generate-new-tokens")
     public Response generateNewTokens(@Valid final RefreshTokenRequest request) throws ParseException {
 
-        log.info("Validate and generate new tokens with refresh token");
-        final CredentialTokensResponse response = facade.generateToken(request.refreshToken());
+        try {
+            log.info("Validate and generate new tokens with refresh token");
+            final CredentialTokensResponse response = facade.generateToken(request.refreshToken());
 
-        return Response.ok()
-                .entity(response)
-                .build();
+            return Response.ok()
+                    .entity(response)
+                    .build();
+
+        } catch (NotAuthorizedException e) {
+            log.info("The refresh-token is expired, logout user!");
+            facade.logout(request.refreshToken());
+
+            throw new BusinessException(e.getMessage());
+        }
+
     }
 
     @GET

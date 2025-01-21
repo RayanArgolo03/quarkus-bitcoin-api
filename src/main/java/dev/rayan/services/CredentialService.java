@@ -11,6 +11,8 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
 
+import java.util.Optional;
+
 import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
 
@@ -25,25 +27,33 @@ public final class CredentialService {
 
     public CredentialResponse persist(final CredentialRequest request) {
 
-        if (repository.findCredential(request.email().toLowerCase()).isPresent()) {
+        if (findCredential(request.email()).isPresent()) {
             throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
         }
 
         final Credential credential = new Credential(request.email(), request.password());
         repository.persist(credential);
 
-        return mapper.credentialToResponse(credential);
+        return mapCredentialToResponse(credential);
     }
 
     public CredentialResponse login(final CredentialRequest request) {
 
-        final Credential credential = repository.findCredential(request.email())
+        final Credential credential = findCredential(request.email())
                 .orElseThrow(() -> new NotAuthorizedException("Invalid email!", UNAUTHORIZED));
 
         if (!BcryptUtil.matches(request.password(), credential.getPassword())) {
             throw new NotAuthorizedException("Invalid password", UNAUTHORIZED);
         }
 
+        return mapCredentialToResponse(credential);
+    }
+
+    public Optional<Credential> findCredential(final String email) {
+        return repository.findCredential(email.toLowerCase());
+    }
+
+    public CredentialResponse mapCredentialToResponse(final Credential credential) {
         return mapper.credentialToResponse(credential);
     }
 

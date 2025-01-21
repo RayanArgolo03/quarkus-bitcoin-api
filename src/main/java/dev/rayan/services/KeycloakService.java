@@ -7,10 +7,13 @@ import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
 import dev.rayan.strategy.TokenStrategy;
+import io.quarkus.arc.All;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotAuthorizedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.keycloak.OAuth2Constants;
@@ -64,6 +67,7 @@ public class KeycloakService {
     JWTParser tokenValidate;
 
     @Inject
+    @All
     List<TokenStrategy> tokenStrategies;
 
     private static final String ADMIN_EMAIL = "admin@gmail.com";
@@ -195,48 +199,45 @@ public class KeycloakService {
     }
 
 
-    public CredentialTokensResponse generateNewTokens(final String refreshToken) throws ParseException {
+    public CredentialTokensResponse generateNewTokens(final CredentialResponse response) throws ParseException {
 
-        //ParseException never throws because using parseOnly
-        final JsonWebToken token = tokenValidate.parseOnly(refreshToken);
-        tokenStrategies.forEach(strategy -> strategy.validateToken(token));
+        final Keycloak keycloak = buildKeycloak(response.getEmail(), response.getPassword());
+        final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
 
-        final String keycloakUserId = token.getSubject();
+        closeKeycloak(keycloak);
 
-        Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-        final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
-
-        if (tokenIsExpired(token.getExpirationTime())) {
-            if (hasSession(user)) logout(user);
-            throw new BusinessException("Desconnected, you need to login again!");
-        }
-
-        final UserRepresentation userRepresentation = user.toRepresentation();
-        final String password = userRepresentation.getCredentials()
-                .get(0)
-                .getValue();
-
-        keycloak = buildKeycloak(userRepresentation.getUsername(), password);
-        return generateTokens(keycloak);
+        return tokensResponse;
     }
 
     private boolean hasSession(final UserResource user) {
         return !user.getUserSessions().isEmpty();
     }
 
-    public void logout(final UserResource user) {
-        user.logout();
+    public void logout(final String authorizationToken) throws ParseException {
+
+        final JsonWebToken token = validateToken(authorizationToken);
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+
+        getUserResource(getUsersResource(keycloak), token.getSubject())
+                .logout();
+
+        closeKeycloak(keycloak);
     }
 
-    private boolean tokenIsExpired(final long expirationTime) {
-        final LocalDateTime expirationDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(expirationTime), ZoneId.systemDefault());
-        return expirationDateTime.isBefore(LocalDateTime.now());
+    public JsonWebToken validateToken(final String authorizationToken) throws ParseException {
+
+        //ParseException never throws because using parseOnly
+        final JsonWebToken token = tokenValidate.parseOnly(authorizationToken);
+        tokenStrategies.forEach(strategy -> strategy.validateToken(token));
+
+        return token;
     }
 
     public CredentialTokensResponse generateTokens(final Keycloak keycloak) {
         final TokenManager manager = keycloak.tokenManager();
         return new CredentialTokensResponse(manager.getAccessTokenString(), manager.refreshToken().getRefreshToken());
     }
+
 
     private UsersResource getUsersResource(final Keycloak keycloak) {
         return keycloak.realm(realm)

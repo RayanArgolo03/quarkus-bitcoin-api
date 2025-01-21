@@ -1,15 +1,13 @@
 package dev.rayan.facade;
 
-import dev.rayan.dto.request.ClientRequest;
-import dev.rayan.dto.request.CredentialRequest;
-import dev.rayan.dto.request.TransactionFiltersRequest;
-import dev.rayan.dto.request.TransactionRequest;
+import dev.rayan.dto.request.*;
 import dev.rayan.dto.respose.*;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
+import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
@@ -18,10 +16,15 @@ import io.quarkus.panache.common.Sort;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotAuthorizedException;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 
 @ApplicationScoped
 public final class ServiceFacade {
@@ -51,13 +54,25 @@ public final class ServiceFacade {
         return keycloakService.login(response);
     }
 
-    public void sendVerifyEmail(final String keycloakUserId) {
+    public void resentVerifyEmail(final String keycloakUserId) {
         keycloakService.resendVerifyEmail(keycloakUserId);
     }
 
 
     public CredentialTokensResponse generateToken(final String refreshToken) throws ParseException {
-        return keycloakService.generateNewTokens(refreshToken);
+
+        final JsonWebToken token = keycloakService.validateToken(refreshToken);
+
+        final Credential credential = credentialService.findCredential(token.getName())
+                .orElseThrow(() -> new NotAuthorizedException("Refresh token belongs to a non-existent client!", UNAUTHORIZED));
+
+        return keycloakService.generateNewTokens(
+                credentialService.mapCredentialToResponse(credential)
+        );
+    }
+
+    public void logout(final String authorizationToken) throws ParseException {
+        keycloakService.logout(authorizationToken);
     }
 
     public ClientResponse persistClient(final ClientRequest request) {
@@ -112,5 +127,4 @@ public final class ServiceFacade {
     public TransactionResponse getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
         return transactionService.getMappedTransaction(transaction, bitcoin);
     }
-
 }
