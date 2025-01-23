@@ -29,6 +29,7 @@ public final class AdressResource {
     public Response findAdressByCep(@PathParam("cep")
                                     @NotBlank(message = "Required CEP!")
                                     @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!") final String cep) {
+
         log.info("Finding adress by cep");
         return Response.ok()
                 .entity(service.findAdressByCep(cep))

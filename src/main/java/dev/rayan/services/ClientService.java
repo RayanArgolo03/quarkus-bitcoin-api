@@ -24,15 +24,15 @@ public final class ClientService {
     @Inject
     ClientMapper mapper;
 
-    public Client persist(final ClientRequest request) {
+    public ClientResponse persist(final ClientRequest request) {
 
         final Client client = Client.builder().build();
         repository.persist(client);
 
-        return client;
+        return mapper.clientToResponse(client);
     }
 
-    public Client findById(final UUID id) {
+    public Client findClientById(final UUID id) {
         final Optional<Client> optional = repository.findByIdOptional(id);
         return optional.orElseThrow(() -> new NotFoundException("You need to complete the register!"));
     }

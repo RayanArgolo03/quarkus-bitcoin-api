@@ -2,18 +2,17 @@ package dev.rayan.services;
 
 import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.CredentialTokensResponse;
-import dev.rayan.exceptions.BusinessException;
 import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
+import dev.rayan.exceptions.UserAlreadyLoggedOutException;
 import dev.rayan.strategy.TokenStrategy;
 import io.quarkus.arc.All;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.RequestScoped;
-import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.keycloak.OAuth2Constants;
@@ -26,10 +25,7 @@ import org.keycloak.admin.client.token.TokenManager;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.keycloak.representations.idm.UserSessionRepresentation;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
@@ -64,7 +60,7 @@ public class KeycloakService {
     String adminPassword;
 
     @Inject
-    JWTParser tokenValidate;
+    JWTParser jwtParser;
 
     @Inject
     @All
@@ -154,7 +150,7 @@ public class KeycloakService {
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
         final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
 
-        if (isEmailVerified(user.toRepresentation())) {
+        if (user.toRepresentation().isEmailVerified()) {
             throw new EmailAlreadyVerifiedException("Email already verified!", GONE);
         }
 
@@ -178,7 +174,7 @@ public class KeycloakService {
         if (isFirstLogin(userRepresentation)) {
 
             //Front-end redirect to the confirmation email
-            if (!isEmailVerified(userRepresentation)) {
+            if (!userRepresentation.isEmailVerified()) {
                 user.sendVerifyEmail();
                 throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", response.getEmail()), FORBIDDEN);
             }
@@ -191,7 +187,7 @@ public class KeycloakService {
             if (hasSession(user)) throw new UserAlreadyLoggedException("Already logged!", FORBIDDEN);
         }
 
-        keycloak = buildKeycloak(response.getEmail(), response.getPassword());
+        keycloak = buildKeycloak(userRepresentation.getEmail(), response.getPassword());
         final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
         closeKeycloak(keycloak);
 
@@ -199,38 +195,57 @@ public class KeycloakService {
     }
 
 
-    public CredentialTokensResponse generateNewTokens(final CredentialResponse response) throws ParseException {
+    public void logout(final JsonWebToken token) {
 
-        final Keycloak keycloak = buildKeycloak(response.getEmail(), response.getPassword());
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+
+        final UserResource user = getUserResource(getUsersResource(keycloak), token.getSubject());
+        if (!hasSession(user)) throw new UserAlreadyLoggedOutException("Already logged out!", GONE);
+
+        user.logout();
+
+        closeKeycloak(keycloak);
+    }
+
+    public CredentialTokensResponse generateNewTokens(final String email, final String password) {
+
+        Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+
+        final UsersResource usersResource = getUsersResource(keycloak);
+        final String keycloakUserId = usersResource.search(email)
+                .get(0)
+                .getId();
+
+        //Revoking the previous tokens and session
+        getUserResource(usersResource, keycloakUserId)
+                .logout();
+
+        keycloak = buildKeycloak(email, password);
         final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
 
         closeKeycloak(keycloak);
 
         return tokensResponse;
+    }
+
+    public UserRepresentation findUserByRefreshToken(final String refreshToken) throws ParseException {
+
+        final JsonWebToken token = jwtParser.parseOnly(refreshToken);
+        tokenStrategies.forEach(strategy -> strategy.validateToken(token));
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final String keycloakUserId = token.getSubject();
+
+        final UserRepresentation userRepresentation = getUserResource(getUsersResource(keycloak), keycloakUserId)
+                .toRepresentation();
+
+        closeKeycloak(keycloak);
+
+        return userRepresentation;
     }
 
     private boolean hasSession(final UserResource user) {
         return !user.getUserSessions().isEmpty();
-    }
-
-    public void logout(final String authorizationToken) throws ParseException {
-
-        final JsonWebToken token = validateToken(authorizationToken);
-        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-
-        getUserResource(getUsersResource(keycloak), token.getSubject())
-                .logout();
-
-        closeKeycloak(keycloak);
-    }
-
-    public JsonWebToken validateToken(final String authorizationToken) throws ParseException {
-
-        //ParseException never throws because using parseOnly
-        final JsonWebToken token = tokenValidate.parseOnly(authorizationToken);
-        tokenStrategies.forEach(strategy -> strategy.validateToken(token));
-
-        return token;
     }
 
     public CredentialTokensResponse generateTokens(final Keycloak keycloak) {
@@ -261,10 +276,6 @@ public class KeycloakService {
         user.update(userRepresentation);
     }
 
-
-    private boolean isEmailVerified(final UserRepresentation userRepresentation) {
-        return userRepresentation.isEmailVerified();
-    }
 
     private Keycloak buildKeycloak(final String username, final String password) {
 

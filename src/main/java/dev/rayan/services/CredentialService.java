@@ -34,7 +34,7 @@ public final class CredentialService {
         final Credential credential = new Credential(request.email(), request.password());
         repository.persist(credential);
 
-        return mapCredentialToResponse(credential);
+        return mapper.credentialToResponse(credential);
     }
 
     public CredentialResponse login(final CredentialRequest request) {
@@ -46,15 +46,11 @@ public final class CredentialService {
             throw new NotAuthorizedException("Invalid password", UNAUTHORIZED);
         }
 
-        return mapCredentialToResponse(credential);
+        return mapper.credentialToResponse(credential);
     }
 
     public Optional<Credential> findCredential(final String email) {
         return repository.findCredential(email.toLowerCase());
-    }
-
-    public CredentialResponse mapCredentialToResponse(final Credential credential) {
-        return mapper.credentialToResponse(credential);
     }
 
 }
