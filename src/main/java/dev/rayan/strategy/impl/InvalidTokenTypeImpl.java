@@ -11,6 +11,6 @@ public final class InvalidTokenTypeImpl implements TokenStrategy {
 
     @Override
     public void validateToken(final JsonWebToken token) {
-        if (!token.getClaim("typ").equals("Refresh")) throw new BusinessException("Invalid token type!");
+        if (token.getClaim("typ").equals("Bearer")) throw new BusinessException("Invalid token type!");
     }
 }

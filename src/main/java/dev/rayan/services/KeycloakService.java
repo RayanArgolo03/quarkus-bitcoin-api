@@ -8,11 +8,13 @@ import dev.rayan.exceptions.UserAlreadyLoggedException;
 import dev.rayan.exceptions.UserAlreadyLoggedOutException;
 import dev.rayan.strategy.TokenStrategy;
 import io.quarkus.arc.All;
+import io.quarkus.runtime.Startup;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
-import jakarta.enterprise.context.RequestScoped;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.keycloak.OAuth2Constants;
@@ -26,6 +28,7 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
@@ -38,7 +41,8 @@ import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
 import static jakarta.ws.rs.core.Response.Status.GONE;
 import static java.lang.String.format;
 
-@RequestScoped
+@ApplicationScoped
+@Startup
 public class KeycloakService {
 
     @ConfigProperty(name = "keycloak.admin-client.server-url")
@@ -67,8 +71,24 @@ public class KeycloakService {
     List<TokenStrategy> tokenStrategies;
 
     private static final String ADMIN_EMAIL = "admin@gmail.com";
+
     private static final Set<String> QUARKUS_ROLES = Set.of("user", "admin");
+
     private static final String FIRST_LOGIN_ATTRIBUTE = "first_login";
+
+    @PostConstruct
+    public void persistMigrationsMock() {
+        final CredentialResponse mock = new CredentialResponse(null, "rayanpetros2@gmail.com", "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
+        mock.setKeycloakUserId("8c878e6f-ff13-4a37-a208-7510c2638944");
+        persist(mock);
+    }
+
+    @PreDestroy
+    public void deleteMigrationsMock() {
+        final CredentialResponse mock = new CredentialResponse(null, "rayanpetros2@gmail.com", "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
+        mock.setKeycloakUserId("8c878e6f-ff13-4a37-a208-7510c2638944");
+        delete(mock.getKeycloakUserId());
+    }
 
     public void persist(final CredentialResponse response) {
 
@@ -137,8 +157,7 @@ public class KeycloakService {
                 .collect(Collectors.toList());
 
         //Remove the admin role if not is admin
-        final boolean isAdmin = username.equals(ADMIN_EMAIL);
-        if (!isAdmin) roles.remove(0);
+        if (username.equals(ADMIN_EMAIL)) roles.remove(0);
 
         user.roles()
                 .realmLevel()
@@ -187,7 +206,7 @@ public class KeycloakService {
             if (hasSession(user)) throw new UserAlreadyLoggedException("Already logged!", FORBIDDEN);
         }
 
-        keycloak = buildKeycloak(userRepresentation.getEmail(), response.getPassword());
+        keycloak = buildKeycloak(response.getEmail(), response.getPassword());
         final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
         closeKeycloak(keycloak);
 
@@ -234,9 +253,8 @@ public class KeycloakService {
         tokenStrategies.forEach(strategy -> strategy.validateToken(token));
 
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-        final String keycloakUserId = token.getSubject();
 
-        final UserRepresentation userRepresentation = getUserResource(getUsersResource(keycloak), keycloakUserId)
+        final UserRepresentation userRepresentation = getUserResource(getUsersResource(keycloak), token.getSubject())
                 .toRepresentation();
 
         closeKeycloak(keycloak);
@@ -270,6 +288,17 @@ public class KeycloakService {
                 .get(0);
 
         return firstLoginValue.equals("true");
+    }
+
+    public void delete(final String keycloakUserId) {
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminUsername);
+
+        getUsersResource(keycloak)
+                .delete(keycloakUserId)
+                .close();
+
+        closeKeycloak(keycloak);
     }
 
     public void updateUser(final UserResource user, final UserRepresentation userRepresentation) {

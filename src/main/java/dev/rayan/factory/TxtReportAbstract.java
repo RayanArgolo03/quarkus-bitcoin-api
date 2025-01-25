@@ -1,4 +1,4 @@
-package dev.rayan.report;
+package dev.rayan.factory;
 
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;

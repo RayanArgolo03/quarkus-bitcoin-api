@@ -68,6 +68,35 @@ public final class AuthenticationResource {
                 .build();
     }
 
+    @POST
+    @PermitAll
+    @Path("/login")
+    public Response login(@Valid final CredentialRequest request) {
+
+        log.info("Login and generate tokens");
+        final CredentialTokensResponse response = keycloakService.login(
+                credentialService.login(request)
+        );
+
+        //Front-end redirect to index-page
+        return Response.ok()
+                .entity(response)
+                .build();
+    }
+
+    @DELETE
+    @Authenticated
+    @Path("/logout")
+    public Response logout(@Context final JsonWebToken token) {
+
+        log.info("Logout user");
+        keycloakService.logout(token);
+
+        //Front-end redirect to index page
+        return Response.ok("Sucessfully Logout!")
+                .build();
+    }
+
     @PUT
     @PermitAll
     @Path("{keycloakUserId}/resent-verify-email")
@@ -82,37 +111,7 @@ public final class AuthenticationResource {
                 .build();
     }
 
-    @POST
-    @PermitAll
-    @Path("/login")
-    public Response login(@Valid final CredentialRequest request) {
-
-        log.info("Login and generate tokens");
-        final CredentialResponse response = credentialService.login(request);
-        keycloakService.login(response);
-
-        //Front-end redirect to index-page
-        return Response.ok()
-                .entity(response)
-                .build();
-    }
-
-    @DELETE
-    @Authenticated
-    @Path("/logout")
-    public Response logout(@Context final JsonWebToken token) throws ParseException {
-
-        log.info("Logout user");
-        keycloakService.logout(token);
-
-        //Front-end redirect to index page
-        return Response.ok("Sucessfully Logout!")
-                .build();
-    }
-
     /**
-     * If refresh-token is expired: strategy throws NotAuthorized, logout user and front-end redirect to login.
-     *
      * @param request Token can also be defined as @CookieParam
      **/
     @GET
@@ -123,7 +122,7 @@ public final class AuthenticationResource {
         log.info("Validate and find user in keycloak by refresh token");
         final UserRepresentation userRepresentation = keycloakService.findUserByRefreshToken(request.refreshToken());
 
-        log.info("Find credential to get the password and generate new tokens");
+        log.info("Find credential in database to get the password and generate new tokens");
         final Credential credential = credentialService.findCredential(userRepresentation.getEmail())
                 .get();
 

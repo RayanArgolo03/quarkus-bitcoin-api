@@ -1,14 +1,11 @@
 package dev.rayan.services;
 
-import dev.rayan.adapters.BitcoinQuoteAdapter;
+import dev.rayan.adapter.BitcoinQuoteAdapter;
 import dev.rayan.dto.respose.BitcoinResponse;
 import dev.rayan.exceptions.ApiException;
 import dev.rayan.mappers.BitcoinMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.WebApplicationException;
-
-import static jakarta.ws.rs.core.Response.Status.*;
 
 @ApplicationScoped
 public final class BitcoinService {

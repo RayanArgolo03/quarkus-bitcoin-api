@@ -1,8 +1,7 @@
-package dev.rayan.report;
+package dev.rayan.factory;
 
 import dev.rayan.dto.respose.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
-import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.File;
 import java.io.IOException;

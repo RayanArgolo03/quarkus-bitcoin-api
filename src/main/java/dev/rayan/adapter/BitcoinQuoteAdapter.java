@@ -1,4 +1,4 @@
-package dev.rayan.adapters;
+package dev.rayan.adapter;
 
 
 import dev.rayan.client.QuoteRestClient;

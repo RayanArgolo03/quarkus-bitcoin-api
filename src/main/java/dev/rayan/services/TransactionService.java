@@ -1,6 +1,6 @@
 package dev.rayan.services;
 
-import dev.rayan.adapters.BitcoinQuoteAdapter;
+import dev.rayan.adapter.BitcoinQuoteAdapter;
 import dev.rayan.dto.request.TransactionFiltersRequest;
 import dev.rayan.dto.request.TransactionRequest;
 import dev.rayan.dto.respose.TransactionReportResponse;
