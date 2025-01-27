@@ -1,6 +1,6 @@
 package dev.rayan.client;
 
-import dev.rayan.dto.respose.AdressResponse;
+import dev.rayan.model.client.Address;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.faulttolerance.Fallback;
@@ -21,9 +21,9 @@ public interface ViaCepRestClient {
     @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
     @Fallback(fallbackMethod = "fallback")
     @Path("/{cep}/json/")
-    Optional<AdressResponse> findAdressByCep(@PathParam("cep") String cep);
+    Optional<Address> findAdressByCep(@PathParam("cep") String cep);
 
-    default Optional<AdressResponse> fallback(final String cep) {
+    default Optional<Address> fallback(final String cep) {
         return Optional.empty();
     }
 

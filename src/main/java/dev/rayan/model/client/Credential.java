@@ -31,7 +31,7 @@ public class Credential {
     @Column(nullable = false)
     String password;
 
-    @OneToOne(mappedBy = "credential", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "credential", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     Client client;
 
@@ -40,8 +40,7 @@ public class Credential {
 
     public Credential(String email, String password) {
         this.email = email;
-        //Encript password to store in database
-        this.password = BcryptUtil.bcryptHash(password);
+        this.password = password;
     }
 
 

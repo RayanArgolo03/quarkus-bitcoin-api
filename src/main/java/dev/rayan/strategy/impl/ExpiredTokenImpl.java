@@ -2,7 +2,9 @@ package dev.rayan.strategy.impl;
 
 
 import dev.rayan.strategy.TokenStrategy;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -14,7 +16,8 @@ import java.time.ZoneId;
 
 import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 
-@ApplicationScoped
+@RequestScoped
+@Priority(0)
 public final class ExpiredTokenImpl implements TokenStrategy {
 
     @Override

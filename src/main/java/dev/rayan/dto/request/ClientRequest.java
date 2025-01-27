@@ -1,6 +1,6 @@
 package dev.rayan.dto.request;
 
-import dev.rayan.dto.respose.AdressResponse;
+import dev.rayan.model.client.Address;
 import dev.rayan.validation.OverEighteenYears;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -29,6 +29,6 @@ public record ClientRequest (
         String cpf,
 
         @Valid
-        AdressResponse address
+        Address address
 ) {
 }

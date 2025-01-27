@@ -9,7 +9,6 @@ import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
-import jakarta.ws.rs.core.Response;
 
 import java.util.Optional;
 
@@ -27,11 +26,11 @@ public final class CredentialService {
 
     public CredentialResponse persist(final CredentialRequest request) {
 
-        if (findCredential(request.email()).isPresent()) {
+        if (repository.findCredential(request.email()).isPresent()) {
             throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
         }
 
-        final Credential credential = new Credential(request.email(), request.password());
+        final Credential credential = new Credential(request.email(), BcryptUtil.bcryptHash(request.password()));
         repository.persist(credential);
 
         return mapper.credentialToResponse(credential);
@@ -39,7 +38,7 @@ public final class CredentialService {
 
     public CredentialResponse login(final CredentialRequest request) {
 
-        final Credential credential = findCredential(request.email())
+        final Credential credential = repository.findCredential(request.email())
                 .orElseThrow(() -> new NotAuthorizedException("Invalid email!", UNAUTHORIZED));
 
         if (!BcryptUtil.matches(request.password(), credential.getPassword())) {
@@ -49,8 +48,9 @@ public final class CredentialService {
         return mapper.credentialToResponse(credential);
     }
 
-    public Optional<Credential> findCredential(final String email) {
-        return repository.findCredential(email.toLowerCase());
+    public String findCredentialPassword(final String email) {
+        return repository.findCredentialPassword(email)
+                .orElseThrow(() -> new NotAuthorizedException("Account not exists!", 401));
     }
 
 }

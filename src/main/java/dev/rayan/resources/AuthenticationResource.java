@@ -4,7 +4,6 @@ import dev.rayan.dto.request.CredentialRequest;
 import dev.rayan.dto.request.RefreshTokenRequest;
 import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.CredentialTokensResponse;
-import dev.rayan.model.client.Credential;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
@@ -20,7 +19,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
-import org.keycloak.representations.idm.UserRepresentation;
 
 import java.net.URI;
 
@@ -64,10 +62,11 @@ public final class AuthenticationResource {
         //Front-end redirect to the login page after confirmation verification
         //The keycloak user id is used in path param to resend the verification email
         return Response.created(uri)
-                .entity(format("The confirmation email was sent to: %s \nKeycloak user id: %s", response.getEmail(), response.getKeycloakUserId()))
+                .entity(response)
                 .build();
     }
 
+    //TODO CONTINUE
     @POST
     @PermitAll
     @Path("/login")
@@ -89,47 +88,40 @@ public final class AuthenticationResource {
     @Path("/logout")
     public Response logout(@Context final JsonWebToken token) {
 
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Verifyning if user exists in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
         log.info("Logout user");
-        keycloakService.logout(token);
+        keycloakService.logout(keycloakUserId);
 
         //Front-end redirect to index page
         return Response.ok("Sucessfully Logout!")
                 .build();
     }
 
-    @PUT
-    @PermitAll
-    @Path("{keycloakUserId}/resent-verify-email")
-    public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
-
-        //Keycloak user id would be extracted by the URL in keycloak expired email response
-        keycloakService.resendVerifyEmail(keycloakUserId);
-
-        //Front-end redirect to the login page after confirmation verification
-        return Response.ok()
-                .entity("Email forwarded!")
-                .build();
-    }
-
     /**
      * @param request Token can also be defined as @CookieParam
      **/
-    @GET
+    @POST
     @PermitAll
     @Path("/generate-new-tokens")
-    public Response generateNewTokens(@Valid final RefreshTokenRequest request) throws ParseException {
+    public Response generateNewTokens(final RefreshTokenRequest request) throws ParseException {
 
-        log.info("Validate and find user in keycloak by refresh token");
-        final UserRepresentation userRepresentation = keycloakService.findUserByRefreshToken(request.refreshToken());
+        log.info("Validating refresh token and get keycloak user id");
+        final String keycloakUserId = keycloakService.validateToken(request.refreshToken())
+                .getSubject();
 
-        log.info("Find credential in database to get the password and generate new tokens");
-        final Credential credential = credentialService.findCredential(userRepresentation.getEmail())
-                .get();
+        log.info("Finding the user email in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Finding the credential password in database with the email");
+        final String password = credentialService.findCredentialPassword(email);
 
         log.info("Generate new tokens and revoke previous tokens");
         final CredentialTokensResponse response = keycloakService.generateNewTokens(
-                credential.getEmail(),
-                credential.getPassword()
+                keycloakUserId, email, password
         );
 
         return Response.ok()
@@ -137,4 +129,21 @@ public final class AuthenticationResource {
                 .build();
     }
 
+
+    @PUT
+    @PermitAll
+    @Path("{keycloakUserId}/resent-verify-email")
+    public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
+
+        log.info("Verifyning if user exists in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Resending verify email");
+        keycloakService.resentVerifyEmail(keycloakUserId);
+
+        //Front-end redirect to the login page after confirmation verification
+        return Response.ok()
+                .entity("Email forwarded!")
+                .build();
+    }
 }

@@ -1,8 +1,8 @@
 package dev.rayan.services;
 
 import dev.rayan.client.ViaCepRestClient;
-import dev.rayan.dto.respose.AdressResponse;
 import dev.rayan.exceptions.ApiException;
+import dev.rayan.model.client.Address;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -14,7 +14,7 @@ public final class AdressService {
     @RestClient
     ViaCepRestClient viaCep;
 
-    public AdressResponse findAdressByCep(final String cep) {
+    public Address findAdressByCep(final String cep) {
         return viaCep.findAdressByCep(cep)
                 .orElseThrow(() -> new ApiException("The server was unable to complete your request, contact @rayan_argolo"));
     }

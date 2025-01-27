@@ -40,7 +40,7 @@ public class Client {
     @Column(nullable = false, length = 11, unique = true)
     String cpf;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToOne(orphanRemoval = true, fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @MapsId
     @JoinColumn(name = "client_id")
     Credential credential;

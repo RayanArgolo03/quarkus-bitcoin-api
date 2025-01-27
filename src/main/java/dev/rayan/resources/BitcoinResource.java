@@ -31,7 +31,7 @@ public final class BitcoinResource {
     BitcoinService service;
 
     @GET
-    @RolesAllowed("admin")
+    @RolesAllowed("user")
     public Response quote() {
 
         log.info("Quoting bitcoin in external API");
