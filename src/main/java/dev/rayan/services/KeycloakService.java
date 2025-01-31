@@ -26,12 +26,17 @@ import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.admin.client.token.TokenManager;
+import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +44,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
-import static jakarta.ws.rs.core.Response.Status.GONE;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
@@ -72,7 +76,7 @@ public class KeycloakService {
     @All
     List<TokenStrategy> tokenStrategies;
 
-    private static final String ADMIN_EMAIL = "rayanpetros2@gmail.com";
+    private static final String ADMIN_EMAIL = "admin@gmail.com";
 
     private static final Set<String> QUARKUS_ROLES = Set.of("user", "admin");
 
@@ -80,16 +84,20 @@ public class KeycloakService {
 
     @PostConstruct
     public void persistMigrationsMock() {
-        final CredentialResponse mock = new CredentialResponse(null, "rayanpetros2@gmail.com", "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
-        mock.setKeycloakUserId("8c878e6f-ff13-4a37-a208-7510c2638944");
-        persist(mock);
+        persist(new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now()));
     }
 
     @PreDestroy
     public void deleteMigrationsMock() {
-        final CredentialResponse mock = new CredentialResponse(null, "rayanpetros2@gmail.com", "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
-        mock.setKeycloakUserId("8c878e6f-ff13-4a37-a208-7510c2638944");
-        delete(mock.getKeycloakUserId());
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final String keycloakUserId = getUsersResource(keycloak)
+                .search(ADMIN_EMAIL)
+                .get(0)
+                .getId();
+
+        delete(keycloakUserId);
+        closeKeycloak(keycloak);
     }
 
     public void persist(final CredentialResponse response) {
@@ -101,7 +109,6 @@ public class KeycloakService {
         user.sendVerifyEmail();
 
         closeKeycloak(keycloak);
-
     }
 
     private UserResource createUser(final UsersResource usersResource, final CredentialResponse response) {
@@ -171,14 +178,13 @@ public class KeycloakService {
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
         final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
 
-        if (user.toRepresentation().isEmailVerified()) {
+        if (isEmailVerified(user.toRepresentation())) {
             throw new EmailAlreadyVerifiedException("Email already verified!", GONE);
         }
 
         user.sendVerifyEmail();
         closeKeycloak(keycloak);
     }
-
 
     public CredentialTokensResponse login(final CredentialResponse response) {
 
@@ -194,7 +200,7 @@ public class KeycloakService {
 
         if (isFirstLogin(userRepresentation)) {
 
-            if (!userRepresentation.isEmailVerified()) {
+            if (!isEmailVerified(userRepresentation)) {
                 user.sendVerifyEmail();
                 throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", response.getEmail()), FORBIDDEN);
             }
@@ -258,7 +264,7 @@ public class KeycloakService {
                     .getEmail();
 
         } catch (WebApplicationException e) {
-            throw new NotAuthorizedException("Account not exists!", 401);
+            throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
 
         } finally {
             closeKeycloak(keycloak);
@@ -276,8 +282,24 @@ public class KeycloakService {
     }
 
     public CredentialTokensResponse generateTokens(final Keycloak keycloak) {
+
         final TokenManager manager = keycloak.tokenManager();
-        return new CredentialTokensResponse(manager.getAccessTokenString(), manager.refreshToken().getRefreshToken());
+        final AccessTokenResponse accessToken = manager.getAccessToken();
+
+        final LocalDateTime expiresIn = LocalDateTime.ofInstant(
+                Instant.now().plusSeconds(accessToken.getExpiresIn()),
+                ZoneId.systemDefault()
+        );
+
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                .withResolverStyle(ResolverStyle.STRICT);
+
+        return new CredentialTokensResponse(
+                accessToken.getToken(),
+                accessToken.getRefreshToken(),
+                formatter.format(LocalDateTime.now()),
+                formatter.format(expiresIn)
+        );
     }
 
 
@@ -297,6 +319,10 @@ public class KeycloakService {
                 .get(0);
 
         return firstLoginValue.equals("true");
+    }
+
+    private boolean isEmailVerified(final UserRepresentation userRepresentation) {
+        return userRepresentation.isEmailVerified();
     }
 
     public void delete(final String keycloakUserId) {

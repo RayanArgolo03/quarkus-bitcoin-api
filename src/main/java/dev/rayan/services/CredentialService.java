@@ -26,7 +26,7 @@ public final class CredentialService {
 
     public CredentialResponse persist(final CredentialRequest request) {
 
-        if (repository.findCredential(request.email()).isPresent()) {
+        if (findCredential(request.email()).isPresent()) {
             throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
         }
 
@@ -38,7 +38,7 @@ public final class CredentialService {
 
     public CredentialResponse login(final CredentialRequest request) {
 
-        final Credential credential = repository.findCredential(request.email())
+        final Credential credential = findCredential(request.email())
                 .orElseThrow(() -> new NotAuthorizedException("Invalid email!", UNAUTHORIZED));
 
         if (!BcryptUtil.matches(request.password(), credential.getPassword())) {
@@ -48,9 +48,8 @@ public final class CredentialService {
         return mapper.credentialToResponse(credential);
     }
 
-    public String findCredentialPassword(final String email) {
-        return repository.findCredentialPassword(email)
-                .orElseThrow(() -> new NotAuthorizedException("Account not exists!", 401));
+    public Optional<Credential> findCredential(final String email) {
+        return repository.findCredential(email);
     }
 
 }

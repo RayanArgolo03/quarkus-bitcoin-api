@@ -3,13 +3,10 @@ package dev.rayan.strategy.impl;
 
 import dev.rayan.strategy.TokenStrategy;
 import jakarta.annotation.Priority;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.ws.rs.NotAuthorizedException;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
-import java.io.Reader;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -23,7 +20,7 @@ public final class ExpiredTokenImpl implements TokenStrategy {
     @Override
     public void validateToken(final JsonWebToken token) {
         if (tokenIsExpired(token.getExpirationTime())) {
-            throw new NotAuthorizedException("Desconnected, you need to login again!", 401, UNAUTHORIZED);
+            throw new NotAuthorizedException("Desconnected, you need to login again!", UNAUTHORIZED);
         }
     }
 

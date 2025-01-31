@@ -4,6 +4,7 @@ import dev.rayan.dto.request.CredentialRequest;
 import dev.rayan.dto.request.RefreshTokenRequest;
 import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.CredentialTokensResponse;
+import dev.rayan.model.client.Credential;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
@@ -21,6 +22,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
+import java.util.Optional;
 
 import static java.lang.String.format;
 
@@ -66,7 +68,6 @@ public final class AuthenticationResource {
                 .build();
     }
 
-    //TODO CONTINUE
     @POST
     @PermitAll
     @Path("/login")
@@ -116,12 +117,13 @@ public final class AuthenticationResource {
         log.info("Finding the user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Finding the credential password in database with the email");
-        final String password = credentialService.findCredentialPassword(email);
+        log.info("Finding credential to use the password");
+        final Credential credential = credentialService.findCredential(email)
+                .get();
 
         log.info("Generate new tokens and revoke previous tokens");
         final CredentialTokensResponse response = keycloakService.generateNewTokens(
-                keycloakUserId, email, password
+                keycloakUserId, email, credential.getPassword()
         );
 
         return Response.ok()
@@ -135,7 +137,7 @@ public final class AuthenticationResource {
     @Path("{keycloakUserId}/resent-verify-email")
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
-        log.info("Verifyning if user exists in keycloak");
+        log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
         log.info("Resending verify email");

@@ -14,7 +14,6 @@ import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import dev.rayan.model.client.Client;
-import dev.rayan.utils.FormatterUtils;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
@@ -25,6 +24,9 @@ import jakarta.ws.rs.NotFoundException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -184,15 +186,19 @@ public final class TransactionService {
 
         if (bitcoin != null) {
 
-            valuePurchased = FormatterUtils.formatMoney(
+            final NumberFormat formatter = NumberFormat.getCurrencyInstance();
+
+            valuePurchased = formatter.format(
                     calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalPurchased())
             );
 
-            valueSold = FormatterUtils.formatMoney(
+            valueSold = formatter.format(
                     calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalSold())
             );
 
-            bitcoinDate = FormatterUtils.formatDate(bitcoin.getTime());
+            bitcoinDate = DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm")
+                    .withResolverStyle(ResolverStyle.STRICT)
+                    .format(bitcoin.getTime());
         }
 
         reportResponse.setValuePurchased(valuePurchased);

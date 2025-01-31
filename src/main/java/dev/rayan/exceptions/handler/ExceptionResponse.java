@@ -47,7 +47,6 @@ public final class ExceptionResponse {
         );
     }
 
-    //Create ExceptionMessage record to Exception error body
     //Path example: sellBitcoins.request.quantity
     private ExceptionMessage createExceptionMessage(final ConstraintViolation<?> violation) {
 
@@ -55,8 +54,7 @@ public final class ExceptionResponse {
                 .toString()
                 .split("\\.");
 
-        final int last = fieldPath.length - 1;
-        final String field = fieldPath[last];
+        final String field = fieldPath[fieldPath.length - 1];
 
         return new ExceptionMessage(field, violation.getMessage());
     }

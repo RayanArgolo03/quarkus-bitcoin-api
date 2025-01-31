@@ -26,7 +26,7 @@ public final class GeneralExceptionHandler implements ExceptionMapper<Exception>
                 ? ee.getResponse().getStatusInfo().toEnum()
                 : INTERNAL_SERVER_ERROR;
 
-        log.errorf("Exception: %s, Trace and message: %s", e.getClass().getSimpleName(), e);
+        log.errorf("Exception: %s, Message: %s", e.getClass().getSimpleName(), e.getMessage());
         return Response.status(status)
                 .entity(new ExceptionResponse(e.getMessage(), status))
                 .build();

@@ -10,14 +10,12 @@ import org.hibernate.validator.constraints.br.CPF;
 
 import java.time.LocalDate;
 
-public record ClientRequest (
+public record ClientRequest(
 
         @NotBlank(message = "Required first name!")
-        @Pattern(regexp = "^(?=([A-ZÀ-ÝŐŰẞŒ]|([a-zß-ÿőűœ][ '])))(?=(?![a-zß-ÿőűœ]+[A-ZÀ-ÝŐŰẞŒ]))(?=(?!.*[A-ZÀ-ÝŐŰẞŒ][A-ZÀ-ÝŐŰẞŒ]))(?=(?!.*[- '][- ']))[A-ZÀ-ÝŐŰẞŒß-ÿőűœa-z- ']{2,}([a-zß-ÿőűœ]|(, Jr.))$\n")
         String firstName,
 
         @NotBlank(message = "Required surname!")
-        @Pattern(regexp = "^(?=([A-ZÀ-ÝŐŰẞŒ]|([a-zß-ÿőűœ][ '])))(?=(?![a-zß-ÿőűœ]+[A-ZÀ-ÝŐŰẞŒ]))(?=(?!.*[A-ZÀ-ÝŐŰẞŒ][A-ZÀ-ÝŐŰẞŒ]))(?=(?!.*[- '][- ']))[A-ZÀ-ÝŐŰẞŒß-ÿőűœa-z- ']{2,}([a-zß-ÿőűœ]|(, Jr.))$\n")
         String surname,
 
         @NotNull(message = "Required birth date")

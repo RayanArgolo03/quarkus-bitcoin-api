@@ -3,7 +3,9 @@ package dev.rayan.model.bitcoin;
 
 import dev.rayan.enums.TransactionType;
 import dev.rayan.model.client.Client;
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.hibernate.orm.panache.PanacheEntity_;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,20 +33,20 @@ public class Transaction extends PanacheEntityBase {
     @Column(name = "transaction_id")
     UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    Client client;
-
     @Column(nullable = false)
     BigDecimal quantity;
 
-    @Column(name = "created_at")
-    final LocalDateTime createdAt = LocalDateTime.now();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "credential_id", nullable = false)
+    Client client;
 
     @Enumerated(value = EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
     @Column(nullable = false)
     TransactionType type;
+
+    @Column(name = "created_at")
+    final LocalDateTime createdAt = LocalDateTime.now();
 
     public Transaction(BigDecimal quantity, Client client, TransactionType type) {
         this.quantity = quantity;

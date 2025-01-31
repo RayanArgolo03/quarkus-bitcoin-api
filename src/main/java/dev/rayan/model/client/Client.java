@@ -14,18 +14,18 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
 @AllArgsConstructor
 @Builder
 @Getter
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 
 @Entity
 @Table(name = "clients")
 public class Client {
 
     @Id
-    @Column(name = "client_id")
+    @Column(name = "credential_id")
     UUID id;
 
     @Column(name = "first_name", nullable = false)
@@ -40,9 +40,9 @@ public class Client {
     @Column(nullable = false, length = 11, unique = true)
     String cpf;
 
-    @OneToOne(orphanRemoval = true, fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(orphanRemoval = true, fetch = FetchType.LAZY)
     @MapsId
-    @JoinColumn(name = "client_id")
+    @JoinColumn(name = "credential_id")
     Credential credential;
 
     @Embedded
@@ -55,8 +55,8 @@ public class Client {
     @Column(name = "created_at")
     LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "updated_at")
     @UpdateTimestamp
+    @Column(name = "updated_at")
     LocalDateTime updatedAt = null;
 
 
