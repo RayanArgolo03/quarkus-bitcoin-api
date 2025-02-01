@@ -5,17 +5,14 @@ import dev.rayan.dto.request.UpdateClientRequest;
 import dev.rayan.dto.respose.ClientResponse;
 import dev.rayan.exceptions.UserAlreadyExistsException;
 import dev.rayan.mappers.ClientMapper;
+import dev.rayan.model.client.Address;
 import dev.rayan.model.client.Client;
 import dev.rayan.model.client.Credential;
 import dev.rayan.repositories.ClientRepository;
-import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.Parameter;
 import jakarta.ws.rs.NotAuthorizedException;
 
-import javax.security.auth.login.Configuration;
-import java.util.Optional;
 import java.util.UUID;
 
 import static jakarta.ws.rs.core.Response.Status.GONE;
@@ -67,7 +64,15 @@ public final class ClientService {
         final Client client = repository.findByIdOptional(id)
                 .orElseThrow(() -> new NotAuthorizedException("You need complete your register!", UNAUTHORIZED));
 
-        repository.update(client, request);
+        repository.updatePartial(client, request);
+    }
+
+    public void update(final UUID id, final Address address) {
+
+        final Client client = repository.findByIdOptional(id)
+                .orElseThrow(() -> new NotAuthorizedException("You need complete your register!", UNAUTHORIZED));
+
+        repository.updateAddress(client, address);
     }
 
 

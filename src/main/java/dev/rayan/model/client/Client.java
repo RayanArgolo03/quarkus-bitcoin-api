@@ -22,7 +22,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@EqualsAndHashCode
 
 @Entity
 @DynamicInsert

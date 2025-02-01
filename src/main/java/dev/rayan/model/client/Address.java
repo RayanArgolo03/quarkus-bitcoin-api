@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -17,10 +18,10 @@ import org.hibernate.annotations.DynamicUpdate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode
 
-@DynamicUpdate
 @Embeddable
 public final class Address {
 
+    @Getter
     @NotBlank(message = "Required CEP!")
     @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!")
     @Column(nullable = false, length = 8)

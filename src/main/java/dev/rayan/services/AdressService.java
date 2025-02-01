@@ -2,6 +2,7 @@ package dev.rayan.services;
 
 import dev.rayan.client.ViaCepRestClient;
 import dev.rayan.exceptions.ApiException;
+import dev.rayan.exceptions.BusinessException;
 import dev.rayan.model.client.Address;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,7 +16,12 @@ public final class AdressService {
     ViaCepRestClient viaCep;
 
     public Address findAdressByCep(final String cep) {
-        return viaCep.findAdressByCep(cep)
+
+        final Address address = viaCep.findAdressByCep(cep)
                 .orElseThrow(() -> new ApiException("The server was unable to complete your request, contact @rayan_argolo"));
+
+        if (address.getCep() == null) throw new BusinessException("CEP not exists!");
+
+        return address;
     }
 }

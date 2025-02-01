@@ -3,6 +3,7 @@ package dev.rayan.resources;
 import dev.rayan.dto.request.CreateClientRequest;
 import dev.rayan.dto.request.UpdateClientRequest;
 import dev.rayan.dto.respose.ClientResponse;
+import dev.rayan.model.client.Address;
 import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
@@ -85,9 +86,9 @@ public final class ClientResource {
     @RolesAllowed("user")
     @Transactional
     @Path("{id}")
-    public Response updateClient(@PathParam("id") final UUID id,
-                                 @Valid final UpdateClientRequest request,
-                                 @Context JsonWebToken token) {
+    public Response updatePartial(@PathParam("id") final UUID id,
+                                  @Valid final UpdateClientRequest request,
+                                  @Context JsonWebToken token) {
 
         log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
@@ -95,9 +96,30 @@ public final class ClientResource {
         log.info("Updating client");
         clientService.update(id, request);
 
-        return Response.ok("Client updated!")
+        return Response.ok()
+                .entity("Client updated!")
                 .build();
     }
+
+    @PUT
+    @RolesAllowed("user")
+    @Transactional
+    @Path("{id}")
+    public Response updateAddress(@PathParam("id") final UUID id,
+                                  @Valid final Address address,
+                                  @Context final JsonWebToken token) {
+
+        log.info("Verifyning if credential exists in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Updating client address");
+        clientService.update(id, address);
+
+        return Response.ok()
+                .entity("Address updated!")
+                .build();
+    }
+
 
     @GET
     @Authenticated
