@@ -3,9 +3,7 @@ package dev.rayan.model.bitcoin;
 
 import dev.rayan.enums.TransactionType;
 import dev.rayan.model.client.Client;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import io.quarkus.hibernate.orm.panache.PanacheEntity_;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

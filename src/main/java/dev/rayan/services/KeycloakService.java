@@ -12,7 +12,6 @@ import io.quarkus.runtime.Startup;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
@@ -32,7 +31,6 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -87,18 +85,18 @@ public class KeycloakService {
         persist(new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now()));
     }
 
-    @PreDestroy
-    public void deleteMigrationsMock() {
-
-        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-        final String keycloakUserId = getUsersResource(keycloak)
-                .search(ADMIN_EMAIL)
-                .get(0)
-                .getId();
-
-        delete(keycloakUserId);
-        closeKeycloak(keycloak);
-    }
+//    @PreDestroy
+//    public void deleteMigrationsMock() {
+//
+//        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+//        final String keycloakUserId = getUsersResource(keycloak)
+//                .search(ADMIN_EMAIL)
+//                .get(0)
+//                .getId();
+//
+//        delete(keycloakUserId);
+//        closeKeycloak(keycloak);
+//    }
 
     public void persist(final CredentialResponse response) {
 

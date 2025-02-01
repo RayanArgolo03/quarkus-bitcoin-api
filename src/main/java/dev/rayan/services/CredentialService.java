@@ -1,6 +1,6 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.CredentialRequest;
+import dev.rayan.dto.request.CreateCredentialRequest;
 import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.mappers.CredentialMapper;
 import dev.rayan.model.client.Credential;
@@ -24,7 +24,7 @@ public final class CredentialService {
     @Inject
     CredentialMapper mapper;
 
-    public CredentialResponse persist(final CredentialRequest request) {
+    public CredentialResponse persist(final CreateCredentialRequest request) {
 
         if (findCredential(request.email()).isPresent()) {
             throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
@@ -36,7 +36,7 @@ public final class CredentialService {
         return mapper.credentialToResponse(credential);
     }
 
-    public CredentialResponse login(final CredentialRequest request) {
+    public CredentialResponse login(final CreateCredentialRequest request) {
 
         final Credential credential = findCredential(request.email())
                 .orElseThrow(() -> new NotAuthorizedException("Invalid email!", UNAUTHORIZED));

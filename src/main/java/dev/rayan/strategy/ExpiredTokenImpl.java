@@ -1,7 +1,6 @@
-package dev.rayan.strategy.impl;
+package dev.rayan.strategy;
 
 
-import dev.rayan.strategy.TokenStrategy;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.ws.rs.NotAuthorizedException;

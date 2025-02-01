@@ -1,6 +1,6 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.CredentialRequest;
+import dev.rayan.dto.request.CreateCredentialRequest;
 import dev.rayan.dto.request.RefreshTokenRequest;
 import dev.rayan.dto.respose.CredentialResponse;
 import dev.rayan.dto.respose.CredentialTokensResponse;
@@ -22,7 +22,6 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
-import java.util.Optional;
 
 import static java.lang.String.format;
 
@@ -49,7 +48,7 @@ public final class AuthenticationResource {
     @Transactional
     @PermitAll
     @Path("/sign-up")
-    public Response createCredential(@Valid final CredentialRequest request) {
+    public Response createCredential(@Valid final CreateCredentialRequest request) {
 
         log.info("Persisting client credential in database and keycloak");
         final CredentialResponse response = credentialService.persist(request);
@@ -71,7 +70,7 @@ public final class AuthenticationResource {
     @POST
     @PermitAll
     @Path("/login")
-    public Response login(@Valid final CredentialRequest request) {
+    public Response login(@Valid final CreateCredentialRequest request) {
 
         log.info("Login and generate tokens");
         final CredentialTokensResponse response = keycloakService.login(

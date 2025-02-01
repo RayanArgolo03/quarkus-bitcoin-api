@@ -1,8 +1,8 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.ClientRequest;
+import dev.rayan.dto.request.CreateClientRequest;
+import dev.rayan.dto.request.UpdateClientRequest;
 import dev.rayan.dto.respose.ClientResponse;
-import dev.rayan.model.client.Client;
 import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
@@ -13,7 +13,6 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -59,7 +58,7 @@ public final class ClientResource {
     @POST
     @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final ClientRequest request, @Context final JsonWebToken token) {
+    public Response createClient(@Valid final CreateClientRequest request, @Context final JsonWebToken token) {
 
         log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
@@ -79,6 +78,24 @@ public final class ClientResource {
 
         return Response.created(uri)
                 .entity(response)
+                .build();
+    }
+
+    @PATCH
+    @RolesAllowed("user")
+    @Transactional
+    @Path("{id}")
+    public Response updateClient(@PathParam("id") final UUID id,
+                                 @Valid final UpdateClientRequest request,
+                                 @Context JsonWebToken token) {
+
+        log.info("Verifyning if credential exists in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Updating client");
+        clientService.update(id, request);
+
+        return Response.ok("Client updated!")
                 .build();
     }
 

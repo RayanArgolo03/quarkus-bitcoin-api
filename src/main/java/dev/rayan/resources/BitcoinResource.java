@@ -31,9 +31,8 @@ public final class BitcoinResource {
     BitcoinService service;
 
     @GET
-    @RolesAllowed("user")
+    @Authenticated
     public Response quote() {
-
         log.info("Quoting bitcoin in external API");
         return Response.ok(service.getMappedBitcoin())
                 .build();

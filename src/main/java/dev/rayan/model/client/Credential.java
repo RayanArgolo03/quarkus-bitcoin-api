@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -17,11 +18,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@ToString
 
 @Entity
-@Table(name = "credentials")
 @DynamicInsert
+@DynamicUpdate
+@Table(name = "credentials")
 public class Credential {
 
     @Id
@@ -49,6 +50,7 @@ public class Credential {
     @UpdateTimestamp
     @Column(name = "updated_at")
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
     final LocalDateTime updatedAt = null;
 
     public Credential(String email, String password) {

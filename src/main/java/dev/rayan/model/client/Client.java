@@ -3,10 +3,12 @@ package dev.rayan.model.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
-import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
@@ -18,9 +20,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Getter
+@Setter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@EqualsAndHashCode
 
 @Entity
+@DynamicInsert
+@DynamicUpdate
 @Table(name = "clients")
 public class Client {
 
@@ -28,9 +34,11 @@ public class Client {
     @Column(name = "credential_id")
     UUID id;
 
+    @NonFinal
     @Column(name = "first_name", nullable = false)
     String firstName;
 
+    @NonFinal
     @Column(nullable = false)
     String surname;
 
@@ -45,6 +53,7 @@ public class Client {
     @JoinColumn(name = "credential_id")
     Credential credential;
 
+    @NonFinal
     @Embedded
     Address address;
 
@@ -57,7 +66,5 @@ public class Client {
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    LocalDateTime updatedAt = null;
-
-
+    LocalDateTime updatedAt = LocalDateTime.now();
 }

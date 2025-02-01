@@ -5,12 +5,11 @@ import dev.rayan.validation.OverEighteenYears;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.br.CPF;
 
 import java.time.LocalDate;
 
-public record ClientRequest(
+public record CreateClientRequest(
 
         @NotBlank(message = "Required first name!")
         String firstName,
@@ -28,5 +27,4 @@ public record ClientRequest(
 
         @Valid
         Address address
-) {
-}
+) {}

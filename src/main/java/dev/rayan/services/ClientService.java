@@ -1,17 +1,20 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.ClientRequest;
+import dev.rayan.dto.request.CreateClientRequest;
+import dev.rayan.dto.request.UpdateClientRequest;
 import dev.rayan.dto.respose.ClientResponse;
 import dev.rayan.exceptions.UserAlreadyExistsException;
 import dev.rayan.mappers.ClientMapper;
-import dev.rayan.model.client.Address;
 import dev.rayan.model.client.Client;
 import dev.rayan.model.client.Credential;
 import dev.rayan.repositories.ClientRepository;
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.Parameter;
 import jakarta.ws.rs.NotAuthorizedException;
 
+import javax.security.auth.login.Configuration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,7 +30,7 @@ public final class ClientService {
     @Inject
     ClientMapper mapper;
 
-    public ClientResponse persist(final Credential credential, final ClientRequest request) {
+    public ClientResponse persist(final Credential credential, final CreateClientRequest request) {
 
         //If tryning create client again
         if (repository.findByIdOptional(credential.getId()).isPresent()) {
@@ -53,10 +56,20 @@ public final class ClientService {
     }
 
     public ClientResponse findClientById(final UUID id) {
-        final Optional<Client> optional = repository.findByIdOptional(id);
-        return optional.map(mapper::clientToResponse)
+        return repository.findByIdOptional(id)
+                .map(mapper::clientToResponse)
                 .orElseThrow(() -> new NotAuthorizedException("Client not exists!", UNAUTHORIZED));
 
     }
 
+    public void update(final UUID id, final UpdateClientRequest request) {
+
+        final Client client = repository.findByIdOptional(id)
+                .orElseThrow(() -> new NotAuthorizedException("You need complete your register!", UNAUTHORIZED));
+
+        repository.update(client, request);
+    }
+
+
 }
+
