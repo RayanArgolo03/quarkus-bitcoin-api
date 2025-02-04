@@ -1,7 +1,7 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.respose.CredentialResponse;
-import dev.rayan.dto.respose.CredentialTokensResponse;
+import dev.rayan.dto.response.token.CredentialResponse;
+import dev.rayan.dto.response.token.CredentialTokensResponse;
 import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
@@ -156,7 +156,7 @@ public class KeycloakService {
 
         final Predicate<RoleRepresentation> isQuarkusRole = role -> QUARKUS_ROLES.contains(role.getName());
 
-        //Filter user and admin roles, sort by name ascending (admin is first index)
+        //Filter user and admin roles, sort by name ascending (admin is first pageNumber)
         final List<RoleRepresentation> roles = rolesResource.list()
                 .stream()
                 .filter(isQuarkusRole)
@@ -207,7 +207,7 @@ public class KeycloakService {
             update(user, userRepresentation);
 
         } else {
-            //Front-end redirect to index page
+            //Front-end redirect to pageNumber page
             if (hasSession(user)) throw new UserAlreadyLoggedException("Already logged!", FORBIDDEN);
         }
 

@@ -57,9 +57,7 @@ public final class Address {
     }
 
     @JsonSetter("estado")
-    private void setState(String state) {
-        this.state = state;
-    }
+    private void setState(String state) { this.state = state; }
 
     @JsonSetter("logradouro")
     private void setStreet(String street) {

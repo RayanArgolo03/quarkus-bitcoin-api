@@ -1,5 +1,7 @@
-package dev.rayan.dto.respose;
+package dev.rayan.dto.response.token;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,9 @@ public final class CredentialResponse {
 
     UUID id;
     String email;
+    @JsonIgnore
     String password;
+    @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
     LocalDateTime createdAt;
 
     @NonFinal

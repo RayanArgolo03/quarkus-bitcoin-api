@@ -1,4 +1,4 @@
-package dev.rayan.dto.request;
+package dev.rayan.dto.request.transaction;
 
 public record TransactionReportRequest() {
 }

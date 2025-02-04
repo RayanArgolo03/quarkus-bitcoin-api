@@ -1,4 +1,4 @@
-package dev.rayan.dto.respose;
+package dev.rayan.dto.response.transaction;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 

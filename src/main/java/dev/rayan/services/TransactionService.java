@@ -1,12 +1,12 @@
 package dev.rayan.services;
 
 import dev.rayan.adapter.BitcoinQuoteAdapter;
-import dev.rayan.dto.request.TransactionFiltersRequest;
-import dev.rayan.dto.request.TransactionRequest;
-import dev.rayan.dto.respose.TransactionReportResponse;
-import dev.rayan.dto.respose.TransactionResponse;
-import dev.rayan.dto.respose.TransactionSummaryByFiltersResponse;
-import dev.rayan.dto.respose.TransactionSummaryByTypeResponse;
+import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
+import dev.rayan.dto.request.transaction.TransactionRequest;
+import dev.rayan.dto.response.transaction.TransactionReportResponse;
+import dev.rayan.dto.response.transaction.TransactionResponse;
+import dev.rayan.dto.response.transaction.TransactionSummaryByFiltersResponse;
+import dev.rayan.dto.response.transaction.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.exceptions.BusinessException;
@@ -122,7 +122,7 @@ public final class TransactionService {
 
         final List<TransactionSummaryByFiltersResponse> transactions = createQueryFindTransactionSummaryByFilters(request, parameters)
                 .project(TransactionSummaryByFiltersResponse.class)
-                .page(request.getPageIndex(), request.getPageSize())
+                .page(request.getPaginationRequest().getPage())
                 .list();
 
         if (transactions.isEmpty()) throw new NotFoundException("Transactions not found!");

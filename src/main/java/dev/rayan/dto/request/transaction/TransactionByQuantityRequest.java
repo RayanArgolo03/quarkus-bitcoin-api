@@ -1,4 +1,4 @@
-package dev.rayan.dto.request;
+package dev.rayan.dto.request.transaction;
 
 import io.quarkus.panache.common.Sort;
 import jakarta.validation.constraints.DecimalMin;

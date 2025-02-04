@@ -1,4 +1,4 @@
-package dev.rayan.dto.request;
+package dev.rayan.dto.request.transaction;
 
 import dev.rayan.model.client.Client;
 import jakarta.validation.constraints.DecimalMin;

@@ -1,9 +1,9 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.CreateCredentialRequest;
-import dev.rayan.dto.request.RefreshTokenRequest;
-import dev.rayan.dto.respose.CredentialResponse;
-import dev.rayan.dto.respose.CredentialTokensResponse;
+import dev.rayan.dto.request.client.CreateCredentialRequest;
+import dev.rayan.dto.request.token.RefreshTokenRequest;
+import dev.rayan.dto.response.token.CredentialResponse;
+import dev.rayan.dto.response.token.CredentialTokensResponse;
 import dev.rayan.model.client.Credential;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
@@ -22,8 +22,6 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
-
-import static java.lang.String.format;
 
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -77,7 +75,7 @@ public final class AuthenticationResource {
                 credentialService.login(request)
         );
 
-        //Front-end redirect to index-page
+        //Front-end redirect to pageNumber-page
         return Response.ok()
                 .entity(response)
                 .build();
@@ -96,7 +94,7 @@ public final class AuthenticationResource {
         log.info("Logout user");
         keycloakService.logout(keycloakUserId);
 
-        //Front-end redirect to index page
+        //Front-end redirect to pageNumber page
         return Response.ok("Sucessfully Logout!")
                 .build();
     }

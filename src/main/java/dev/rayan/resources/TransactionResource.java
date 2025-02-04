@@ -1,9 +1,9 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.TransactionByQuantityRequest;
-import dev.rayan.dto.request.TransactionFiltersRequest;
-import dev.rayan.dto.request.TransactionRequest;
-import dev.rayan.dto.respose.TransactionReportResponse;
+import dev.rayan.dto.request.transaction.TransactionByQuantityRequest;
+import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
+import dev.rayan.dto.request.transaction.TransactionRequest;
+import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
@@ -120,7 +120,7 @@ public final class TransactionResource {
 
     @GET
     @RolesAllowed("client")
-    @Path("transactions/summary-by-filters")
+    @Path("/transactions/summary-by-filters")
     public Response findTransactionsSummaryByFilters(@Context final SecurityContext context,
                                                      @BeanParam @Valid final TransactionFiltersRequest request) {
 

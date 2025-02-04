@@ -1,6 +1,6 @@
 package dev.rayan.factory;
 
-import dev.rayan.dto.respose.TransactionReportResponse;
+import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 
 import java.io.File;

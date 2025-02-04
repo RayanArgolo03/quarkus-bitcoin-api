@@ -1,8 +1,10 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.CreateClientRequest;
-import dev.rayan.dto.request.UpdateClientRequest;
-import dev.rayan.dto.respose.ClientResponse;
+import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
+import dev.rayan.dto.request.client.ClientsByStateRequest;
+import dev.rayan.dto.request.client.CreateClientRequest;
+import dev.rayan.dto.request.client.UpdateClientRequest;
+import dev.rayan.dto.response.client.CreatedClientResponse;
 import dev.rayan.model.client.Address;
 import dev.rayan.model.client.Credential;
 import dev.rayan.services.ClientService;
@@ -14,6 +16,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -21,6 +24,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.hibernate.query.Page;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -48,6 +52,9 @@ public final class ClientResource {
     @Context
     UriInfo uriInfo;
 
+    @Context
+    JsonWebToken token;
+
     @GET
     @PermitAll
     @Path("/index-page")
@@ -59,7 +66,7 @@ public final class ClientResource {
     @POST
     @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final CreateClientRequest request, @Context final JsonWebToken token) {
+    public Response createClient(@Valid final CreateClientRequest request) {
 
         log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
@@ -69,7 +76,7 @@ public final class ClientResource {
                 .get();
 
         log.info("Creating client");
-        final ClientResponse response = clientService.persist(credential, request);
+        final CreatedClientResponse response = clientService.persist(credential, request);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
@@ -87,13 +94,12 @@ public final class ClientResource {
     @Transactional
     @Path("{id}")
     public Response updatePartial(@PathParam("id") final UUID id,
-                                  @Valid final UpdateClientRequest request,
-                                  @Context JsonWebToken token) {
+                                  @Valid final UpdateClientRequest request) {
 
         log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
-        log.info("Updating client");
+        log.info("Updating client partial");
         clientService.update(id, request);
 
         return Response.ok()
@@ -106,8 +112,7 @@ public final class ClientResource {
     @Transactional
     @Path("{id}")
     public Response updateAddress(@PathParam("id") final UUID id,
-                                  @Valid final Address address,
-                                  @Context final JsonWebToken token) {
+                                  @Valid final Address address) {
 
         log.info("Verifyning if credential exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
@@ -127,7 +132,29 @@ public final class ClientResource {
     public Response findClientById(@PathParam("id")
                                    @NotNull(message = "Required id!") final UUID id) {
 
+        log.info("Finding client by id");
         return Response.ok(clientService.findClientById(id))
+                .build();
+    }
+
+    @GET
+    @Authenticated
+    @Path("/created-at-period")
+    public Response findClientsByCreatedAt(@BeanParam @Valid final ClientsByCreatedAtRequest request) {
+
+        log.info("Finding clients by created at period");
+        return Response.ok(clientService.findClientsByCreatedAt(request))
+                .build();
+    }
+
+
+    @GET
+    @Authenticated
+    @Path("/by-state")
+    public Response findClientsByState(@BeanParam @Valid final ClientsByStateRequest request) {
+
+        log.info("Finding clients by created at period");
+        return Response.ok(clientService.findClientsByState(request))
                 .build();
     }
 

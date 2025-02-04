@@ -1,6 +1,6 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.respose.TransactionResponse;
+import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.model.bitcoin.Bitcoin;
 import dev.rayan.model.bitcoin.Transaction;
 import org.mapstruct.Mapper;
@@ -8,9 +8,6 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "jakarta-cdi")
 public interface TransactionMapper {
 
-    default String getDefaultMessage() {
-        return "Server unavailable";
-    }
 
     //    @Mapping(target = "currentValue", expression = "java( (bitcoin == null) ? getDefaultMessage() : FormatterUtils.formatMoney(bitcoin.getLast()))")
 //    @Mapping(target = "valueDate", expression = "java( (bitcoin == null) ? getDefaultMessage() : FormatterUtils.formatDate(bitcoin.getTime()))")
