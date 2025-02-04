@@ -3,19 +3,18 @@ package dev.rayan.model.client;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.quarkus.arc.All;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
+@AllArgsConstructor
+@Setter
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
@@ -41,21 +40,23 @@ public class Credential {
     @OneToOne(mappedBy = "credential", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     @JsonIgnore
-    Client client;
+    final Client client = null;
 
     @Column(name = "created_at")
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
     final LocalDateTime createdAt = LocalDateTime.now();
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
-    final LocalDateTime updatedAt = null;
+    LocalDateTime updatedAt = null;
 
     public Credential(String email, String password) {
         this.email = email;
         this.password = password;
     }
+
+    @PreUpdate
+    private void setUpdatedAt() { updatedAt = LocalDateTime.now(); }
 
 }

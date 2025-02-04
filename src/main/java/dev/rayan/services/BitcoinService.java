@@ -1,7 +1,7 @@
 package dev.rayan.services;
 
 import dev.rayan.adapter.BitcoinQuoteAdapter;
-import dev.rayan.dto.respose.BitcoinResponse;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.exceptions.ApiException;
 import dev.rayan.mappers.BitcoinMapper;
 import jakarta.enterprise.context.ApplicationScoped;

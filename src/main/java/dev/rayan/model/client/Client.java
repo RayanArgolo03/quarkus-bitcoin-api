@@ -1,7 +1,6 @@
 package dev.rayan.model.client;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.rayan.model.bitcoin.Transaction;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,7 +20,7 @@ import java.util.UUID;
 @Builder
 @Getter
 @Setter
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
 @DynamicInsert
@@ -33,37 +32,39 @@ public class Client {
     @Column(name = "credential_id")
     UUID id;
 
-    @NonFinal
     @Column(name = "first_name", nullable = false)
     String firstName;
 
-    @NonFinal
     @Column(nullable = false)
     String surname;
 
     @Column(name = "birth_date", nullable = false)
-    LocalDate birthDate;
+    final LocalDate birthDate;
 
     @Column(nullable = false, length = 11, unique = true)
-    String cpf;
+    final String cpf;
 
     @OneToOne(orphanRemoval = true, fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "credential_id")
-    Credential credential;
+    final Credential credential;
 
-    @NonFinal
     @Embedded
     Address address;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
     Set<Transaction> transactions;
 
     @Column(name = "created_at")
-    LocalDateTime createdAt = LocalDateTime.now();
+    final LocalDateTime createdAt = LocalDateTime.now();
 
-    @UpdateTimestamp
+    @NonFinal
     @Column(name = "updated_at")
-    LocalDateTime updatedAt = LocalDateTime.now();
+    LocalDateTime updatedAt = null;
+
+    @PreUpdate
+    private void setUpdatedAt() {
+        updatedAt = LocalDateTime.now();
+    }
+
 }

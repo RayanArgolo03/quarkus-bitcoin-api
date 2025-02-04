@@ -1,12 +1,14 @@
-package dev.rayan.dto.respose;
+package dev.rayan.dto.response.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.rayan.model.client.Address;
 import dev.rayan.model.client.Credential;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.UUID;
 
-public record ClientResponse(
+
+public record CreatedClientResponse(
         UUID id,
         String firstName,
         String surname,
@@ -18,5 +20,4 @@ public record ClientResponse(
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         String updatedAt) {
-
 }

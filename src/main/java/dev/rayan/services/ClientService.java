@@ -1,8 +1,11 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.CreateClientRequest;
-import dev.rayan.dto.request.UpdateClientRequest;
-import dev.rayan.dto.respose.ClientResponse;
+import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
+import dev.rayan.dto.request.client.ClientsByStateRequest;
+import dev.rayan.dto.request.client.CreateClientRequest;
+import dev.rayan.dto.request.client.UpdateClientRequest;
+import dev.rayan.dto.response.client.ClientByCreatedAtResponse;
+import dev.rayan.dto.response.client.CreatedClientResponse;
 import dev.rayan.exceptions.UserAlreadyExistsException;
 import dev.rayan.mappers.ClientMapper;
 import dev.rayan.model.client.Address;
@@ -12,7 +15,10 @@ import dev.rayan.repositories.ClientRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.NotFoundException;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static jakarta.ws.rs.core.Response.Status.GONE;
@@ -27,10 +33,10 @@ public final class ClientService {
     @Inject
     ClientMapper mapper;
 
-    public ClientResponse persist(final Credential credential, final CreateClientRequest request) {
+    public CreatedClientResponse persist(final Credential credential, final CreateClientRequest request) {
 
         //If tryning create client again
-        if (repository.findByIdOptional(credential.getId()).isPresent()) {
+        if (findByIdOptional(credential.getId()).isPresent()) {
             throw new UserAlreadyExistsException("Your register is already completed!", GONE);
         }
 
@@ -38,30 +44,21 @@ public final class ClientService {
             throw new NotAuthorizedException("CPF already exists!", UNAUTHORIZED);
         }
 
-        final Client client = Client.builder()
-                .firstName(request.firstName())
-                .surname(request.surname())
-                .birthDate(request.birthDate())
-                .cpf(request.cpf())
-                .credential(credential)
-                .address(request.address())
-                .build();
-
+        final Client client = mapper.requestToClient(credential, request);
         repository.persist(client);
 
         return mapper.clientToResponse(client);
     }
 
-    public ClientResponse findClientById(final UUID id) {
-        return repository.findByIdOptional(id)
+    public CreatedClientResponse findClientById(final UUID id) {
+        return findByIdOptional(id)
                 .map(mapper::clientToResponse)
                 .orElseThrow(() -> new NotAuthorizedException("Client not exists!", UNAUTHORIZED));
-
     }
 
     public void update(final UUID id, final UpdateClientRequest request) {
 
-        final Client client = repository.findByIdOptional(id)
+        final Client client = findByIdOptional(id)
                 .orElseThrow(() -> new NotAuthorizedException("You need complete your register!", UNAUTHORIZED));
 
         repository.updatePartial(client, request);
@@ -69,12 +66,30 @@ public final class ClientService {
 
     public void update(final UUID id, final Address address) {
 
-        final Client client = repository.findByIdOptional(id)
+        final Client client = findByIdOptional(id)
                 .orElseThrow(() -> new NotAuthorizedException("You need complete your register!", UNAUTHORIZED));
 
         repository.updateAddress(client, address);
     }
 
+    private Optional<Client> findByIdOptional(final UUID id) {
+        return repository.findByIdOptional(id);
+    }
 
+    public List<ClientByCreatedAtResponse> findClientsByCreatedAt(final ClientsByCreatedAtRequest request) {
+
+        final List<ClientByCreatedAtResponse> clients = repository.findClientsByCreatedAt(request);
+        if (clients.isEmpty()) throw new NotFoundException("Clients not found! Try modify the period");
+
+        return clients;
+    }
+
+    public List<ClientByCreatedAtResponse> findClientsByState(final ClientsByStateRequest request) {
+
+        final List<ClientByCreatedAtResponse> clients = repository.findClientsByState(request);
+        if (clients.isEmpty()) throw new NotFoundException("Clients not found by state! Try modify the state");
+
+        return clients;
+
+    }
 }
-

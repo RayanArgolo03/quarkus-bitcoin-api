@@ -1,4 +1,4 @@
-package dev.rayan.dto.request;
+package dev.rayan.dto.request.client;
 
 import dev.rayan.model.client.Address;
 import dev.rayan.validation.OverEighteenYears;

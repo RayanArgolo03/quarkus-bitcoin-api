@@ -1,6 +1,6 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.respose.BitcoinResponse;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.model.bitcoin.Bitcoin;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

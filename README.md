@@ -117,7 +117,7 @@ quarkus-product
 │   │   └── resources
 │   │       ├── META-INF
 │   │       │   └── resources
-│   │       │       └── index.html
+│   │       │       └── pageIndex.html
 │   │       └── application.properties
 │   └── test
 │       └── java
@@ -133,7 +133,7 @@ quarkus-product
     ├── classes
     │   ├── META-INF
     │   │   └── resources
-    │   │       └── index.html
+    │   │       └── pageIndex.html
     │   ├── application.properties
     │   └── br
     │       └── com

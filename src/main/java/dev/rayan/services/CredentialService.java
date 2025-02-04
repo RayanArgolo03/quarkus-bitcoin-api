@@ -1,7 +1,7 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.CreateCredentialRequest;
-import dev.rayan.dto.respose.CredentialResponse;
+import dev.rayan.dto.request.client.CreateCredentialRequest;
+import dev.rayan.dto.response.token.CredentialResponse;
 import dev.rayan.mappers.CredentialMapper;
 import dev.rayan.model.client.Credential;
 import dev.rayan.repositories.CredentialRepository;
@@ -30,7 +30,7 @@ public final class CredentialService {
             throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
         }
 
-        final Credential credential = new Credential(request.email(), BcryptUtil.bcryptHash(request.password()));
+        final Credential credential = mapper.requestToCredential(request);
         repository.persist(credential);
 
         return mapper.credentialToResponse(credential);

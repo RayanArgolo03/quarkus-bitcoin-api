@@ -1,18 +1,14 @@
-package dev.rayan.dto.request;
+package dev.rayan.dto.request.transaction;
 
-import io.quarkus.arc.All;
+import dev.rayan.dto.request.page.PaginationRequest;
 import io.quarkus.panache.common.Sort;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,15 +26,8 @@ public final class TransactionFiltersRequest {
     @QueryParam("endDate")
     LocalDate endDate;
 
-    @DefaultValue("0")
-    @Min(value = 0, message = "Page index can´t be less than " + 0)
-    @QueryParam("pageIndex")
-    Integer pageIndex;
-
-    @DefaultValue("10")
-    @Min(value = 0, message = "Page size can´t be less than " + 0)
-    @QueryParam("pageSize")
-    Integer pageSize;
+    @Valid
+    PaginationRequest paginationRequest;
 
     @DefaultValue("Ascending")
     @QueryParam("sortMadeAt")
