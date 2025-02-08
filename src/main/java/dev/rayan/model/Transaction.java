@@ -1,8 +1,8 @@
-package dev.rayan.model.bitcoin;
+package dev.rayan.model;
 
 
 import dev.rayan.enums.TransactionType;
-import dev.rayan.model.client.Client;
+import dev.rayan.model.Client;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

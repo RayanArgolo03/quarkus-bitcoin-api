@@ -1,13 +1,17 @@
 package dev.rayan.dto.response.client;
 
-import dev.rayan.model.client.Address;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import dev.rayan.model.Address;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
+import java.time.LocalDate;
+
 @RegisterForReflection
-public record ClientByCreatedAtResponse(
+public record FoundClientResponse(
         String firstName,
         String surname,
-        String birthDate,
+        @JsonFormat(pattern = "dd/MM/yyyy")
+        LocalDate birthDate,
         String cpf,
         String email,
         Address address) {

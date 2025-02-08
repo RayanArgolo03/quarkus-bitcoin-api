@@ -10,8 +10,8 @@ import dev.rayan.enums.TransactionType;
 import dev.rayan.exceptions.ApiException;
 import dev.rayan.factory.ReportAbstractFile;
 import dev.rayan.factory.ReportFileFactory;
-import dev.rayan.model.bitcoin.Bitcoin;
-import dev.rayan.model.bitcoin.Transaction;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
+import dev.rayan.model.Transaction;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
 import dev.rayan.validation.EnumValidator;
@@ -63,7 +63,7 @@ public final class TransactionResource {
                 .build();
 
         log.info("Quoting bitcoin");
-        final Bitcoin quote = transactionService.quoteBitcoin();
+        final BitcoinResponse quote = transactionService.quoteBitcoin();
 
         log.info("Returning mapped transaction");
         return Response.created(uri)
@@ -95,10 +95,10 @@ public final class TransactionResource {
                 .build();
 
         log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
         return Response.created(uri)
-                .entity(transactionService.getMappedTransaction(transaction, bitcoin))
+                .entity(transactionService.getMappedTransaction(transaction, bitcoinResponse))
                 .build();
     }
 
@@ -139,9 +139,9 @@ public final class TransactionResource {
         final Transaction transaction = transactionService.findTransactionById(transactionId);
 
         log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
-        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoin))
+        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoinResponse))
                 .build();
     }
 
@@ -156,9 +156,9 @@ public final class TransactionResource {
         final Transaction transaction = transactionService.findTransactionByQuantity(null, request.getQuantity(), request.getSortCreatedAtDirection());
 
         log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
-        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoin))
+        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoinResponse))
                 .build();
     }
 
@@ -178,10 +178,10 @@ public final class TransactionResource {
 
         //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
         log.info("Quoting bitcoin");
-        final Bitcoin bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
         log.info("Setting bitcoin attributes in reportResponse");
-        transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoin);
+        transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoinResponse);
 
         log.info("Mapping string report format to enum");
         final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);

@@ -1,12 +1,12 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
-import dev.rayan.dto.request.client.ClientsByStateRequest;
+import dev.rayan.dto.request.client.ClientsByAddressFilterRequest;
 import dev.rayan.dto.request.client.CreateClientRequest;
 import dev.rayan.dto.request.client.UpdateClientRequest;
 import dev.rayan.dto.response.client.CreatedClientResponse;
-import dev.rayan.model.client.Address;
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Address;
+import dev.rayan.model.Credential;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
@@ -16,7 +16,6 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -24,7 +23,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.jwt.JsonWebToken;
-import org.hibernate.query.Page;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -125,7 +123,6 @@ public final class ClientResource {
                 .build();
     }
 
-
     @GET
     @Authenticated
     @Path("/{id}")
@@ -148,13 +145,14 @@ public final class ClientResource {
     }
 
 
+    //Todo continue e teste
     @GET
     @Authenticated
-    @Path("/by-state")
-    public Response findClientsByState(@BeanParam @Valid final ClientsByStateRequest request) {
+    @Path("/address-filter")
+    public Response findClientsByAddressFilter(@BeanParam @Valid final ClientsByAddressFilterRequest request) {
 
         log.info("Finding clients by created at period");
-        return Response.ok(clientService.findClientsByState(request))
+        return Response.ok(clientService.findClientsByAddressFilter(request))
                 .build();
     }
 

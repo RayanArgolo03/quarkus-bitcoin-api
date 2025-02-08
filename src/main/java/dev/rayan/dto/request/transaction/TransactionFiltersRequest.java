@@ -16,13 +16,13 @@ import java.time.LocalDate;
 @Getter
 public final class TransactionFiltersRequest {
 
-    @NotNull(message = "Start date required!")
-    @PastOrPresent(message = "The start date can´t be after current date!")
+    @NotNull(message = "Start quotedAt required!")
+    @PastOrPresent(message = "The start quotedAt can´t be after current quotedAt!")
     @QueryParam("startDate")
     LocalDate startDate;
 
-    @NotNull(message = "End date required!")
-    @PastOrPresent(message = "The end date can´t be after current date!")
+    @NotNull(message = "End quotedAt required!")
+    @PastOrPresent(message = "The end quotedAt can´t be after current quotedAt!")
     @QueryParam("endDate")
     LocalDate endDate;
 

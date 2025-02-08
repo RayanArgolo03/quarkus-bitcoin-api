@@ -2,7 +2,7 @@ package dev.rayan.mappers;
 
 import dev.rayan.dto.request.client.CreateCredentialRequest;
 import dev.rayan.dto.response.token.CredentialResponse;
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Credential;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

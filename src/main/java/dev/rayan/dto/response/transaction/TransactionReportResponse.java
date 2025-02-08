@@ -16,6 +16,10 @@ import java.util.Map;
 @Getter
 public final class TransactionReportResponse {
 
+    //Todo use JsonFormat nas colunas de data
+    //Todo use JsonFormat nas colunas de data
+    //Todo use JsonFormat nas colunas de data
+    //Todo use JsonFormat nas colunas de data
     //General attribute
     String transactionsMade;
 
@@ -38,7 +42,7 @@ public final class TransactionReportResponse {
     //General attribute
     String lastTransaction;
 
-    //Bitcoin quoting date
+    //Bitcoin quoting quotedAt
     @Setter
     @NonFinal
     String bitcoinDate;

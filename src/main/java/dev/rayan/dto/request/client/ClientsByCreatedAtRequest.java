@@ -17,13 +17,13 @@ import java.time.LocalDate;
 public final class ClientsByCreatedAtRequest {
 
     @QueryParam("startDate")
-    @NotNull(message = "Required start date!")
-    @PastOrPresent(message = "The start date can´t be after current date!")
+    @NotNull(message = "Required start quotedAt!")
+    @PastOrPresent(message = "The start quotedAt can´t be after current quotedAt!")
     LocalDate startDate;
 
     @QueryParam("endDate")
-    @NotNull(message = "Required final date!")
-    @PastOrPresent(message = "The end date can´t be after current date!")
+    @NotNull(message = "Required final quotedAt!")
+    @PastOrPresent(message = "The end quotedAt can´t be after current quotedAt!")
     LocalDate endDate;
 
     @BeanParam

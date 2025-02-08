@@ -3,6 +3,7 @@ package dev.rayan.services;
 import dev.rayan.adapter.BitcoinQuoteAdapter;
 import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
 import dev.rayan.dto.request.transaction.TransactionRequest;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.dto.response.transaction.TransactionSummaryByFiltersResponse;
@@ -11,9 +12,8 @@ import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.exceptions.BusinessException;
 import dev.rayan.mappers.TransactionMapper;
-import dev.rayan.model.bitcoin.Bitcoin;
-import dev.rayan.model.bitcoin.Transaction;
-import dev.rayan.model.client.Client;
+import dev.rayan.model.Client;
+import dev.rayan.model.Transaction;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
@@ -40,7 +40,7 @@ public final class TransactionService {
     @Inject
     BitcoinQuoteAdapter adapter;
 
-    public Bitcoin quoteBitcoin() {
+    public BitcoinResponse quoteBitcoin() {
         return adapter.quote()
                 .orElse(null);
     }
@@ -67,7 +67,7 @@ public final class TransactionService {
 
         final Optional<Transaction> optional = Transaction.find(
                 "client.id = ?1 AND quantity = ?2",
-                Sort.by("createdAt", sortCreatedAt),
+                Sort.by("quotedAt", sortCreatedAt),
                 clientId, quantity
         ).firstResultOptional();
 
@@ -96,10 +96,10 @@ public final class TransactionService {
                           CAST(type AS STRING),
                           CAST(COUNT(*) AS STRING) transactionsMade,
                           CAST(SUM(quantity) AS STRING) quantity,
-                          TO_CHAR(MIN(createdAt), 'YYYY-MM-DD HH24:mi') first,
-                          TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') last,
+                          MIN(quotedAt), first,
+                          MAX(quotedAt),last,
                           CONCAT(
-                              TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt) ),
+                              TIMESTAMPDIFF(DAY, MIN(quotedAt), MAX(quotedAt)),
                               ' day(s)'
                           ) periodBetweenFirstAndLast
                        FROM Transaction
@@ -131,15 +131,15 @@ public final class TransactionService {
 
     private PanacheQuery<Transaction> createQueryFindTransactionSummaryByFilters(final TransactionFiltersRequest request, final Parameters parameters) {
 
-        final Sort sort = Sort.by("createdAt", request.getSortByMadeAtDirection())
+        final Sort sort = Sort.by("quotedAt", request.getSortByMadeAtDirection())
                 .and("type", request.getSortByType())
                 .and("quantity", request.getSortByQuantityDirection());
 
         return Transaction.find("""
-                SELECT TO_CHAR(createdAt, 'YYYY-MM-DD') madeAt, CAST(quantity AS STRING), CAST(type AS STRING)
+                SELECT TO_CHAR(quotedAt, 'YYYY-MM-DD') madeAt, CAST(quantity AS STRING), CAST(type AS STRING)
                 FROM Transaction
                 WHERE client.id = :clientId
-                AND DATE(createdAt) BETWEEN :startDate AND :endDate
+                AND DATE(quotedAt) BETWEEN :startDate AND :endDate
                 AND quantity BETWEEN :minQuantity AND :maxQuantity
                 """, sort, parameters);
     }
@@ -165,40 +165,48 @@ public final class TransactionService {
                     CAST(COUNT(*) AS STRING) transactionsMade,
                    
                     COALESCE( CAST(SUM(CASE WHEN type = 'PURCHASE' THEN quantity END) AS STRING), '0') totalPurchased,
-                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstPurchase,
-                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'PURCHASE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastPurchase,
+                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'PURCHASE' THEN quotedAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstPurchase,
+                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'PURCHASE' THEN quotedAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastPurchase,
                     
                     COALESCE( CAST(SUM(CASE WHEN type = 'SALE' THEN quantity END) AS STRING), '0') totalSold,
-                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstSold,
-                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'SALE' THEN createdAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastSold,
+                    COALESCE( TO_CHAR(MIN(CASE WHEN type = 'SALE' THEN quotedAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') firstSold,
+                    COALESCE( TO_CHAR(MAX(CASE WHEN type = 'SALE' THEN quotedAt END), 'YYYY-MM-DD HH24:mi'), 'No transactions') lastSold,
                     
-                    TO_CHAR(MAX(createdAt), 'YYYY-MM-DD HH24:mi') lastTransaction
+                    TO_CHAR(MAX(quotedAt), 'YYYY-MM-DD HH24:mi') lastTransaction
                 FROM Transaction
                 WHERE client.id = :clientId
-                AND DATE(createdAt) BETWEEN :startDate AND :endDate
+                AND DATE(quotedAt) BETWEEN :startDate AND :endDate
                 GROUP BY client
                 """, parameters);
     }
 
-    public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final Bitcoin bitcoin) {
+    public void setBitcoinAttributesInResponse(final TransactionReportResponse reportResponse, final BitcoinResponse bitcoinResponse) {
 
         String value = "Server unavailable", valuePurchased = value, valueSold = value, bitcoinDate = value;
 
-        if (bitcoin != null) {
+        if (bitcoinResponse != null) {
 
             final NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
+//            valuePurchased = formatter.format(
+//                    calculateTransactionTotal(bitcoinResponse.getLast(), reportResponse.getTotalPurchased())
+//            )
+
             valuePurchased = formatter.format(
-                    calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalPurchased())
+                    calculateTransactionTotal(null, reportResponse.getTotalPurchased())
             );
 
+//            valueSold = formatter.format(
+//                    calculateTransactionTotal(bitcoinResponse.getLast(), reportResponse.getTotalSold())
+//            );
+
             valueSold = formatter.format(
-                    calculateTransactionTotal(bitcoin.getLast(), reportResponse.getTotalSold())
+                    calculateTransactionTotal(null, reportResponse.getTotalSold())
             );
 
             bitcoinDate = DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm")
                     .withResolverStyle(ResolverStyle.STRICT)
-                    .format(bitcoin.getTime());
+                    .format(null);
         }
 
         reportResponse.setValuePurchased(valuePurchased);
@@ -234,8 +242,8 @@ public final class TransactionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public TransactionResponse getMappedTransaction(final Transaction transaction, final Bitcoin bitcoin) {
-        return mapper.transactionInfoToTransactionResponse(transaction, bitcoin);
+    public TransactionResponse getMappedTransaction(final Transaction transaction, final BitcoinResponse bitcoinResponse) {
+        return mapper.transactionInfoToTransactionResponse(transaction, bitcoinResponse);
     }
 
 

@@ -1,24 +1,22 @@
 package dev.rayan.services;
 
 import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
-import dev.rayan.dto.request.client.ClientsByStateRequest;
+import dev.rayan.dto.request.client.ClientsByAddressFilterRequest;
 import dev.rayan.dto.request.client.CreateClientRequest;
 import dev.rayan.dto.request.client.UpdateClientRequest;
-import dev.rayan.dto.response.client.ClientByCreatedAtResponse;
+import dev.rayan.dto.response.client.FoundClientResponse;
 import dev.rayan.dto.response.client.CreatedClientResponse;
 import dev.rayan.dto.response.page.PageResponse;
 import dev.rayan.exceptions.UserAlreadyExistsException;
 import dev.rayan.mappers.ClientMapper;
-import dev.rayan.model.client.Address;
-import dev.rayan.model.client.Client;
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Address;
+import dev.rayan.model.Client;
+import dev.rayan.model.Credential;
 import dev.rayan.repositories.ClientRepository;
 import dev.rayan.utils.PaginationUtils;
-import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
-import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
 import java.util.Optional;
@@ -79,18 +77,16 @@ public final class ClientService {
         return repository.findByIdOptional(id);
     }
 
-    public PageResponse<ClientByCreatedAtResponse> findClientsByCreatedAt(final ClientsByCreatedAtRequest request) {
+    public PageResponse<FoundClientResponse> findClientsByCreatedAt(final ClientsByCreatedAtRequest request) {
         return PaginationUtils.paginate(
                 repository.findClientsByCreatedAt(request),
                 request.getPagination()
         );
     }
 
-    public List<ClientByCreatedAtResponse> findClientsByState(final ClientsByStateRequest request) {
+    public List<FoundClientResponse> findClientsByAddressFilter(final ClientsByAddressFilterRequest request) {
 
-        final List<ClientByCreatedAtResponse> clients = repository.findClientsByState(request);
-        if (clients.isEmpty()) throw new NotFoundException("Clients not found by state! Try modify the state");
-
+        final List<FoundClientResponse> clients = repository.findClientsByAddressFilter(request);
         return clients;
 
     }

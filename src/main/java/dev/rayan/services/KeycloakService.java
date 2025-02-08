@@ -6,6 +6,7 @@ import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
 import dev.rayan.exceptions.UserAlreadyLoggedOutException;
+import dev.rayan.model.Credential;
 import dev.rayan.strategy.TokenStrategy;
 import io.quarkus.arc.All;
 import io.quarkus.runtime.Startup;
@@ -33,8 +34,6 @@ import org.keycloak.representations.idm.UserRepresentation;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.ResolverStyle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -233,17 +232,17 @@ public class KeycloakService {
         closeKeycloak(keycloak);
     }
 
-    public CredentialTokensResponse generateNewTokens(final String keycloakUserId, final String email, final String password) {
+    public CredentialTokensResponse generateNewTokens(final String keycloakUserId, final Credential credential) {
 
         Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-
         final UsersResource usersResource = getUsersResource(keycloak);
 
         //Revoking the previous tokens and session
         getUserResource(usersResource, keycloakUserId)
                 .logout();
 
-        keycloak = buildKeycloak(email, password);
+        //Revoking the previous token
+        keycloak = buildKeycloak(credential.getEmail(), credential.getPassword());
 
         final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
 
@@ -251,6 +250,7 @@ public class KeycloakService {
 
         return tokensResponse;
     }
+
 
     public String findUserEmailByKeycloakUserId(final String keycloakUserId) {
 
@@ -279,7 +279,7 @@ public class KeycloakService {
         return !user.getUserSessions().isEmpty();
     }
 
-    public CredentialTokensResponse generateTokens(final Keycloak keycloak) {
+    private CredentialTokensResponse generateTokens(final Keycloak keycloak) {
 
         final TokenManager manager = keycloak.tokenManager();
         final AccessTokenResponse accessToken = manager.getAccessToken();
@@ -289,17 +289,13 @@ public class KeycloakService {
                 ZoneId.systemDefault()
         );
 
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-                .withResolverStyle(ResolverStyle.STRICT);
-
         return new CredentialTokensResponse(
                 accessToken.getToken(),
                 accessToken.getRefreshToken(),
-                formatter.format(LocalDateTime.now()),
-                formatter.format(expiresIn)
+                LocalDateTime.now(),
+                expiresIn
         );
     }
-
 
     private UsersResource getUsersResource(final Keycloak keycloak) {
         return keycloak.realm(realm)

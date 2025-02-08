@@ -1,6 +1,6 @@
 package dev.rayan.client;
 
-import dev.rayan.model.client.Address;
+import dev.rayan.model.Address;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.faulttolerance.Fallback;

@@ -1,4 +1,4 @@
-package dev.rayan.model.client;
+package dev.rayan.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;

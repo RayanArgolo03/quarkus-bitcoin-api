@@ -18,7 +18,7 @@ public enum TransactionReportPeriod implements BaseEnum<TransactionReportPeriod>
 
     TransactionReportPeriod(LocalDate startDate, String value) {
         this.startDate = startDate;
-        //Is always current date
+        //Is always current quotedAt
         this.endDate = LocalDate.now();
         this.value = value;
     }

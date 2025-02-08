@@ -4,7 +4,7 @@ import dev.rayan.dto.request.client.CreateCredentialRequest;
 import dev.rayan.dto.request.token.RefreshTokenRequest;
 import dev.rayan.dto.response.token.CredentialResponse;
 import dev.rayan.dto.response.token.CredentialTokensResponse;
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Credential;
 import dev.rayan.services.CredentialService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
@@ -91,7 +91,11 @@ public final class AuthenticationResource {
         log.info("Verifyning if user exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Logout user");
+        log.info("Finding the credential to revoke token with email and password");
+        final Credential credential = credentialService.findCredential(token.getClaim("email"))
+                .get();
+
+        log.info("Logout user and revoke token");
         keycloakService.logout(keycloakUserId);
 
         //Front-end redirect to pageNumber page
@@ -118,10 +122,8 @@ public final class AuthenticationResource {
         final Credential credential = credentialService.findCredential(email)
                 .get();
 
-        log.info("Generate new tokens and revoke previous tokens");
-        final CredentialTokensResponse response = keycloakService.generateNewTokens(
-                keycloakUserId, email, credential.getPassword()
-        );
+        log.info("Generate new tokens");
+        final CredentialTokensResponse response = keycloakService.generateNewTokens(keycloakUserId, credential);
 
         return Response.ok()
                 .entity(response)

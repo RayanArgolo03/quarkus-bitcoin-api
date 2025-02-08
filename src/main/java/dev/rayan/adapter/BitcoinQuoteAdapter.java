@@ -2,7 +2,7 @@ package dev.rayan.adapter;
 
 
 import dev.rayan.client.QuoteRestClient;
-import dev.rayan.model.bitcoin.Bitcoin;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -16,7 +16,7 @@ public final class BitcoinQuoteAdapter {
     @RestClient
     QuoteRestClient quoteRestClient;
 
-    public Optional<Bitcoin> quote() {
+    public Optional<BitcoinResponse> quote() {
         return quoteRestClient.quote();
     }
 

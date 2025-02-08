@@ -1,6 +1,6 @@
 package dev.rayan.repositories;
 
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Credential;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 

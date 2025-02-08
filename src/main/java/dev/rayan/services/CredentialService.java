@@ -3,7 +3,7 @@ package dev.rayan.services;
 import dev.rayan.dto.request.client.CreateCredentialRequest;
 import dev.rayan.dto.response.token.CredentialResponse;
 import dev.rayan.mappers.CredentialMapper;
-import dev.rayan.model.client.Credential;
+import dev.rayan.model.Credential;
 import dev.rayan.repositories.CredentialRepository;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.ApplicationScoped;

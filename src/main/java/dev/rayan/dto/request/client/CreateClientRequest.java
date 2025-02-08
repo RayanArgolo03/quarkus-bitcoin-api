@@ -1,6 +1,6 @@
 package dev.rayan.dto.request.client;
 
-import dev.rayan.model.client.Address;
+import dev.rayan.model.Address;
 import dev.rayan.validation.OverEighteenYears;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +17,7 @@ public record CreateClientRequest(
         @NotBlank(message = "Required surname!")
         String surname,
 
-        @NotNull(message = "Required birth date")
+        @NotNull(message = "Required birth quotedAt")
         @OverEighteenYears(message = "The age must not be less than 18 years old!")
         LocalDate birthDate,
 
