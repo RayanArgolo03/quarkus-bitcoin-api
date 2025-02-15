@@ -1,4 +1,4 @@
-package dev.rayan.dto.response.token;
+package dev.rayan.dto.response.client;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;

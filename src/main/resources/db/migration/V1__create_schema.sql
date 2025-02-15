@@ -1,4 +1,3 @@
-
 -- dropping tables if existing
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS clients;
@@ -35,7 +34,7 @@ CREATE TABLE IF NOT EXISTS clients
 
 -- creating client indexes for queries
 CREATE INDEX IF NOT EXISTS idx_credential_id ON clients (credential_id);
-
+CREATE INDEX IF NOT EXISTS idx_cpf ON clients (cpf);
 -- create enum type
 CREATE TYPE TYPE_ENUM AS ENUM ('PURCHASE', 'SALE');
 

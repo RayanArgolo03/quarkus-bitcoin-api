@@ -2,7 +2,7 @@ package dev.rayan.resources;
 
 import dev.rayan.dto.request.client.CreateCredentialRequest;
 import dev.rayan.dto.request.token.RefreshTokenRequest;
-import dev.rayan.dto.response.token.CredentialResponse;
+import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.token.CredentialTokensResponse;
 import dev.rayan.model.Credential;
 import dev.rayan.services.CredentialService;

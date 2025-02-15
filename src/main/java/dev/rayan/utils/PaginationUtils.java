@@ -11,13 +11,11 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PaginationUtils {
 
-    public static <T> PageResponse<T> paginate(PanacheQuery<T> elements, final PaginationRequest pagination) {
+    public static PageResponse paginate(PanacheQuery<?> elements, final PaginationRequest pagination) {
 
         if (elements.count() == 0L) {
-            return buildPageResponse(elements.list(), null, false, 0);
+            return new PageResponse(elements.list(), null, false, 0);
         }
-
-        elements = elements.page(pagination.getPage());
 
         final int totalPages = elements.pageCount();
         final int lastPageIndex = totalPages - 1;
@@ -28,15 +26,7 @@ public final class PaginationUtils {
             pagination.setPageNumber(totalPages);
         }
 
-        return buildPageResponse(elements.list(), pagination, true, totalPages);
-    }
-
-    private static <T> PageResponse<T> buildPageResponse(final List<T> elements,
-                                                         final PaginationRequest pagination,
-                                                         final boolean isSorted,
-                                                         final int totalPages) {
-
-        return new PageResponse<>(elements, pagination, isSorted, totalPages);
+        return new PageResponse(elements.list(), pagination, true, totalPages);
     }
 
 }

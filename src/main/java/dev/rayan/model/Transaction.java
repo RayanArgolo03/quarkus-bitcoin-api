@@ -3,11 +3,10 @@ package dev.rayan.model;
 
 import dev.rayan.enums.TransactionType;
 import dev.rayan.model.Client;
+import io.quarkus.arc.All;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.JdbcType;
@@ -18,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 
 @Entity
@@ -46,9 +47,4 @@ public class Transaction extends PanacheEntityBase {
     @Column(name = "created_at")
     final LocalDateTime createdAt = LocalDateTime.now();
 
-    public Transaction(BigDecimal quantity, Client client, TransactionType type) {
-        this.quantity = quantity;
-        this.client = client;
-        this.type = type;
-    }
 }

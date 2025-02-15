@@ -1,4 +1,4 @@
-package dev.rayan.factory;
+package dev.rayan.report;
 
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
 
-public final class TxtReportAbstract extends ReportAbstractFile {
+public final class TxtReport extends ReportAbstractFile {
 
     @Override
     public void createReport(final TransactionReportResponse reportResponse, final TransactionReportPeriod period)

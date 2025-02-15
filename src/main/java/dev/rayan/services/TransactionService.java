@@ -10,10 +10,12 @@ import dev.rayan.dto.response.transaction.TransactionSummaryByFiltersResponse;
 import dev.rayan.dto.response.transaction.TransactionSummaryByTypeResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
+import dev.rayan.exceptions.ApiException;
 import dev.rayan.exceptions.BusinessException;
 import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.Client;
 import dev.rayan.model.Transaction;
+import dev.rayan.repositories.TransactionRepository;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
@@ -35,6 +37,9 @@ import java.util.UUID;
 public final class TransactionService {
 
     @Inject
+    TransactionRepository repository;
+
+    @Inject
     TransactionMapper mapper;
 
     @Inject
@@ -42,15 +47,18 @@ public final class TransactionService {
 
     public BitcoinResponse quoteBitcoin() {
         return adapter.quote()
-                .orElse(null);
+                .orElseThrow(() -> new ApiException("The server was unable to complete your request, contact @rayan_argolo"));
     }
 
-    public Transaction persist(final TransactionRequest request, final TransactionType type) {
+    public TransactionResponse persist(final TransactionRequest request,
+                                       final Client client,
+                                       final TransactionType type,
+                                       final BitcoinResponse bitcoin) {
 
-        final Transaction transaction = new Transaction(request.quantity(), request.client(), type);
-        Transaction.persist(transaction);
+        final Transaction transaction = mapper.requestToTransaction(request, client, type);
+        repository.persist(transaction);
 
-        return transaction;
+        return mapper.transactionToResponse(transaction, bitcoin);
     }
 
     public List<Transaction> findAllTransactions(final Client client) {
@@ -240,10 +248,6 @@ public final class TransactionService {
                 .filter(t -> t.getType() == type)
                 .map(Transaction::getQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    public TransactionResponse getMappedTransaction(final Transaction transaction, final BitcoinResponse bitcoinResponse) {
-        return mapper.transactionInfoToTransactionResponse(transaction, bitcoinResponse);
     }
 
 

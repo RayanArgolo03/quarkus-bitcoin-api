@@ -10,7 +10,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
-@RegisterRestClient(baseUri = "https://brasilbitcoin.com.br/API/prices/BTC")
+@RegisterRestClient(configKey = "quote")
 public interface QuoteRestClient {
 
     @GET

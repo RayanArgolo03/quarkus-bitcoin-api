@@ -5,6 +5,7 @@ import dev.rayan.dto.request.client.ClientsByAddressFilterRequest;
 import dev.rayan.dto.request.client.CreateClientRequest;
 import dev.rayan.dto.request.client.UpdateClientRequest;
 import dev.rayan.dto.response.client.CreatedClientResponse;
+import dev.rayan.dto.response.page.PageResponse;
 import dev.rayan.model.Address;
 import dev.rayan.model.Credential;
 import dev.rayan.services.ClientService;
@@ -144,15 +145,14 @@ public final class ClientResource {
                 .build();
     }
 
-
-    //Todo continue e teste
     @GET
     @Authenticated
     @Path("/address-filter")
     public Response findClientsByAddressFilter(@BeanParam @Valid final ClientsByAddressFilterRequest request) {
 
-        log.info("Finding clients by created at period");
-        return Response.ok(clientService.findClientsByAddressFilter(request))
+        log.info("Finding clients by address filter");
+        PageResponse clientsByAddressFilter = clientService.findClientsByAddressFilter(request);
+        return Response.ok(clientsByAddressFilter)
                 .build();
     }
 

@@ -4,17 +4,22 @@ import dev.rayan.dto.request.transaction.TransactionByQuantityRequest;
 import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
 import dev.rayan.dto.request.transaction.TransactionRequest;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
+import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.exceptions.ApiException;
-import dev.rayan.factory.ReportAbstractFile;
-import dev.rayan.factory.ReportFileFactory;
+import dev.rayan.model.Client;
+import dev.rayan.report.ReportAbstractFile;
+import dev.rayan.report.ReportFileFactory;
 import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.model.Transaction;
+import dev.rayan.services.ClientService;
+import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
 import dev.rayan.utils.ConverterEnumUtils;
 import dev.rayan.validation.EnumValidator;
+import io.quarkus.runtime.annotations.CommandLineArguments;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -22,6 +27,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -40,65 +46,78 @@ public final class TransactionResource {
     TransactionService transactionService;
 
     @Inject
+    KeycloakService keycloakService;
+
+    @Inject
+    ClientService clientService;
+
+    @Inject
     Logger log;
 
     @Context
     UriInfo uriInfo;
 
+    @Inject
+    JsonWebToken token;
+
     @POST
     @Transactional
-    @RolesAllowed("client")
+    @RolesAllowed("user")
     @Path("/buy-bitcoins")
-    public Response buyBitcoins(@Context final SecurityContext context,
-                                @Valid final TransactionRequest request) {
+    public Response buyBitcoins(@Valid final TransactionRequest request) {
 
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        log.info("Quoting bitcoin");
+        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
         log.info("Persisting buy transaction");
-        final Transaction transaction = transactionService.persist(request, TransactionType.PURCHASE);
+        final TransactionResponse response = transactionService.persist(request, client, TransactionType.PURCHASE, bitcoin);
 
         log.info("Creating resource URI");
         final URI uri = uriInfo.getAbsolutePathBuilder()
-                .path("id")
-                .resolveTemplate("{id}", transaction.getId())
+                .path("{id}")
+                .resolveTemplate("id", response.id())
                 .build();
 
-        log.info("Quoting bitcoin");
-        final BitcoinResponse quote = transactionService.quoteBitcoin();
-
-        log.info("Returning mapped transaction");
         return Response.created(uri)
-                .entity(transactionService.getMappedTransaction(transaction, quote))
+                .entity(response)
                 .build();
     }
 
 
+    //Todo
     @POST
     @Transactional
-    @RolesAllowed("client")
+    @RolesAllowed("user")
     @Path("/sell-bitcoins")
     public Response sellBitcoins(@Context final SecurityContext context,
                                  @Valid final TransactionRequest request) {
 
         log.info("Find all transactions");
-        final List<Transaction> transactions = transactionService.findAllTransactions(request.client());
+        final List<Transaction> transactions = transactionService.findAllTransactions(null);
 
         log.info("Validate sale quantity");
         transactionService.validateQuantity(transactions, request.quantity());
 
         log.info("Persisting sale transaction");
-        final Transaction transaction = transactionService.persist(request, TransactionType.SALE);
+        final TransactionResponse transaction = transactionService.persist(request, null, null, null);
 
         log.info("Creating resource URI");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("id")
-                .resolveTemplate("{id}", transaction.getId())
+                .resolveTemplate("{id}", transaction.id())
                 .build();
 
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
         return Response.created(uri)
-                .entity(transactionService.getMappedTransaction(transaction, bitcoinResponse))
+                .entity(null)
                 .build();
     }
 
@@ -141,7 +160,7 @@ public final class TransactionResource {
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
-        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoinResponse))
+        return Response.ok(null)
                 .build();
     }
 
@@ -158,7 +177,7 @@ public final class TransactionResource {
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
-        return Response.ok(transactionService.getMappedTransaction(transaction, bitcoinResponse))
+        return Response.ok(null)
                 .build();
     }
 

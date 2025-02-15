@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
+
 @NoArgsConstructor(force = true)
 @AllArgsConstructor
 @Builder
@@ -21,9 +22,11 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
-@DynamicInsert
 @DynamicUpdate
 @Table(name = "clients")
+@DynamicInsert
+
+@NamedQuery( name = "Client.findCpf", query = "SELECT cpf FROM Client WHERE cpf = ?1")
 public class Client {
 
     @Id
@@ -64,5 +67,4 @@ public class Client {
     private void setUpdatedAt() {
         updatedAt = LocalDateTime.now();
     }
-
 }

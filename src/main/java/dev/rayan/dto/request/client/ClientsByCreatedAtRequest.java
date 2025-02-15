@@ -1,5 +1,6 @@
 package dev.rayan.dto.request.client;
 
+import dev.rayan.dto.request.page.DatePeriodRequest;
 import dev.rayan.dto.request.page.PaginationRequest;
 import io.quarkus.panache.common.Sort;
 import jakarta.validation.Valid;
@@ -16,15 +17,9 @@ import java.time.LocalDate;
 @Getter
 public final class ClientsByCreatedAtRequest {
 
-    @QueryParam("startDate")
-    @NotNull(message = "Required start quotedAt!")
-    @PastOrPresent(message = "The start quotedAt can´t be after current quotedAt!")
-    LocalDate startDate;
-
-    @QueryParam("endDate")
-    @NotNull(message = "Required final quotedAt!")
-    @PastOrPresent(message = "The end quotedAt can´t be after current quotedAt!")
-    LocalDate endDate;
+    @BeanParam
+    @Valid
+    DatePeriodRequest datePeriod;
 
     @BeanParam
     @Valid

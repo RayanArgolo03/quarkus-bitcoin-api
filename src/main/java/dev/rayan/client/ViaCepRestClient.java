@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@RegisterRestClient(baseUri = "https://viacep.com.br/ws")
+@RegisterRestClient(configKey = "viacep")
 public interface ViaCepRestClient {
 
     @GET

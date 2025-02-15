@@ -13,9 +13,4 @@ public enum TransactionType implements BaseEnum<TransactionType> {
     @Override
     public String getValue() {return value;}
 
-    @Override
-    public String toString() {
-        return value;
-    }
-
 }

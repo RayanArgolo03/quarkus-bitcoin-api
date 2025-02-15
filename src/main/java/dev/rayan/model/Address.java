@@ -1,5 +1,6 @@
 package dev.rayan.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.persistence.Column;
@@ -16,12 +17,12 @@ import org.hibernate.annotations.DynamicUpdate;
 
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
 @EqualsAndHashCode
 
 @Embeddable
 public final class Address {
 
-    @Getter
     @NotBlank(message = "Required CEP!")
     @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!")
     @Column(nullable = false, length = 8)
@@ -30,17 +31,20 @@ public final class Address {
 
     @NotEmpty(message = "Required state!")
     @Column(nullable = false)
-    @JsonProperty("state")
+    @JsonProperty("estado")
+    @JsonAlias("state")
     String state;
 
     @NotEmpty(message = "Required street!")
     @Column(nullable = false)
-    @JsonProperty("street")
+    @JsonProperty("logradouro")
+    @JsonAlias("street")
     String street;
 
     @NotEmpty(message = "Required neighbourhood!")
     @Column(nullable = false)
-    @JsonProperty("neighbourhood")
+    @JsonProperty("bairro")
+    @JsonAlias("neighbourhood")
     String neighbourhood;
 
     //Front-end should block any non-numeric character
@@ -50,27 +54,4 @@ public final class Address {
     @JsonProperty("houseNumber")
     String houseNumber;
 
-    //Setters used by Jackson for desserialize Viacep API request
-    @JsonSetter("cep")
-    private void setCep(String cep) {
-        this.cep = cep;
-    }
-
-    @JsonSetter("estado")
-    private void setState(String state) { this.state = state; }
-
-    @JsonSetter("logradouro")
-    private void setStreet(String street) {
-        this.street = street;
-    }
-
-    @JsonSetter("bairro")
-    private void setNeighbourhood(String neighbourhood) {
-        this.neighbourhood = neighbourhood;
-    }
-
-    @JsonSetter("houseNumber")
-    private void setHouseNumber(String houseNumber) {
-        this.houseNumber = houseNumber;
-    }
 }

@@ -51,11 +51,6 @@ public class Credential {
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     LocalDateTime updatedAt = null;
 
-    public Credential(String email, String password) {
-        this.email = email;
-        this.password = password;
-    }
-
     @PreUpdate
     private void setUpdatedAt() { updatedAt = LocalDateTime.now(); }
 

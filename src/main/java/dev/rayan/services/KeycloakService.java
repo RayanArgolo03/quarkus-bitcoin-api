@@ -1,6 +1,6 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.response.token.CredentialResponse;
+import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.token.CredentialTokensResponse;
 import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;

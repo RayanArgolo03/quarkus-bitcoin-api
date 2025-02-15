@@ -1,4 +1,4 @@
-package dev.rayan.factory;
+package dev.rayan.report;
 
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 
-public final class ExcelReportAbstract extends ReportAbstractFile {
+public final class ExcelReport extends ReportAbstractFile {
 
     private final static String SHEET_NAME = "report";
     private final static String FONT_NAME = "Aptos Narrow";

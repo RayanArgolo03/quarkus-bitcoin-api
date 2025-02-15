@@ -1,17 +1,20 @@
 package dev.rayan.dto.request.client;
-
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.ws.rs.QueryParam;
+import java.util.List;
+import java.util.Set;
 
 public record AddressFilterRequest(
 
-        @Pattern(message = "Only letters!", regexp = "[A-Za-zÀ-ÖØ-öø-ÿ]+$")
-        String state,
+        @QueryParam("state")
+        Set<@NotEmpty(message = MESSAGE) String> states,
 
-        @Pattern(message = "Only letters!", regexp = "[A-Za-zÀ-ÖØ-öø-ÿ]+$")
-        String street,
+        @QueryParam("street")
+        Set<@NotEmpty(message = MESSAGE) String> streets,
 
-        @Pattern(message = "Only letters!", regexp = "[A-Za-zÀ-ÖØ-öø-ÿ]+$")
-        String neighbourhood
+        @QueryParam("neighbourhood")
+        Set<@NotEmpty(message = MESSAGE) String> neighbourhoods
 
 ) {
+    private final static String MESSAGE = "Value can´t be not empty!";
 }

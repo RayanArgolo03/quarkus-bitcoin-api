@@ -10,5 +10,4 @@ public record UpdateClientRequest(
         @NotBlank(message = "Required surname!")
         String surname) {
 
-
 }

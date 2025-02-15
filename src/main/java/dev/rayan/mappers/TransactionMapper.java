@@ -1,22 +1,30 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.response.transaction.TransactionResponse;
+import dev.rayan.dto.request.transaction.TransactionRequest;
 import dev.rayan.dto.response.bitcoin.BitcoinResponse;
+import dev.rayan.dto.response.transaction.TransactionResponse;
+import dev.rayan.enums.TransactionType;
+import dev.rayan.model.Client;
 import dev.rayan.model.Transaction;
+import dev.rayan.utils.FormatterUtils;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "jakarta-cdi")
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+
+@Mapper(componentModel = "jakarta-cdi", imports = FormatterUtils.class)
 public interface TransactionMapper {
+    @Mapping(target = "client", source = "client")
+    @Mapping(target = "id", ignore = true)
+    Transaction requestToTransaction(TransactionRequest request, Client client, TransactionType type);
 
-
-    //    @Mapping(target = "currentValue", expression = "java( (bitcoin == null) ? getDefaultMessage() : FormatterUtils.formatMoney(bitcoin.getLast()))")
-//    @Mapping(target = "valueDate", expression = "java( (bitcoin == null) ? getDefaultMessage() : FormatterUtils.formatDate(bitcoin.getTime()))")
-//
-//
-//    @Mapping(target = "units", expression = "java(transaction.getQuantity().toString())")
-//    @Mapping(target = "transactionDate", expression = "java(FormatterUtils.formatDate(transaction.getCreatedAt()))")
-//    @Mapping(target = "type", expression = "java(transaction.getType().toString())")
-//    @Mapping(target = "total", expression = "java( (bitcoin == null) ? getDefaultMessage() : FormatterUtils.formatMoney(bitcoin.getLast().multiply(transaction.getQuantity())))")
-    TransactionResponse transactionInfoToTransactionResponse(Transaction transaction, BitcoinResponse bitcoinResponse);
+    @Mapping(target = "bitcoinCurrentValue", expression = "java(FormatterUtils.formatMoney(bitcoin.price()))")
+    @Mapping(target = "currentValueDate", source = "bitcoin.quotedAt")
+    @Mapping(target = "quantity", expression = "java(transaction.getQuantity() + \" units\")")
+    @Mapping(target = "transactionDate", source = "transaction.createdAt")
+    @Mapping(target = "type", expression = "java(transaction.getType().getValue())")
+    @Mapping(target = "transactionTotal", expression = "java(FormatterUtils.formatMoney(transaction.getQuantity().multiply(bitcoin.price())))", numberFormat = "R$#.00")
+    TransactionResponse transactionToResponse(Transaction transaction, BitcoinResponse bitcoin);
 
 }

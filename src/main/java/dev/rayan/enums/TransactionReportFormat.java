@@ -16,8 +16,4 @@ public enum TransactionReportFormat implements BaseEnum<TransactionReportFormat>
         return value;
     }
 
-    @Override
-    public String toString() {
-        return value;
-    }
 }
