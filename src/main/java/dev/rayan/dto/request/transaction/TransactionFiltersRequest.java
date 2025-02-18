@@ -42,12 +42,12 @@ public final class TransactionFiltersRequest {
     Sort.Direction sortByType;
 
     @DefaultValue("0.0")
-    @DecimalMin(value = "0.0", message = "Min quantity should be more than 0!")
+    @DecimalMin(value = "0.0", message = "Min totalQuantity should be more than 0!")
     @QueryParam("minQuantity")
     BigDecimal minQuantity;
 
     @DefaultValue("10")
-    @DecimalMin(value = "0.0", message = "Max quantity should be more than 0!")
+    @DecimalMin(value = "0.0", message = "Max totalQuantity should be more than 0!")
     @QueryParam("maxQuantity")
     BigDecimal maxQuantity;
 

@@ -1,5 +1,8 @@
 package dev.rayan.enums;
 
+
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum TransactionType implements BaseEnum<TransactionType> {
 
     PURCHASE("Purchase"), SALE("Sale");
@@ -11,6 +14,9 @@ public enum TransactionType implements BaseEnum<TransactionType> {
     }
 
     @Override
-    public String getValue() {return value;}
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
 
 }

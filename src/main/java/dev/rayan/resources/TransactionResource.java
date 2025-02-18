@@ -1,6 +1,7 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.transaction.TransactionByQuantityRequest;
+import dev.rayan.dto.request.transaction.TransactionByTypeRequest;
 import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
 import dev.rayan.dto.request.transaction.TransactionRequest;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
@@ -17,14 +18,15 @@ import dev.rayan.model.Transaction;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
-import dev.rayan.utils.ConverterEnumUtils;
+import dev.rayan.utils.EnumConverterUtils;
 import dev.rayan.validation.EnumValidator;
-import io.quarkus.runtime.annotations.CommandLineArguments;
+import io.quarkus.panache.common.Sort;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -75,7 +77,7 @@ public final class TransactionResource {
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
-        log.info("Persisting buy transaction");
+        log.info("Persisting purchase transaction");
         final TransactionResponse response = transactionService.persist(request, client, TransactionType.PURCHASE, bitcoin);
 
         log.info("Creating resource URI");
@@ -89,57 +91,59 @@ public final class TransactionResource {
                 .build();
     }
 
-
-    //Todo
     @POST
     @Transactional
     @RolesAllowed("user")
     @Path("/sell-bitcoins")
-    public Response sellBitcoins(@Context final SecurityContext context,
-                                 @Valid final TransactionRequest request) {
+    public Response sellBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Find all transactions");
-        final List<Transaction> transactions = transactionService.findAllTransactions(null);
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
-        log.info("Validate sale quantity");
-        transactionService.validateQuantity(transactions, request.quantity());
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        log.info("Validate sale quantity if has transactions");
+        transactionService.validateTransaction(client, request.quantity());
+
+        log.info("Quoting bitcoin");
+        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
         log.info("Persisting sale transaction");
-        final TransactionResponse transaction = transactionService.persist(request, null, null, null);
+        final TransactionResponse response = transactionService.persist(request, client, TransactionType.SALE, bitcoin);
 
         log.info("Creating resource URI");
         final URI uri = uriInfo.getAbsolutePathBuilder()
-                .path("id")
-                .resolveTemplate("{id}", transaction.id())
+                .path("{id}")
+                .resolveTemplate("id", response.id())
                 .build();
-
-        log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
         return Response.created(uri)
-                .entity(null)
+                .entity(response)
+                .build();
+    }
+
+    @GET
+    @RolesAllowed("user")
+    @Path("/by-types")
+    public Response findTransactionsByTypes(@Valid @BeanParam final TransactionByTypeRequest request) {
+
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        log.info("Mapping string types to enums");
+        final List<TransactionType> transactionTypes = EnumConverterUtils.convertEnums(TransactionType.class, request.getTypes());
+
+        return Response.ok(transactionService.findTransactionsSummaryByType(request, client))
                 .build();
     }
 
     @GET
     @RolesAllowed("client")
-    @Path("/transactions/summary-by-types")
-    public Response findTransactionsSummaryByTypes(@Context final SecurityContext context,
-                                                   @HeaderParam("Authorization") final String token,
-                                                   @QueryParam("type") final List<String> types) {
-
-
-        log.info("Mapping string types to enum");
-        final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);
-
-        log.info("Finding transactions by types");
-        return Response.ok(transactionService.findTransactionsSummaryByType(null, null))
-                .build();
-    }
-
-    @GET
-    @RolesAllowed("client")
-    @Path("/transactions/summary-by-filters")
+    @Path("/summary-by-filters")
     public Response findTransactionsSummaryByFilters(@Context final SecurityContext context,
                                                      @BeanParam @Valid final TransactionFiltersRequest request) {
 
@@ -150,7 +154,7 @@ public final class TransactionResource {
 
     @GET
     @Authenticated
-    @Path("/transactions/{transactionId}")
+    @Path("/{transactionId}")
     public Response findTransactionById(@Context final SecurityContext context,
                                         @PathParam("transactionId") final UUID transactionId) {
 
@@ -166,12 +170,12 @@ public final class TransactionResource {
 
     @GET
     @RolesAllowed("client")
-    @Path("transactions/last-transaction-by-quantity")
+    @Path("/last-transaction-by-quantity")
     public Response findTransactionByQuantity(@Context final SecurityContext context,
                                               @Valid @BeanParam final TransactionByQuantityRequest request) {
 
 
-        log.infof("Finding transaction by quantity and sort created at %s", request.getSortCreatedAtDirection());
+        log.infof("Finding transaction by totalQuantity and sort created at %s", request.getSortCreatedAtDirection());
         final Transaction transaction = transactionService.findTransactionByQuantity(null, request.getQuantity(), request.getSortCreatedAtDirection());
 
         log.info("Quoting bitcoin");
@@ -184,13 +188,13 @@ public final class TransactionResource {
 
     @GET
     @RolesAllowed("client")
-    @Path("/transactions/report")
+    @Path("/report")
     public Response createTransactionReport(@Context final SecurityContext context,
                                             @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
                                             @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period) {
 
         log.info("Mapping string period to enum");
-        final TransactionReportPeriod reportPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
+        final TransactionReportPeriod reportPeriod = EnumConverterUtils.convertEnum(TransactionReportPeriod.class, period);
 
         log.infof("Finding transaction report on %s", reportPeriod);
         final TransactionReportResponse reportResponse = transactionService.findTransactionReport(null, reportPeriod);
@@ -203,7 +207,7 @@ public final class TransactionResource {
         transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoinResponse);
 
         log.info("Mapping string report format to enum");
-        final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
+        final TransactionReportFormat reportFormat = EnumConverterUtils.convertEnum(TransactionReportFormat.class, format);
 
         try {
             log.infof("Generating report in format %s", reportFormat);

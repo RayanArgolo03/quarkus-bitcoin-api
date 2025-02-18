@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Getter
 public final class TransactionByQuantityRequest {
 
-    @QueryParam("quantity")
+    @QueryParam("totalQuantity")
     @DecimalMin(value = "0", inclusive = false, message = "Quantity must be greater than 0!!")
     @NotNull(message = "Quantity required!")
     BigDecimal quantity;

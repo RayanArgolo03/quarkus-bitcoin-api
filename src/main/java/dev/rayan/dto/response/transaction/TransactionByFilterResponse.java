@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 
-public record TransactionSummaryByFiltersResponse(
-        @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
-        LocalDateTime madeAt,
+public record TransactionByFilterResponse(
+        String type,
         String quantity,
-        String type) {
+        @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
+        LocalDateTime madeAt) {
 }
