@@ -10,27 +10,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ConverterEnumUtils {
+public final class EnumConverterUtils {
 
     public static <T extends Enum<T> & BaseEnum<T>> T convertEnum(final Class<T> enumClass, final String value) {
-
-        if (value == null) return null;
-
         return Arrays.stream(enumClass.getEnumConstants())
-                .filter(e -> e.getValue().equals(value))
-                .findAny()
+                .filter(e -> e.getValue().equalsIgnoreCase(value))
+                .findFirst()
                 .orElseThrow(() -> new NotFoundException("Resource not found!"));
-
     }
 
-    public static <T extends Enum<T> & BaseEnum<T>> List<T>  convertEnums(final Class<T> enumClass, final List<String> values) {
-
-        if (values.isEmpty()) return List.of();
-
-        return values.stream()
+    public static <T extends Enum<T> & BaseEnum<T>> List<T> convertEnums(final Class<T> enumClass, final List<String> values) {
+        return (values.isEmpty())
+                ? List.of()
+                : values.stream()
                 .map(value -> convertEnum(enumClass, value))
                 .collect(Collectors.toList());
-
     }
 
 }

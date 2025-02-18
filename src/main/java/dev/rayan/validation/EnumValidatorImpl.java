@@ -1,5 +1,7 @@
 package dev.rayan.validation;
 
+import dev.rayan.enums.BaseEnum;
+import dev.rayan.utils.StringToLowerUtils;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -13,17 +15,17 @@ public class EnumValidatorImpl implements ConstraintValidator<EnumValidator, Cha
 
     @Override
     public void initialize(EnumValidator annotation) {
-        acceptedValues = Stream.of(annotation.enumClass().getEnumConstants())
-                .map(Enum::toString)
-                .collect(Collectors.toList());
+        acceptedValues = StringToLowerUtils.toLower(
+                Stream.of(annotation.enumClass().getEnumConstants())
+                        .map(BaseEnum::getValue)
+                        .collect(Collectors.toList())
+        );
     }
 
     @Override
     public boolean isValid(CharSequence value, ConstraintValidatorContext context) {
-
         if (value == null) return false;
-
-        return acceptedValues.contains(value.toString());
+        return acceptedValues.contains(value.toString().toLowerCase());
     }
 }
 

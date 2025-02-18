@@ -11,13 +11,13 @@ import java.time.LocalDate;
 public final class DatePeriodRequest {
 
     @QueryParam("startDate")
-    @NotNull(message = "Required start quotedAt!")
-    @PastOrPresent(message = "The start quotedAt can´t be after current quotedAt!")
+    @NotNull(message = "Required start date!")
+    @PastOrPresent(message = "The start date can´t be after current date!")
     LocalDate startDate;
 
     @QueryParam("endDate")
-    @NotNull(message = "Required final quotedAt!")
-    @PastOrPresent(message = "The end quotedAt can´t be after current quotedAt!")
+    @NotNull(message = "Required end date!")
+    @PastOrPresent(message = "The end date can´t be after current date!")
     LocalDate endDate;
 
 }

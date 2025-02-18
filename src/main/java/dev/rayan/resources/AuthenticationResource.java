@@ -23,6 +23,8 @@ import org.jboss.logging.Logger;
 
 import java.net.URI;
 
+import static java.lang.String.format;
+
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Path(AuthenticationResource.RESOURCE_PATH)
@@ -91,14 +93,9 @@ public final class AuthenticationResource {
         log.info("Verifyning if user exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Finding the credential to revoke token with email and password");
-        final Credential credential = credentialService.findCredential(token.getClaim("email"))
-                .get();
-
         log.info("Logout user and revoke token");
         keycloakService.logout(keycloakUserId);
 
-        //Front-end redirect to pageNumber page
         return Response.ok("Sucessfully Logout!")
                 .build();
     }
@@ -137,14 +134,14 @@ public final class AuthenticationResource {
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
         log.info("Verifyning if credential exists in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
         log.info("Resending verify email");
         keycloakService.resentVerifyEmail(keycloakUserId);
 
         //Front-end redirect to the login page after confirmation verification
         return Response.ok()
-                .entity("Email forwarded!")
+                .entity(format("Email forwarded to %s!", email))
                 .build();
     }
 }

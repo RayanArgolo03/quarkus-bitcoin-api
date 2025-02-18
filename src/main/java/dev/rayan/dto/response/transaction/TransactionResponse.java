@@ -1,9 +1,8 @@
 package dev.rayan.dto.response.transaction;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import dev.rayan.enums.TransactionType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -15,7 +14,8 @@ public record TransactionResponse(
         LocalDate currentValueDate,
         String quantity,
         @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
-        LocalDateTime transactionDate,
+        @JsonProperty("madeAt")
+        LocalDateTime createdAt,
         String type,
         String transactionTotal) {
 }

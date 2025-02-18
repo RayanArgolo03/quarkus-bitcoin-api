@@ -7,6 +7,7 @@ import dev.rayan.dto.request.client.UpdateClientRequest;
 import dev.rayan.dto.response.client.FoundClientResponse;
 import dev.rayan.model.Address;
 import dev.rayan.model.Client;
+import dev.rayan.utils.StringToLowerUtils;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
@@ -81,16 +82,9 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
                 .project(responseClass);
     }
 
-    private void addParamIfNotEmpty(final Map<String, Object> parameters, final String attribute, Set<String> inputs) {
-
+    private void addParamIfNotEmpty(final Map<String, Object> parameters, final String attribute, final Set<String> inputs) {
         if (!inputs.isEmpty()) {
-
-            //Passing the inputs to lower case to compare ignore case in the query
-            inputs = inputs.stream()
-                    .map(String::toLowerCase)
-                    .collect(Collectors.toSet());
-
-            parameters.put(attribute, inputs);
+            parameters.put(attribute, StringToLowerUtils.toLower(inputs));
         }
     }
 

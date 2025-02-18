@@ -1,7 +1,6 @@
 package dev.rayan.dto.response.client;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.rayan.model.Address;
 import dev.rayan.model.Credential;
 
@@ -20,8 +19,5 @@ public record CreatedClientResponse(
         Credential credential,
         Address address,
         @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
-        LocalDateTime createdAt,
-
-        @JsonInclude(JsonInclude.Include.NON_NULL)
-        String updatedAt) {
+        LocalDateTime createdAt) {
 }

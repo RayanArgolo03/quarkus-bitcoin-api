@@ -22,9 +22,8 @@ public interface TransactionMapper {
     @Mapping(target = "bitcoinCurrentValue", expression = "java(FormatterUtils.formatMoney(bitcoin.price()))")
     @Mapping(target = "currentValueDate", source = "bitcoin.quotedAt")
     @Mapping(target = "quantity", expression = "java(transaction.getQuantity() + \" units\")")
-    @Mapping(target = "transactionDate", source = "transaction.createdAt")
     @Mapping(target = "type", expression = "java(transaction.getType().getValue())")
-    @Mapping(target = "transactionTotal", expression = "java(FormatterUtils.formatMoney(transaction.getQuantity().multiply(bitcoin.price())))", numberFormat = "R$#.00")
+    @Mapping(target = "transactionTotal", expression = "java(FormatterUtils.formatMoney(transaction.getQuantity().multiply(bitcoin.price())))")
     TransactionResponse transactionToResponse(Transaction transaction, BitcoinResponse bitcoin);
 
 }

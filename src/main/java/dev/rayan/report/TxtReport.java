@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
 
+import static java.lang.String.format;
+
 public final class TxtReport extends ReportAbstractFile {
 
     @Override
@@ -21,12 +23,7 @@ public final class TxtReport extends ReportAbstractFile {
     }
 
     @Override
-    public String getFileName() {
-        return "report";
-    }
-
-    @Override
-    public String getExtension() {
+    protected String getExtension() {
         return ".txt";
     }
 
@@ -36,7 +33,9 @@ public final class TxtReport extends ReportAbstractFile {
 
 
     private void createReportInfo(final PrintWriter writer, final Map<String, String> fieldsAndValues) {
-        fieldsAndValues.forEach((field, value) -> writer.printf("%s: %s \n", field, value));
+        fieldsAndValues.forEach((field, value) ->
+                writer.println(format("%s: %s", field, value))
+        );
     }
 
 }

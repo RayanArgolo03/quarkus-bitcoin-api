@@ -25,7 +25,7 @@ import java.util.UUID;
 @Table(name = "transactions")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @DynamicInsert
-public class Transaction extends PanacheEntityBase {
+public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -47,7 +47,7 @@ public final class ExceptionResponse {
         );
     }
 
-    //Path example: sellBitcoins.request.quantity
+    //Path example: sellBitcoins.request.totalQuantity
     private ExceptionMessage createExceptionMessage(final ConstraintViolation<?> violation) {
 
         final String[] fieldPath = violation.getPropertyPath()

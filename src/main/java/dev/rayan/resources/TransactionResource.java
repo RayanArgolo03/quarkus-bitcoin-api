@@ -1,32 +1,30 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.transaction.TransactionByQuantityRequest;
-import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
-import dev.rayan.dto.request.transaction.TransactionRequest;
+import dev.rayan.dto.request.transaction.*;
+import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionReportFormat;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.exceptions.ApiException;
 import dev.rayan.model.Client;
 import dev.rayan.report.ReportAbstractFile;
-import dev.rayan.report.ReportFileFactory;
-import dev.rayan.dto.response.bitcoin.BitcoinResponse;
-import dev.rayan.model.Transaction;
+import dev.rayan.report.ReportFactory;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
-import dev.rayan.utils.ConverterEnumUtils;
+import dev.rayan.utils.EnumConverterUtils;
 import dev.rayan.validation.EnumValidator;
-import io.quarkus.runtime.annotations.CommandLineArguments;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
@@ -75,7 +73,7 @@ public final class TransactionResource {
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
-        log.info("Persisting buy transaction");
+        log.info("Persisting purchase transaction");
         final TransactionResponse response = transactionService.persist(request, client, TransactionType.PURCHASE, bitcoin);
 
         log.info("Creating resource URI");
@@ -89,133 +87,155 @@ public final class TransactionResource {
                 .build();
     }
 
-
-    //Todo
     @POST
     @Transactional
     @RolesAllowed("user")
     @Path("/sell-bitcoins")
-    public Response sellBitcoins(@Context final SecurityContext context,
-                                 @Valid final TransactionRequest request) {
+    public Response sellBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Find all transactions");
-        final List<Transaction> transactions = transactionService.findAllTransactions(null);
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
-        log.info("Validate sale quantity");
-        transactionService.validateQuantity(transactions, request.quantity());
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        log.info("Validate sale quantity if has transactions");
+        transactionService.validateTransaction(client, request.quantity());
+
+        log.info("Quoting bitcoin");
+        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
         log.info("Persisting sale transaction");
-        final TransactionResponse transaction = transactionService.persist(request, null, null, null);
+        final TransactionResponse response = transactionService.persist(request, client, TransactionType.SALE, bitcoin);
 
         log.info("Creating resource URI");
         final URI uri = uriInfo.getAbsolutePathBuilder()
-                .path("id")
-                .resolveTemplate("{id}", transaction.id())
+                .path("{id}")
+                .resolveTemplate("id", response.id())
                 .build();
-
-        log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
         return Response.created(uri)
-                .entity(null)
+                .entity(response)
                 .build();
     }
 
     @GET
-    @RolesAllowed("client")
-    @Path("/transactions/summary-by-types")
-    public Response findTransactionsSummaryByTypes(@Context final SecurityContext context,
-                                                   @HeaderParam("Authorization") final String token,
-                                                   @QueryParam("type") final List<String> types) {
+    @RolesAllowed("user")
+    @Path("/by-types")
+    public Response findTransactionsByTypes(@Valid @BeanParam final TransactionByTypeRequest request) {
 
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
-        log.info("Mapping string types to enum");
-        final List<TransactionType> transactionTypes = ConverterEnumUtils.convertEnums(TransactionType.class, types);
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
 
-        log.info("Finding transactions by types");
-        return Response.ok(transactionService.findTransactionsSummaryByType(null, null))
+        log.info("Mapping string types to enums");
+        final List<TransactionType> transactionTypes = EnumConverterUtils.convertEnums(TransactionType.class, request.getTypes());
+
+        return Response.ok(transactionService.findTransactionsByType(request, client))
                 .build();
     }
 
     @GET
-    @RolesAllowed("client")
-    @Path("/transactions/summary-by-filters")
-    public Response findTransactionsSummaryByFilters(@Context final SecurityContext context,
-                                                     @BeanParam @Valid final TransactionFiltersRequest request) {
+    @RolesAllowed("user")
+    @Path("/by-filters")
+    public Response findTransactionsByFilters(@BeanParam @Valid final TransactionFiltersRequest request) {
 
-        log.info("Finding transactions summary by filters");
-        return Response.ok(transactionService.findTransactionSummaryByFilters(null, request))
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        return Response.ok(transactionService.findTransactionsByFilters(client, request))
                 .build();
     }
 
     @GET
     @Authenticated
-    @Path("/transactions/{transactionId}")
-    public Response findTransactionById(@Context final SecurityContext context,
-                                        @PathParam("transactionId") final UUID transactionId) {
+    @Path("/{transactionId}")
+    public Response findTransactionById(@PathParam("transactionId") final UUID transactionId) {
 
-        log.info("Finding transaction by id");
-        final Transaction transaction = transactionService.findTransactionById(transactionId);
+        log.info("Verifyning if credential exists in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
 
-        return Response.ok(null)
+        return Response.ok(transactionService.findTransactionById(transactionId, bitcoin))
                 .build();
     }
 
     @GET
-    @RolesAllowed("client")
-    @Path("transactions/last-transaction-by-quantity")
-    public Response findTransactionByQuantity(@Context final SecurityContext context,
-                                              @Valid @BeanParam final TransactionByQuantityRequest request) {
+    @RolesAllowed("user")
+    @Path("/by-quantity")
+    public Response findTransactionsByQuantity(@Valid @BeanParam final TransactionByQuantityRequest request) {
 
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
-        log.infof("Finding transaction by quantity and sort created at %s", request.getSortCreatedAtDirection());
-        final Transaction transaction = transactionService.findTransactionByQuantity(null, request.getQuantity(), request.getSortCreatedAtDirection());
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
 
-        log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
-
-        return Response.ok(null)
+        return Response.ok(transactionService.findTransactionByQuantity(client, request))
                 .build();
     }
 
-
     @GET
-    @RolesAllowed("client")
-    @Path("/transactions/report")
-    public Response createTransactionReport(@Context final SecurityContext context,
-                                            @QueryParam("format") @EnumValidator(enumClass = TransactionReportFormat.class) String format,
-                                            @QueryParam("period") @EnumValidator(enumClass = TransactionReportPeriod.class) String period) {
+    @RolesAllowed("user")
+    @Path("/by-period")
+    public Response findTransactionCountByPeriod(@QueryParam("period")
+                                                 @EnumValidator(enumClass = TransactionReportPeriod.class) final String stringPeriod) {
+
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
 
         log.info("Mapping string period to enum");
-        final TransactionReportPeriod reportPeriod = ConverterEnumUtils.convertEnum(TransactionReportPeriod.class, period);
+        final TransactionReportPeriod period = EnumConverterUtils.convertEnum(TransactionReportPeriod.class, stringPeriod);
 
-        log.infof("Finding transaction report on %s", reportPeriod);
-        final TransactionReportResponse reportResponse = transactionService.findTransactionReport(null, reportPeriod);
+        return Response.ok(transactionService.findTransactionCountByPeriod(client, period))
+                .build();
+    }
 
-        //quoteBitcoin throws ApiException, if this occurred the bitcoin attributes will become unavailable
+
+    @GET
+    @RolesAllowed("user")
+    @Path("/report")
+    public Response createTransactionsReport(@Valid @BeanParam final TransactionReportRequest request) throws IOException, IllegalAccessException {
+
+        log.info("Verifyning if credential exists in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+
+        log.info("Finding client in the database");
+        final Client client = clientService.findClientByEmail(email);
+
+        log.info("Mapping string period to enum");
+        final TransactionReportPeriod period = EnumConverterUtils.convertEnum(TransactionReportPeriod.class, request.getPeriod());
+
+        log.info("Mapping string format to enum");
+        final TransactionReportFormat format = EnumConverterUtils.convertEnum(TransactionReportFormat.class, request.getFormat());
+
+        log.infof("Finding transaction report on %s", period);
+        final TransactionReportResponse response = transactionService.findTransactionReport(client, period);
+
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
 
-        log.info("Setting bitcoin attributes in reportResponse");
-        transactionService.setBitcoinAttributesInResponse(reportResponse, bitcoinResponse);
+        log.info("Setting bitcoin current value in response");
+        response.setBitcoinCurrentValue(
+                transactionService.quoteBitcoin().priceFormatted()
+        );
 
-        log.info("Mapping string report format to enum");
-        final TransactionReportFormat reportFormat = ConverterEnumUtils.convertEnum(TransactionReportFormat.class, format);
+        log.infof("Generating report in the format %s", format);
+        final ReportAbstractFile reportAbstractFile = ReportFactory.createReportFile(format);
+        reportAbstractFile.createReport(response, period);
 
-        try {
-            log.infof("Generating report in format %s", reportFormat);
-            final ReportAbstractFile reportAbstractFile = ReportFileFactory.createReportAbstractFile(reportFormat);
-            reportAbstractFile.createReport(reportResponse, reportPeriod);
-
-            return Response.ok("Report created and downloaded!")
-                    .build();
-
-        } catch (IllegalAccessException | IOException e) {
-            throw new ApiException("Server error! Contact the support in Linkedin: rayan_argolo");
-        }
+        return Response.ok("Report created and downloaded!")
+                .build();
     }
 
 

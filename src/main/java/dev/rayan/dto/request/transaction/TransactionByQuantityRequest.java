@@ -19,6 +19,6 @@ public final class TransactionByQuantityRequest {
 
     @QueryParam("sortCreatedAt")
     @DefaultValue("Ascending")
-    Sort.Direction sortCreatedAtDirection;
+    Sort.Direction sortCreatedAt;
 
 }

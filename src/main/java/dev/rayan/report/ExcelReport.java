@@ -20,7 +20,7 @@ public final class ExcelReport extends ReportAbstractFile {
     private final static String FONT_NAME = "Aptos Narrow";
 
     @Override
-    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod reportPeriod)
+    public void createReport(final TransactionReportResponse response, final TransactionReportPeriod period)
             throws IllegalAccessException, IOException {
 
         try (Workbook workbook = new XSSFWorkbook();
@@ -28,7 +28,7 @@ public final class ExcelReport extends ReportAbstractFile {
 
             final Sheet sheet = workbook.createSheet(SHEET_NAME);
 
-            createReportTitle(workbook.createCellStyle(), sheet, workbook.createFont(), reportPeriod.toString());
+            createReportTitle(workbook.createCellStyle(), sheet, workbook.createFont(), period.getValue());
             createReportInfo(workbook.createCellStyle(), sheet, workbook.createFont(), response.getFieldsAndValues());
 
             workbook.write(output);
@@ -36,12 +36,7 @@ public final class ExcelReport extends ReportAbstractFile {
     }
 
     @Override
-    public String getFileName() {
-        return "transactions_report";
-    }
-
-    @Override
-    public String getExtension() {
+    protected String getExtension() {
         return ".xlsx";
     }
 

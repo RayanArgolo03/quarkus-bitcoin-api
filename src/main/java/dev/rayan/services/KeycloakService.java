@@ -79,10 +79,11 @@ public class KeycloakService {
 
     private static final String FIRST_LOGIN_ATTRIBUTE = "first_login";
 
-    @PostConstruct
-    public void persistMigrationsMock() {
-        persist(new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now()));
-    }
+//    @PostConstruct
+//    public void persistMigrationsMock() {
+//        final CredentialResponse response = new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
+//        persist(response);
+//    }
 
 //    @PreDestroy
 //    public void deleteMigrationsMock() {
@@ -103,6 +104,7 @@ public class KeycloakService {
         final UserResource user = createUser(getUsersResource(keycloak), response);
 
         assignRolesToUser(keycloak.realm(realm).roles(), user, response.getEmail());
+
         user.sendVerifyEmail();
 
         closeKeycloak(keycloak);
