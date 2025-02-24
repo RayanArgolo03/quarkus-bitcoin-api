@@ -1,6 +1,7 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.client.CreateCredentialRequest;
+import dev.rayan.dto.request.client.ForgotCredentialRequest;
 import dev.rayan.dto.request.token.RefreshTokenRequest;
 import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.token.CredentialTokensResponse;
@@ -140,8 +141,26 @@ public final class AuthenticationResource {
         keycloakService.resentVerifyEmail(keycloakUserId);
 
         //Front-end redirect to the login page after confirmation verification
-        return Response.ok()
-                .entity(format("Email forwarded to %s!", email))
+        return Response.accepted()
+                .entity(format("Verify email forwarded to %s!", email))
                 .build();
     }
+
+    //Todo teste realmente
+    @PATCH
+    @PermitAll
+    @Path("/forgot-password")
+    public Response forgotPassword(@Valid final ForgotCredentialRequest request) {
+
+        log.info("Verifyning if credential exists in keycloak");
+        credentialService.findCredential(request.email());
+
+        log.info("Sending the keycloak email to reset the password");
+        keycloakService.sendForgotPasswordEmail(request.email());
+
+        return Response.accepted()
+                .entity(format("Update password email forwarded to %s", request.email()))
+                .build();
+    }
+
 }

@@ -12,4 +12,7 @@ public record CredentialTokensResponse(
         @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
         LocalDateTime expiresIn) {
 
+    public CredentialTokensResponse(String accessToken, String refreshToken, LocalDateTime expiresIn) {
+        this(accessToken, refreshToken, LocalDateTime.now(), expiresIn);
+    }
 }

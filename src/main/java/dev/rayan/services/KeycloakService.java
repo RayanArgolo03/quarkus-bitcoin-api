@@ -12,7 +12,6 @@ import io.quarkus.arc.All;
 import io.quarkus.runtime.Startup;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
@@ -134,8 +133,7 @@ public class KeycloakService {
                 .close();
 
         //Get user id in user created above
-        final String keycloakUserId = usersResource.search(response.getEmail())
-                .get(0)
+        final String keycloakUserId = getUserRepresentation(usersResource, response.getEmail())
                 .getId();
 
         response.setKeycloakUserId(keycloakUserId);
@@ -191,9 +189,7 @@ public class KeycloakService {
 
         final UsersResource usersResource = getUsersResource(keycloak);
 
-        final UserRepresentation userRepresentation = usersResource
-                .search(response.getEmail())
-                .get(0);
+        final UserRepresentation userRepresentation = getUserRepresentation(usersResource, response.getEmail());
 
         final UserResource user = getUserResource(usersResource, userRepresentation.getId());
 
@@ -259,11 +255,10 @@ public class KeycloakService {
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
 
         try {
-            return getUserResource(getUsersResource(keycloak), keycloakUserId)
-                    .toRepresentation()
+            return getUserRepresentation(getUsersResource(keycloak), keycloakUserId)
                     .getEmail();
 
-        } catch (WebApplicationException e) {
+        } catch (IndexOutOfBoundsException e) {
             throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
 
         } finally {
@@ -294,7 +289,6 @@ public class KeycloakService {
         return new CredentialTokensResponse(
                 accessToken.getToken(),
                 accessToken.getRefreshToken(),
-                LocalDateTime.now(),
                 expiresIn
         );
     }
@@ -306,6 +300,12 @@ public class KeycloakService {
 
     private UserResource getUserResource(final UsersResource usersResource, final String keycloakUserId) {
         return usersResource.get(keycloakUserId);
+    }
+
+
+    private UserRepresentation getUserRepresentation(final UsersResource usersResource, final String email) throws IndexOutOfBoundsException {
+        return usersResource.search(email)
+                .get(0);
     }
 
     private boolean isFirstLogin(final UserRepresentation userRepresentation) {
@@ -336,6 +336,32 @@ public class KeycloakService {
         user.update(userRepresentation);
     }
 
+    public void sendForgotPasswordEmail(final String email) {
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final UsersResource usersResource = getUsersResource(keycloak);
+
+        try {
+            final UserRepresentation userRepresentation = getUserRepresentation(usersResource, email);
+            final String keycloakUserId = userRepresentation
+                    .getId();
+
+            if (!isEmailVerified(userRepresentation)) {
+                resentVerifyEmail(keycloakUserId);
+                throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", email), FORBIDDEN);
+            }
+
+            getUserResource(usersResource, keycloakUserId)
+                    .executeActionsEmail(List.of("UPDATE_PASSWORD"));
+
+        } catch (IndexOutOfBoundsException e) {
+            throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
+
+        } finally {
+            closeKeycloak(keycloak);
+        }
+
+    }
 
     private Keycloak buildKeycloak(final String username, final String password) {
 
@@ -358,6 +384,8 @@ public class KeycloakService {
     private void closeKeycloak(final Keycloak keycloak) {
         keycloak.close();
     }
+
+
 }
 
 
