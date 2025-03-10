@@ -1,7 +1,7 @@
 package dev.rayan.services;
 
 import dev.rayan.dto.response.client.CredentialResponse;
-import dev.rayan.dto.response.token.CredentialTokensResponse;
+import dev.rayan.dto.response.token.TokensResponse;
 import dev.rayan.exceptions.EmailAlreadyVerifiedException;
 import dev.rayan.exceptions.EmailNotVerifiedException;
 import dev.rayan.exceptions.UserAlreadyLoggedException;
@@ -9,7 +9,6 @@ import dev.rayan.exceptions.UserAlreadyLoggedOutException;
 import dev.rayan.model.Credential;
 import dev.rayan.strategy.TokenStrategy;
 import io.quarkus.arc.All;
-import io.quarkus.runtime.Startup;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,8 +43,8 @@ import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
-@Startup
-public class KeycloakService {
+//@Startup
+public final class KeycloakService {
 
     @ConfigProperty(name = "keycloak.admin-client.server-url")
     String serverUrl;
@@ -115,7 +114,10 @@ public class KeycloakService {
 
         user.setUsername(response.getEmail());
         user.setEmail(response.getEmail());
-        user.setCredentials(createUserPassword(response.getPassword()));
+
+        final List<CredentialRepresentation> passwordCredential = createUserPassword(response.getPassword());
+        user.setCredentials(passwordCredential);
+
         user.setEnabled(true);
 
         user.setCreatedTimestamp(response.getCreatedAt()
@@ -125,9 +127,8 @@ public class KeycloakService {
         );
 
         //Set custom first_login attibute to verify in login
-        user.setAttributes(
-                Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("true"))
-        );
+        final Map<String, List<String>> firstLoginAttribute = Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("true"));
+        user.setAttributes(firstLoginAttribute);
 
         usersResource.create(user)
                 .close();
@@ -183,7 +184,7 @@ public class KeycloakService {
         closeKeycloak(keycloak);
     }
 
-    public CredentialTokensResponse login(final CredentialResponse response) {
+    public TokensResponse login(final CredentialResponse response) {
 
         Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
 
@@ -209,9 +210,7 @@ public class KeycloakService {
         }
 
         keycloak = buildKeycloak(response.getEmail(), response.getPassword());
-
-        final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
-
+        final TokensResponse tokensResponse = generateTokens(keycloak);
         closeKeycloak(keycloak);
 
         return tokensResponse;
@@ -230,7 +229,7 @@ public class KeycloakService {
         closeKeycloak(keycloak);
     }
 
-    public CredentialTokensResponse generateNewTokens(final String keycloakUserId, final Credential credential) {
+    public TokensResponse generateNewTokens(final String keycloakUserId, final Credential credential) {
 
         Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
         final UsersResource usersResource = getUsersResource(keycloak);
@@ -242,7 +241,7 @@ public class KeycloakService {
         //Revoking the previous token
         keycloak = buildKeycloak(credential.getEmail(), credential.getPassword());
 
-        final CredentialTokensResponse tokensResponse = generateTokens(keycloak);
+        final TokensResponse tokensResponse = generateTokens(keycloak);
 
         closeKeycloak(keycloak);
 
@@ -250,15 +249,16 @@ public class KeycloakService {
     }
 
 
-    public String findUserEmailByKeycloakUserId(final String keycloakUserId) {
+    public String findUserEmailByKeycloakUserId(final String keycloakUserId) throws WebApplicationException {
 
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
 
         try {
-            return getUserRepresentation(getUsersResource(keycloak), keycloakUserId)
+            return getUserResource(getUsersResource(keycloak), keycloakUserId)
+                    .toRepresentation()
                     .getEmail();
 
-        } catch (IndexOutOfBoundsException e) {
+        } catch (WebApplicationException e) {
             throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
 
         } finally {
@@ -276,7 +276,7 @@ public class KeycloakService {
         return !user.getUserSessions().isEmpty();
     }
 
-    private CredentialTokensResponse generateTokens(final Keycloak keycloak) {
+    private TokensResponse generateTokens(final Keycloak keycloak) {
 
         final TokenManager manager = keycloak.tokenManager();
         final AccessTokenResponse accessToken = manager.getAccessToken();
@@ -286,7 +286,7 @@ public class KeycloakService {
                 ZoneId.systemDefault()
         );
 
-        return new CredentialTokensResponse(
+        return new TokensResponse(
                 accessToken.getToken(),
                 accessToken.getRefreshToken(),
                 expiresIn
@@ -332,35 +332,23 @@ public class KeycloakService {
         closeKeycloak(keycloak);
     }
 
-    public void update(final UserResource user, final UserRepresentation userRepresentation) {
-        user.update(userRepresentation);
-    }
-
-    public void sendForgotPasswordEmail(final String email) {
+    public void updatePassword(final String email, final String newPassword) {
 
         final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
         final UsersResource usersResource = getUsersResource(keycloak);
 
-        try {
-            final UserRepresentation userRepresentation = getUserRepresentation(usersResource, email);
-            final String keycloakUserId = userRepresentation
-                    .getId();
+        final UserRepresentation userRepresentation = getUserRepresentation(usersResource, email);
+        final UserResource user = getUserResource(usersResource, userRepresentation.getId());
 
-            if (!isEmailVerified(userRepresentation)) {
-                resentVerifyEmail(keycloakUserId);
-                throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", email), FORBIDDEN);
-            }
+        final List<CredentialRepresentation> newPasswordCredential = createUserPassword(newPassword);
+        userRepresentation.setCredentials(newPasswordCredential);
+        update(user, userRepresentation);
 
-            getUserResource(usersResource, keycloakUserId)
-                    .executeActionsEmail(List.of("UPDATE_PASSWORD"));
+        closeKeycloak(keycloak);
+    }
 
-        } catch (IndexOutOfBoundsException e) {
-            throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
-
-        } finally {
-            closeKeycloak(keycloak);
-        }
-
+    public void update(final UserResource user, final UserRepresentation userRepresentation) {
+        user.update(userRepresentation);
     }
 
     private Keycloak buildKeycloak(final String username, final String password) {
@@ -381,10 +369,10 @@ public class KeycloakService {
 
     }
 
+
     private void closeKeycloak(final Keycloak keycloak) {
         keycloak.close();
     }
-
 
 }
 

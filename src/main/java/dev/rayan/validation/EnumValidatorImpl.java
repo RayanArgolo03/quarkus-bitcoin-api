@@ -23,7 +23,7 @@ public class EnumValidatorImpl implements ConstraintValidator<EnumValidator, Cha
     }
 
     @Override
-    public boolean isValid(CharSequence value, ConstraintValidatorContext context) {
+    public boolean isValid(final CharSequence value, final ConstraintValidatorContext context) {
         if (value == null) return false;
         return acceptedValues.contains(value.toString().toLowerCase());
     }

@@ -3,6 +3,7 @@ package dev.rayan.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -53,5 +54,4 @@ public class Credential {
 
     @PreUpdate
     private void setUpdatedAt() { updatedAt = LocalDateTime.now(); }
-
 }

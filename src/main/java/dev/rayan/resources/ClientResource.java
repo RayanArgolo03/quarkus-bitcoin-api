@@ -9,7 +9,7 @@ import dev.rayan.dto.response.page.PageResponse;
 import dev.rayan.model.Address;
 import dev.rayan.model.Credential;
 import dev.rayan.services.ClientService;
-import dev.rayan.services.CredentialService;
+import dev.rayan.services.AuthenticationService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.PermitAll;
@@ -43,7 +43,7 @@ public final class ClientResource {
     KeycloakService keycloakService;
 
     @Inject
-    CredentialService credentialService;
+    AuthenticationService authenticationService;
 
     @Inject
     Logger log;
@@ -67,11 +67,11 @@ public final class ClientResource {
     @Transactional
     public Response createClient(@Valid final CreateClientRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Getting credential");
-        final Credential credential = credentialService.findCredential(token.getClaim("email"))
+        final Credential credential = authenticationService.findCredentialByEmail(token.getClaim("email"))
                 .get();
 
         log.info("Creating client");
@@ -95,7 +95,7 @@ public final class ClientResource {
     public Response updatePartial(@PathParam("id") final UUID id,
                                   @Valid final UpdateClientRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Updating client partial");
@@ -113,7 +113,7 @@ public final class ClientResource {
     public Response updateAddress(@PathParam("id") final UUID id,
                                   @Valid final Address address) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Updating client address");

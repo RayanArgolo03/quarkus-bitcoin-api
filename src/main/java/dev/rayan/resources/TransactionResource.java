@@ -64,7 +64,7 @@ public final class TransactionResource {
     @Path("/buy-bitcoins")
     public Response buyBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -93,7 +93,7 @@ public final class TransactionResource {
     @Path("/sell-bitcoins")
     public Response sellBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -124,7 +124,7 @@ public final class TransactionResource {
     @Path("/by-types")
     public Response findTransactionsByTypes(@Valid @BeanParam final TransactionByTypeRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -142,7 +142,7 @@ public final class TransactionResource {
     @Path("/by-filters")
     public Response findTransactionsByFilters(@BeanParam @Valid final TransactionFiltersRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -157,7 +157,7 @@ public final class TransactionResource {
     @Path("/{transactionId}")
     public Response findTransactionById(@PathParam("transactionId") final UUID transactionId) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Quoting bitcoin");
@@ -172,7 +172,7 @@ public final class TransactionResource {
     @Path("/by-quantity")
     public Response findTransactionsByQuantity(@Valid @BeanParam final TransactionByQuantityRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -188,7 +188,7 @@ public final class TransactionResource {
     public Response findTransactionCountByPeriod(@QueryParam("period")
                                                  @EnumValidator(enumClass = TransactionReportPeriod.class) final String stringPeriod) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -207,7 +207,7 @@ public final class TransactionResource {
     @Path("/report")
     public Response createTransactionsReport(@Valid @BeanParam final TransactionReportRequest request) throws IOException, IllegalAccessException {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");

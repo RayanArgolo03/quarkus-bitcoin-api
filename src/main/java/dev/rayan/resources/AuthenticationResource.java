@@ -1,19 +1,21 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.client.CreateCredentialRequest;
-import dev.rayan.dto.request.client.ForgotCredentialRequest;
+import dev.rayan.dto.request.authentication.*;
 import dev.rayan.dto.request.token.RefreshTokenRequest;
 import dev.rayan.dto.response.client.CredentialResponse;
-import dev.rayan.dto.response.token.CredentialTokensResponse;
+import dev.rayan.dto.response.client.ForgotPasswordResponse;
+import dev.rayan.dto.response.token.TokensResponse;
 import dev.rayan.model.Credential;
-import dev.rayan.services.CredentialService;
+import dev.rayan.services.AuthenticationService;
 import dev.rayan.services.KeycloakService;
+import dev.rayan.services.MailerService;
 import io.quarkus.security.Authenticated;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -34,10 +36,13 @@ public final class AuthenticationResource {
     public static final String RESOURCE_PATH = "/api/v1/auth";
 
     @Inject
-    CredentialService credentialService;
+    AuthenticationService authenticationService;
 
     @Inject
     KeycloakService keycloakService;
+
+    @Inject
+    MailerService mailerService;
 
     @Inject
     Logger log;
@@ -52,7 +57,7 @@ public final class AuthenticationResource {
     public Response createCredential(@Valid final CreateCredentialRequest request) {
 
         log.info("Persisting client credential in database and keycloak");
-        final CredentialResponse response = credentialService.persist(request);
+        final CredentialResponse response = authenticationService.persistCredential(request);
         keycloakService.persist(response);
 
         log.info("Creating uri info");
@@ -74,8 +79,8 @@ public final class AuthenticationResource {
     public Response login(@Valid final CreateCredentialRequest request) {
 
         log.info("Login and generate tokens");
-        final CredentialTokensResponse response = keycloakService.login(
-                credentialService.login(request)
+        final TokensResponse response = keycloakService.login(
+                authenticationService.login(request)
         );
 
         //Front-end redirect to pageNumber-page
@@ -116,12 +121,12 @@ public final class AuthenticationResource {
         log.info("Finding the user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Finding credential to use the password");
-        final Credential credential = credentialService.findCredential(email)
+        log.info("Finding credential to use the email");
+        final Credential credential = authenticationService.findCredentialByEmail(email)
                 .get();
 
         log.info("Generate new tokens");
-        final CredentialTokensResponse response = keycloakService.generateNewTokens(keycloakUserId, credential);
+        final TokensResponse response = keycloakService.generateNewTokens(keycloakUserId, credential);
 
         return Response.ok()
                 .entity(response)
@@ -134,7 +139,7 @@ public final class AuthenticationResource {
     @Path("{keycloakUserId}/resent-verify-email")
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
-        log.info("Verifyning if credential exists in keycloak");
+        log.info("Finding and verifyning if email exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
         log.info("Resending verify email");
@@ -146,21 +151,49 @@ public final class AuthenticationResource {
                 .build();
     }
 
-    //Todo teste realmente
     @PATCH
     @PermitAll
+    @Transactional
     @Path("/forgot-password")
-    public Response forgotPassword(@Valid final ForgotCredentialRequest request) {
+    public Response sendForgotPasswordEmail(@Valid final EmailRequest request) {
 
-        log.info("Verifyning if credential exists in keycloak");
-        credentialService.findCredential(request.email());
+        log.info("Persiting the forgot password register in mongodb");
+        final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request.email());
 
-        log.info("Sending the keycloak email to reset the password");
-        keycloakService.sendForgotPasswordEmail(request.email());
+        log.info("Sending the email with code and timestamp to expire");
+        mailerService.sendForgotPasswordEmail(
+                RESOURCE_PATH, request.email(), response.code()
+        );
 
         return Response.accepted()
-                .entity(format("Update password email forwarded to %s", request.email()))
+                .entity(response)
                 .build();
+    }
+
+    @PATCH
+    @PermitAll
+    @Transactional
+    @Path("/update-forgot-password")
+    public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
+                                         @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
+
+        log.info("Validating forgot password request and finding credential");
+        final Credential credential = authenticationService.validateForgotPassword(forgotRequest, newPasswordRequest.password());
+
+        log.info("Updating password in the database and keycloak");
+        authenticationService.updatePassword(credential, newPasswordRequest.password());
+        keycloakService.updatePassword(credential.getEmail(), credential.getPassword());
+
+        return Response.ok("Password updated!")
+                .build();
+    }
+
+    public Response updatePassword(@Valid final UpdatePasswordRequest request) {
+        return null;
+    }
+
+    public Response updateEmail(@Valid final UpdateEmailRequest request) {
+        return null;
     }
 
 }

@@ -1,0 +1,17 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "1",
+        "author": "admin",
+        "changes": [
+          {
+            "createCollection": {
+              "collectionName": "forgot_password_requests"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -10,15 +10,8 @@ import java.util.UUID;
 @ApplicationScoped
 public final class CredentialRepository implements PanacheRepositoryBase<Credential, UUID> {
 
-    public Optional<Credential> findCredential(final String email) {
+    public Optional<Credential> findCredentialByEmail(final String email) {
         return find("email", email)
-                .singleResultOptional();
-    }
-
-    public Optional<String> findCredentialPassword(final String email) {
-        final String query = "SELECT password FROM Credential WHERE LOWER(email) = ?1";
-        return find(query, email)
-                .project(String.class)
                 .singleResultOptional();
     }
 }

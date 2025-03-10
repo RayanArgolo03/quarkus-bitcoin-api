@@ -1,12 +1,12 @@
 package dev.rayan.dto.response.bitcoin;
 
 
-import com.fasterxml.jackson.annotation.*;
-import dev.rayan.utils.FormatterUtils;
-import lombok.AccessLevel;
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 
 public record BitcoinResponse(
@@ -28,6 +28,7 @@ public record BitcoinResponse(
     //Deserialise as price in money format
     @JsonProperty("price")
     public String priceFormatted() {
-        return FormatterUtils.formatMoney(price);
+        return NumberFormat.getCurrencyInstance()
+                .format(price);
     }
 }
