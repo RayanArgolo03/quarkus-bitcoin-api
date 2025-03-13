@@ -11,17 +11,15 @@ import dev.rayan.model.Credential;
 import dev.rayan.model.ForgotPassword;
 import dev.rayan.repositories.CredentialRepository;
 import dev.rayan.repositories.ForgotPasswordRepository;
+import dev.rayan.scheduler.ExpiredForgotPasswordScheduler;
 import dev.rayan.utils.CryptographyUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
-import jakarta.ws.rs.WebApplicationException;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static jakarta.ws.rs.core.Response.Status.CONFLICT;
 import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
 
@@ -32,13 +30,16 @@ public final class AuthenticationService {
     CredentialRepository credentialRepository;
 
     @Inject
-    ForgotPasswordRepository forgotPasswordRepository;
-
-    @Inject
     CredentialMapper credentialMapper;
 
     @Inject
+    ForgotPasswordRepository forgotPasswordRepository;
+
+    @Inject
     ForgotPasswordMapper forgotPasswordMapper;
+
+    @Inject
+    ExpiredForgotPasswordScheduler expiredForgotPasswordScheduler;
 
     public CredentialResponse persistCredential(final CreateCredentialRequest request) {
 
@@ -69,25 +70,12 @@ public final class AuthenticationService {
         final Credential credential = findCredentialByEmail(email)
                 .orElseThrow(() -> new NotAuthorizedException("Use a valid email!", UNAUTHORIZED));
 
-        //If already has forgot password request of that user
-        final ForgotPassword foundForgotPassword = forgotPasswordRepository.find("credentialId", credential.getId())
-                .singleResultOptional()
-                .orElse(null);
-
-        if (foundForgotPassword != null) {
-            //Todo remove quando fizer tarefa schedulada
-            if (!isExpiredForgotPasswordRequest(foundForgotPassword.getMadeAt())) {
-                throw new WebApplicationException("Has already a forgot password request exists, verify your email!", CONFLICT);
-            }
-
-            forgotPasswordRepository.deleteForgotPassword(foundForgotPassword.getCode());
-        }
-
         final ForgotPassword forgotPassword = new ForgotPassword(credential.getId());
         forgotPasswordRepository.persist(forgotPassword);
 
         return forgotPasswordMapper.forgotPasswordToResponse(forgotPassword);
     }
+
 
     public Credential validateForgotPassword(final ForgotPasswordRequest forgotRequest, final String newPassword) {
 
@@ -95,7 +83,7 @@ public final class AuthenticationService {
                 .orElseThrow(() -> new NotAuthorizedException("Use a valid email!", UNAUTHORIZED));
 
         final ForgotPassword forgotPassword = forgotPasswordRepository.findByIdOptional(forgotRequest.getCode())
-                .orElseThrow(() -> new ForbiddenException("Invalid code!"));
+                .orElseThrow(() -> new ForbiddenException("Invalid or expired code, use a valid code or request a new forgot password email on login page! "));
 
         if (CryptographyUtils.matches(newPassword, credential.getPassword())) {
             throw new BusinessException("New password can´t be equals to the current password!");
@@ -103,23 +91,8 @@ public final class AuthenticationService {
 
         forgotPasswordRepository.deleteForgotPassword(forgotPassword.getCode());
 
-        //Front-end redirect to "send-forgot-password" endpoint
-        if (isExpiredForgotPasswordRequest(forgotPassword.getMadeAt())) {
-            throw new ForbiddenException("Forgot password request is expired, request a new forgot password on the login page!");
-        }
-
         return credential;
     }
-
-    private boolean isExpiredForgotPasswordRequest(final LocalDateTime madeAt) {
-
-        final LocalDateTime expiredAt = madeAt.plus(
-                20, MailerService.TIME_UNIT
-        );
-
-        return expiredAt.isBefore(LocalDateTime.now());
-    }
-
 
     public void updatePassword(final Credential credential, final String password) {
         credential.setPassword(

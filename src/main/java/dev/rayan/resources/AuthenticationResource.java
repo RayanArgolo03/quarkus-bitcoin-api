@@ -177,6 +177,8 @@ public final class AuthenticationResource {
     public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
                                          @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
 
+
+
         log.info("Validating forgot password request and finding credential");
         final Credential credential = authenticationService.validateForgotPassword(forgotRequest, newPasswordRequest.password());
 
