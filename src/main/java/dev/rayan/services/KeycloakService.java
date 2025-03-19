@@ -9,8 +9,10 @@ import dev.rayan.exceptions.UserAlreadyLoggedOutException;
 import dev.rayan.model.Credential;
 import dev.rayan.strategy.TokenStrategy;
 import io.quarkus.arc.All;
+import io.quarkus.runtime.Startup;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotAuthorizedException;
@@ -43,10 +45,10 @@ import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
-//@Startup
+@Startup
 public final class KeycloakService {
 
-    @ConfigProperty(name = "keycloak.admin-client.server-url")
+    @ConfigProperty(name = "quarkus.keycloak.admin-client.server-url")
     String serverUrl;
 
     @ConfigProperty(name = "keycloak.realm")
@@ -77,24 +79,25 @@ public final class KeycloakService {
 
     private static final String FIRST_LOGIN_ATTRIBUTE = "first_login";
 
-//    @PostConstruct
-//    public void persistMigrationsMock() {
-//        final CredentialResponse response = new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
-//        persist(response);
-//    }
+    @PostConstruct
+    public void persistMigrationsMock() {
+        final CredentialResponse response = new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$SfSv2jWTsyMSS0zk0/yVL.UtLF7g1HKiaQG0kBYHh0FTLIpyPsDeq", LocalDateTime.now());
+        persist(response);
+    }
 
-//    @PreDestroy
-//    public void deleteMigrationsMock() {
-//
-//        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
-//        final String keycloakUserId = getUsersResource(keycloak)
-//                .search(ADMIN_EMAIL)
-//                .get(0)
-//                .getId();
-//
-//        delete(keycloakUserId);
-//        closeKeycloak(keycloak);
-//    }
+    /*
+    @PreDestroy
+    public void deleteMigrationsMock() {
+
+        final Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);
+        final String keycloakUserId = getUsersResource(keycloak)
+                .search(ADMIN_EMAIL)
+                .get(0)
+                .getId();
+
+        delete(keycloakUserId);
+        closeKeycloak(keycloak);
+    }*/
 
     public void persist(final CredentialResponse response) {
 
@@ -110,27 +113,26 @@ public final class KeycloakService {
 
     private UserResource createUser(final UsersResource usersResource, final CredentialResponse response) {
 
-        final UserRepresentation user = new UserRepresentation();
+        final UserRepresentation userRepresentation = new UserRepresentation();
 
-        user.setUsername(response.getEmail());
-        user.setEmail(response.getEmail());
+        userRepresentation.setUsername(response.getEmail());
+        userRepresentation.setEmail(response.getEmail());
 
         final List<CredentialRepresentation> passwordCredential = createUserPassword(response.getPassword());
-        user.setCredentials(passwordCredential);
+        userRepresentation.setCredentials(passwordCredential);
 
-        user.setEnabled(true);
+        userRepresentation.setEnabled(true);
 
-        user.setCreatedTimestamp(response.getCreatedAt()
+        userRepresentation.setCreatedTimestamp(response.getCreatedAt()
                 .atZone(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli()
         );
 
         //Set custom first_login attibute to verify in login
-        final Map<String, List<String>> firstLoginAttribute = Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("true"));
-        user.setAttributes(firstLoginAttribute);
+        setFirstLoginAttribute(userRepresentation, "true");
 
-        usersResource.create(user)
+        usersResource.create(userRepresentation)
                 .close();
 
         //Get user id in user created above
@@ -201,7 +203,7 @@ public final class KeycloakService {
                 throw new EmailNotVerifiedException(format("You need to confirm the email %s, verify your email inbox!", response.getEmail()), FORBIDDEN);
             }
 
-            userRepresentation.setAttributes(Map.of(FIRST_LOGIN_ATTRIBUTE, List.of("false")));
+            setFirstLoginAttribute(userRepresentation, "true");
             update(user, userRepresentation);
 
         } else {
@@ -266,7 +268,7 @@ public final class KeycloakService {
         }
     }
 
-    public JsonWebToken validateToken(final String refreshToken) throws ParseException {
+    public JsonWebToken mapToken(final String refreshToken) throws ParseException {
         final JsonWebToken token = jwtParser.parseOnly(refreshToken);
         tokenStrategies.forEach(strategy -> strategy.validateToken(token));
         return token;
@@ -291,6 +293,10 @@ public final class KeycloakService {
                 accessToken.getRefreshToken(),
                 expiresIn
         );
+    }
+
+    private void setFirstLoginAttribute(final UserRepresentation userRepresentation, final String booleanValue){
+        userRepresentation.setAttributes(Map.of(FIRST_LOGIN_ATTRIBUTE, List.of(booleanValue)));
     }
 
     private UsersResource getUsersResource(final Keycloak keycloak) {
@@ -366,7 +372,6 @@ public final class KeycloakService {
                 .username(username)
                 .password(password)
                 .build();
-
     }
 
 

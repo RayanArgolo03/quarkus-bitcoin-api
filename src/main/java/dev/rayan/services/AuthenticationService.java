@@ -83,7 +83,7 @@ public final class AuthenticationService {
                 .orElseThrow(() -> new NotAuthorizedException("Use a valid email!", UNAUTHORIZED));
 
         final ForgotPassword forgotPassword = forgotPasswordRepository.findByIdOptional(forgotRequest.getCode())
-                .orElseThrow(() -> new ForbiddenException("Invalid or expired code, use a valid code or request a new forgot password email on login page! "));
+                .orElseThrow(() -> new ForbiddenException("Invalid or expired code, use a valid code or request a new forgot password email on login page!"));
 
         if (CryptographyUtils.matches(newPassword, credential.getPassword())) {
             throw new BusinessException("New password can´t be equals to the current password!");
@@ -95,9 +95,7 @@ public final class AuthenticationService {
     }
 
     public void updatePassword(final Credential credential, final String password) {
-        credential.setPassword(
-                CryptographyUtils.encrypt(password)
-        );
+        credential.setPassword(CryptographyUtils.encrypt(password));
         credentialRepository.persist(credential);
     }
 

@@ -7,6 +7,7 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.text.StringSubstitutor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import java.util.Map;
 
@@ -34,6 +35,9 @@ public final class MailerService {
     @Inject
     Mailer mailer;
 
+    @Inject
+    Logger log;
+
     public void sendForgotPasswordEmail(final String resourcePath, final String email, final String code) {
 
         final Map<String, Object> params = Map.of(
@@ -45,6 +49,8 @@ public final class MailerService {
         );
 
         final String content = StringSubstitutor.replace(CONTENT_TEMPLATE, params);
-        mailer.send(Mail.withHtml(email, SUBJECT, content));
+        final Mail mail = Mail.withHtml(email, SUBJECT, content);
+
+        mailer.send(mail);
     }
 }

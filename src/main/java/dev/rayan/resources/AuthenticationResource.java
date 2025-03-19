@@ -50,6 +50,7 @@ public final class AuthenticationResource {
     @Inject
     UriInfo uriInfo;
 
+
     @POST
     @Transactional
     @PermitAll
@@ -114,8 +115,8 @@ public final class AuthenticationResource {
     @Path("/generate-new-tokens")
     public Response generateNewTokens(final RefreshTokenRequest request) throws ParseException {
 
-        log.info("Validating refresh token and get keycloak user id");
-        final String keycloakUserId = keycloakService.validateToken(request.refreshToken())
+        log.info("Mapping refresh token and get keycloak user id");
+        final String keycloakUserId = keycloakService.mapToken(request.refreshToken())
                 .getSubject();
 
         log.info("Finding the user email in keycloak");
@@ -176,7 +177,6 @@ public final class AuthenticationResource {
     @Path("/update-forgot-password")
     public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
                                          @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
-
 
 
         log.info("Validating forgot password request and finding credential");

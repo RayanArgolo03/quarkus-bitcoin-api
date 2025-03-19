@@ -1,0 +1,11 @@
+
+global:
+  scrape_interval: 15s  # Intervalo padrão de coleta de métricas (padrão: 1m)
+  evaluation_interval: 15s  # Intervalo de avaliação de regras (padrão: 1m)
+  scrape_timeout: 10s  # Tempo limite para uma coleta (padrão: 10s)
+
+# Configuração dos alvos (targets) a serem monitorados
+scrape_configs:
+  - job_name: "prometheus"  # Nome da tarefa de coleta
+    static_configs:
+      - targets: ["localhost:9090"]  # Coleta métricas do próprio Prometheus

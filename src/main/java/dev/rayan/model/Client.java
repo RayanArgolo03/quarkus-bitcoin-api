@@ -26,7 +26,7 @@ import java.util.UUID;
 @Table(name = "clients")
 @DynamicInsert
 
-@NamedQuery( name = "Client.findCpf", query = "SELECT cpf FROM Client WHERE cpf = ?1")
+@NamedQuery(name = "Client.findCpf", query = "SELECT cpf FROM Client WHERE cpf = ?1")
 public class Client {
 
     @Id

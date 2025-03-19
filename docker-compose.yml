@@ -1,0 +1,13 @@
+services:
+
+  prometheus:
+    container_name: "prometheus"
+    network_mode: bridge
+    image: prom/prometheus
+    command: [ "--config.file=/etc/prometheus/prometheus.yml" ]
+    volumes:
+      - "./prometheus/config:/etc/prometheus"
+      - "./prometheus:/prometheus"
+    ports:
+      - "9090:9090"
+
