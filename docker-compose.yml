@@ -1,13 +1,40 @@
-services:
+volumes:
+  prometheus_data:
+  grafana_data:
 
+networks:
+  monitoring:
+    driver: "bridge"
+
+services:
   prometheus:
     container_name: "prometheus"
-    network_mode: bridge
+    networks:
+      - monitoring
     image: prom/prometheus
     command: [ "--config.file=/etc/prometheus/prometheus.yml" ]
     volumes:
-      - "./prometheus/config:/etc/prometheus"
-      - "./prometheus:/prometheus"
+      - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "prometheus_data:/var/lib/prometheus"
     ports:
       - "9090:9090"
 
+  node_exporter:
+    container_name: "node_exporter"
+    networks:
+      - monitoring
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+
+  grafana:
+    container_name: "grafana"
+    networks:
+      - monitoring
+    image: grafana/grafana
+    volumes:
+      - "grafana_data:/var/lib/grafana"
+    ports:
+      - "3000:3000"
+    depends_on:
+        - "prometheus"

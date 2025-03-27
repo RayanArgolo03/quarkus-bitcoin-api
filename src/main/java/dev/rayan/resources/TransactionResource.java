@@ -1,7 +1,7 @@
 package dev.rayan.resources;
 
 import dev.rayan.dto.request.transaction.*;
-import dev.rayan.dto.response.bitcoin.BitcoinResponse;
+import dev.rayan.dto.response.transaction.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionReportFormat;
@@ -10,6 +10,7 @@ import dev.rayan.enums.TransactionType;
 import dev.rayan.model.Client;
 import dev.rayan.report.ReportAbstractFile;
 import dev.rayan.report.ReportFactory;
+import dev.rayan.services.BitcoinService;
 import dev.rayan.services.ClientService;
 import dev.rayan.services.KeycloakService;
 import dev.rayan.services.TransactionService;
@@ -44,6 +45,9 @@ public final class TransactionResource {
     TransactionService transactionService;
 
     @Inject
+    BitcoinService bitcoinService;
+
+    @Inject
     KeycloakService keycloakService;
 
     @Inject
@@ -64,14 +68,14 @@ public final class TransactionResource {
     @Path("/buy-bitcoins")
     public Response buyBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
 
         log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoin = bitcoinService.quote();
 
         log.info("Persisting purchase transaction");
         final TransactionResponse response = transactionService.persist(request, client, TransactionType.PURCHASE, bitcoin);
@@ -93,7 +97,7 @@ public final class TransactionResource {
     @Path("/sell-bitcoins")
     public Response sellBitcoins(@Valid final TransactionRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -103,7 +107,7 @@ public final class TransactionResource {
         transactionService.validateTransaction(client, request.quantity());
 
         log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoin = bitcoinService.quote();
 
         log.info("Persisting sale transaction");
         final TransactionResponse response = transactionService.persist(request, client, TransactionType.SALE, bitcoin);
@@ -124,7 +128,7 @@ public final class TransactionResource {
     @Path("/by-types")
     public Response findTransactionsByTypes(@Valid @BeanParam final TransactionByTypeRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -142,7 +146,12 @@ public final class TransactionResource {
     @Path("/by-filters")
     public Response findTransactionsByFilters(@BeanParam @Valid final TransactionFiltersRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -157,11 +166,11 @@ public final class TransactionResource {
     @Path("/{transactionId}")
     public Response findTransactionById(@PathParam("transactionId") final UUID transactionId) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoin = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoin = bitcoinService.quote();
 
         return Response.ok(transactionService.findTransactionById(transactionId, bitcoin))
                 .build();
@@ -172,7 +181,7 @@ public final class TransactionResource {
     @Path("/by-quantity")
     public Response findTransactionsByQuantity(@Valid @BeanParam final TransactionByQuantityRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -188,7 +197,7 @@ public final class TransactionResource {
     public Response findTransactionCountByPeriod(@QueryParam("period")
                                                  @EnumValidator(enumClass = TransactionReportPeriod.class) final String stringPeriod) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -207,7 +216,7 @@ public final class TransactionResource {
     @Path("/report")
     public Response createTransactionsReport(@Valid @BeanParam final TransactionReportRequest request) throws IOException, IllegalAccessException {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
 
         log.info("Finding client in the database");
@@ -223,11 +232,11 @@ public final class TransactionResource {
         final TransactionReportResponse response = transactionService.findTransactionReport(client, period);
 
         log.info("Quoting bitcoin");
-        final BitcoinResponse bitcoinResponse = transactionService.quoteBitcoin();
+        final BitcoinResponse bitcoinResponse = bitcoinService.quote();
 
         log.info("Setting bitcoin current value in response");
         response.setBitcoinCurrentValue(
-                transactionService.quoteBitcoin().priceFormatted()
+                bitcoinService.quote().getPriceFormatted()
         );
 
         log.infof("Generating report in the format %s", format);

@@ -1,8 +1,8 @@
 package dev.rayan.dto.request.token;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record RefreshTokenRequest(
-        @NotNull(message = "Required refresh token!")
+        @NotBlank(message = "Invalid refresh token!")
         String refreshToken) {
 }

@@ -4,25 +4,21 @@ import dev.rayan.dto.request.page.DatePeriodRequest;
 import dev.rayan.dto.request.page.PaginationRequest;
 import io.quarkus.panache.common.Sort;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-import java.time.LocalDate;
-
 @Getter
 public final class ClientsByCreatedAtRequest {
 
-    @BeanParam
     @Valid
+    @BeanParam
     DatePeriodRequest datePeriod;
 
-    @BeanParam
     @Valid
+    @BeanParam
     PaginationRequest pagination;
 
     @QueryParam("sortFirstName")

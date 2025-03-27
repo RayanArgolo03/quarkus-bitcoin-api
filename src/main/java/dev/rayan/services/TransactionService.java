@@ -1,18 +1,16 @@
 package dev.rayan.services;
 
-import dev.rayan.adapter.BitcoinQuoteAdapter;
 import dev.rayan.dto.request.transaction.TransactionByQuantityRequest;
 import dev.rayan.dto.request.transaction.TransactionByTypeRequest;
 import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
 import dev.rayan.dto.request.transaction.TransactionRequest;
-import dev.rayan.dto.response.bitcoin.BitcoinResponse;
 import dev.rayan.dto.response.page.PageResponse;
+import dev.rayan.dto.response.transaction.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionCountResponse;
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionReportPeriod;
 import dev.rayan.enums.TransactionType;
-import dev.rayan.exceptions.ApiException;
 import dev.rayan.exceptions.BusinessException;
 import dev.rayan.mappers.TransactionMapper;
 import dev.rayan.model.Client;
@@ -42,9 +40,6 @@ public final class TransactionService {
     @Inject
     TransactionMapper mapper;
 
-    @Inject
-    BitcoinQuoteAdapter adapter;
-
     public TransactionResponse persist(final TransactionRequest request,
                                        final Client client,
                                        final TransactionType type,
@@ -54,11 +49,6 @@ public final class TransactionService {
         repository.persist(transaction);
 
         return mapper.transactionToResponse(transaction, bitcoin);
-    }
-
-    public BitcoinResponse quoteBitcoin() {
-        return adapter.quote()
-                .orElseThrow(() -> new ApiException("The server was unable to complete your request, contact @rayan_argolo"));
     }
 
     public void validateTransaction(final Client client, final BigDecimal quantity) {

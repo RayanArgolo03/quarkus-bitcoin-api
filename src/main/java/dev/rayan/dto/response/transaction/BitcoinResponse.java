@@ -1,4 +1,4 @@
-package dev.rayan.dto.response.bitcoin;
+package dev.rayan.dto.response.transaction;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -11,23 +11,22 @@ import java.time.LocalDateTime;
 
 public record BitcoinResponse(
 
-        //Serialize as "last" and ignore bigdecimal deserialising
-        @JsonProperty(value = "last")
-        @JsonIgnore
+        //Deserialise price as "last" in BrasilBitcoin API
+        @JsonProperty(value = "last", access = JsonProperty.Access.WRITE_ONLY)
         BigDecimal price,
 
         @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
         LocalDateTime quotedAt
+
 ) {
 
-    //Initing quotedAt after deserialize
-    public BitcoinResponse {
-        quotedAt = LocalDateTime.now();
-    }
+    //Instancing quotedAt after serialising
+    public BitcoinResponse { quotedAt = LocalDateTime.now(); }
 
-    //Deserialise as price in money format
+    //Serialise "price" as money format - XX.XX R$
     @JsonProperty("price")
-    public String priceFormatted() {
+    @JsonIgnore
+    public String getPriceFormatted() {
         return NumberFormat.getCurrencyInstance()
                 .format(price);
     }

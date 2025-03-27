@@ -1,10 +1,9 @@
 package dev.rayan.mappers;
 
-import dev.rayan.dto.request.authentication.CreateCredentialRequest;
+import dev.rayan.dto.request.authentication.CredentialRequest;
 import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.model.Credential;
 import dev.rayan.utils.CryptographyUtils;
-import io.quarkus.elytron.security.common.BcryptUtil;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -17,5 +16,5 @@ public interface CredentialMapper {
     @Mapping(target = "password", expression = "java(CryptographyUtils.encrypt(request.password()))")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Credential requestToCredential(CreateCredentialRequest request);
+    Credential requestToCredential(CredentialRequest request);
 }

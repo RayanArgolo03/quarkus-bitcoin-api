@@ -22,6 +22,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.metrics.MetricUnits;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Metered;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -50,16 +54,30 @@ public final class AuthenticationResource {
     @Inject
     UriInfo uriInfo;
 
-
     @POST
     @Transactional
     @PermitAll
+    @Counted(
+            name = "auth.signup.requests.total",
+            absolute = true,
+            description = "Total request of endpoint create credential"
+    )
+    @Timed(
+            name = "auth.signup.requests.execution.time", absolute = true,
+            description = "Execution time of endpoint create credential",
+            unit = MetricUnits.SECONDS
+    )
+    @Metered(
+            name = "auth.signup.requests.frequency", absolute = true,
+            description = "Frequency of endpoint create credential",
+            unit = MetricUnits.MINUTES
+    )
     @Path("/sign-up")
-    public Response createCredential(@Valid final CreateCredentialRequest request) {
+    public Response createCredential(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
 
         log.info("Persisting client credential in database and keycloak");
         final CredentialResponse response = authenticationService.persistCredential(request);
-        keycloakService.persist(response);
+        keycloakService.persist(response, false);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
@@ -77,7 +95,7 @@ public final class AuthenticationResource {
     @POST
     @PermitAll
     @Path("/login")
-    public Response login(@Valid final CreateCredentialRequest request) {
+    public Response login(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
 
         log.info("Login and generate tokens");
         final TokensResponse response = keycloakService.login(
@@ -100,6 +118,9 @@ public final class AuthenticationResource {
         log.info("Verifyning if user exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
         log.info("Logout user and revoke token");
         keycloakService.logout(keycloakUserId);
 
@@ -113,16 +134,17 @@ public final class AuthenticationResource {
     @POST
     @PermitAll
     @Path("/generate-new-tokens")
-    public Response generateNewTokens(final RefreshTokenRequest request) throws ParseException {
+    public Response generateNewTokens(@NotNull(message = "Required refresh token!") final RefreshTokenRequest request) throws ParseException {
 
-        log.info("Mapping refresh token and get keycloak user id");
-        final String keycloakUserId = keycloakService.mapToken(request.refreshToken())
-                .getSubject();
+        log.info("Getting keycloak user id");
+        final String keycloakUserId = keycloakService.getKeycloakUserIdByRefreshToken(
+                request.refreshToken()
+        );
 
         log.info("Finding the user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Finding credential to use the email");
+        log.info("Getting credential to use the email");
         final Credential credential = authenticationService.findCredentialByEmail(email)
                 .get();
 
@@ -134,13 +156,12 @@ public final class AuthenticationResource {
                 .build();
     }
 
-
     @PUT
     @PermitAll
     @Path("{keycloakUserId}/resent-verify-email")
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
+        log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
         log.info("Resending verify email");
@@ -156,7 +177,7 @@ public final class AuthenticationResource {
     @PermitAll
     @Transactional
     @Path("/forgot-password")
-    public Response sendForgotPasswordEmail(@Valid final EmailRequest request) {
+    public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
 
         log.info("Persiting the forgot password register in mongodb");
         final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request.email());
@@ -178,24 +199,38 @@ public final class AuthenticationResource {
     public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
                                          @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
 
-
-        log.info("Validating forgot password request and finding credential");
-        final Credential credential = authenticationService.validateForgotPassword(forgotRequest, newPasswordRequest.password());
-
-        log.info("Updating password in the database and keycloak");
-        authenticationService.updatePassword(credential, newPasswordRequest.password());
-        keycloakService.updatePassword(credential.getEmail(), credential.getPassword());
+        log.info("Validating and updating password in the database and keycloak");
+        final String encryptedPassword = authenticationService.updateForgotPassword(
+                forgotRequest,
+                newPasswordRequest.newPassword()
+        );
+        keycloakService.updatePassword(forgotRequest.getEmail(), encryptedPassword);
 
         return Response.ok("Password updated!")
                 .build();
     }
 
-    public Response updatePassword(@Valid final UpdatePasswordRequest request) {
-        return null;
-    }
+    @PATCH
+    @Authenticated
+    @Transactional
+    @Path("/update-current-password")
+    public Response updateCurrentPassword(@Context final JsonWebToken token,
+                                          @Valid @NotNull(message = "Required values!") final UpdatePasswordRequest request) {
 
-    public Response updateEmail(@Valid final UpdateEmailRequest request) {
-        return null;
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Finding user email in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
+        log.info("Validating and updating password in the database and keycloak");
+        final String encryptedPassword = authenticationService.updateCurrentPassword(email, request);
+        keycloakService.updatePassword(email, encryptedPassword);
+
+        return Response.ok("Password updated!")
+                .build();
     }
 
 }

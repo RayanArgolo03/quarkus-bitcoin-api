@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target( { ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OverEighteenYears {
-    String message() default "Invalid birth quotedAt!";
+    String message() default "Invalid birth date!";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

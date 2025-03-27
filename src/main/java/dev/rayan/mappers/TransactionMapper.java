@@ -1,7 +1,7 @@
 package dev.rayan.mappers;
 
 import dev.rayan.dto.request.transaction.TransactionRequest;
-import dev.rayan.dto.response.bitcoin.BitcoinResponse;
+import dev.rayan.dto.response.transaction.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.model.Client;

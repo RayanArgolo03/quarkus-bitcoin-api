@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.QueryParam;
 import lombok.Getter;
-import org.hibernate.validator.constraints.UUID;
 
 @Getter
 public final class ForgotPasswordRequest {

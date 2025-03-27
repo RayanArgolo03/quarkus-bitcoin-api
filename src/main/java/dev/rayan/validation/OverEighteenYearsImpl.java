@@ -10,7 +10,7 @@ public class OverEighteenYearsImpl implements ConstraintValidator<OverEighteenYe
 
     @Override
     public boolean isValid(final LocalDate birthDate, final ConstraintValidatorContext constraintValidatorContext) {
-        return ChronoUnit.YEARS.between(birthDate, LocalDate.now()) > 16;
+        return ChronoUnit.YEARS.between(birthDate, LocalDate.now()) > 17;
     }
 }
 

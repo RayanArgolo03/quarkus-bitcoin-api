@@ -2,6 +2,7 @@ package dev.rayan.dto.response.client;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import java.util.UUID;
 @Getter
 public final class CredentialResponse {
 
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     UUID id;
     String email;
     @JsonIgnore
@@ -26,5 +29,6 @@ public final class CredentialResponse {
 
     @NonFinal
     @Setter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     String keycloakUserId;
 }

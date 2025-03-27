@@ -37,7 +37,7 @@ public final class ExpiredForgotPasswordScheduler {
               }
             """;
 
-    @Scheduled(every = "20m")
+    @Scheduled(every = "30m")
     public void deleteExpiredForgotPasswordRequestTime() {
 
         log.info("Scheduler deleting expired forgot password requests");

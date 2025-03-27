@@ -3,9 +3,7 @@ package dev.rayan.repositories;
 import dev.rayan.dto.request.client.AddressFilterRequest;
 import dev.rayan.dto.request.client.ClientsByAddressFilterRequest;
 import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
-import dev.rayan.dto.request.client.UpdateClientRequest;
 import dev.rayan.dto.response.client.FoundClientResponse;
-import dev.rayan.model.Address;
 import dev.rayan.model.Client;
 import dev.rayan.utils.StringToLowerUtils;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
@@ -38,7 +36,7 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
         final String hasUpdatedParam = request.hasUpdated() ? "IS NOT NULL" : "IS NULL";
 
         final StringBuilder baseQuery = new StringBuilder(FIND_CLIENT_QUERY)
-                .append("WHERE DATE(c.createdAt) BETWEEN :startDate AND :endDate AND c.updatedAt")
+                .append("WHERE DATE(c.createdAt) BETWEEN :startDate AND :endDate AND c.updatedAt ")
                 .append(hasUpdatedParam);
 
         final Map<String, Object> parameters = Map.of(
@@ -100,14 +98,5 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
                 .collect(Collectors.joining(orClause));
     }
 
-    public void updatePartial(final Client client, final UpdateClientRequest request) {
-        client.setFirstName(request.firstName());
-        client.setSurname(request.surname());
-        persist(client);
-    }
 
-    public void updateAddress(final Client client, final Address address) {
-        client.setAddress(address);
-        persist(client);
-    }
 }

@@ -1,18 +1,17 @@
 package dev.rayan.resources;
 
-import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
 import dev.rayan.dto.request.client.ClientsByAddressFilterRequest;
+import dev.rayan.dto.request.client.ClientsByCreatedAtRequest;
 import dev.rayan.dto.request.client.CreateClientRequest;
 import dev.rayan.dto.request.client.UpdateClientRequest;
-import dev.rayan.dto.response.client.CreatedClientResponse;
-import dev.rayan.dto.response.page.PageResponse;
+import dev.rayan.dto.response.client.ClientResponse;
 import dev.rayan.model.Address;
 import dev.rayan.model.Credential;
-import dev.rayan.services.ClientService;
+import dev.rayan.services.AddressService;
 import dev.rayan.services.AuthenticationService;
+import dev.rayan.services.ClientService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
-import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -23,7 +22,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.jwt.Claim;
+import org.eclipse.microprofile.jwt.ClaimValue;
+import org.eclipse.microprofile.jwt.Claims;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -43,6 +44,9 @@ public final class ClientResource {
     KeycloakService keycloakService;
 
     @Inject
+    AddressService addressService;
+
+    @Inject
     AuthenticationService authenticationService;
 
     @Inject
@@ -51,36 +55,34 @@ public final class ClientResource {
     @Context
     UriInfo uriInfo;
 
-    @Context
-    JsonWebToken token;
 
-    @GET
-    @PermitAll
-    @Path("/index-page")
-    public Response index() {
-        return Response.ok("Bitcoin Exchange by Rayan :)")
-                .build();
-    }
+    @Claim(standard = Claims.sub)
+    ClaimValue<String> keycloakUserIdClaim;
 
     @POST
     @RolesAllowed("user")
     @Transactional
-    public Response createClient(@Valid final CreateClientRequest request) {
+    public Response createClient(@Valid @NotNull(message = "Required values!") final CreateClientRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Getting credential");
-        final Credential credential = authenticationService.findCredentialByEmail(token.getClaim("email"))
+        final Credential credential = authenticationService.findCredentialByEmail(email)
                 .get();
 
         log.info("Creating client");
-        final CreatedClientResponse response = clientService.persist(credential, request);
+        final ClientResponse response = clientService.persist(credential, request);
 
         log.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("id")
-                .resolveTemplate("{id}", response.id())
+                .resolveTemplate("{id}", response.credential().getId())
                 .build();
 
         return Response.created(uri)
@@ -92,11 +94,16 @@ public final class ClientResource {
     @RolesAllowed("user")
     @Transactional
     @Path("{id}")
-    public Response updatePartial(@PathParam("id") final UUID id,
-                                  @Valid final UpdateClientRequest request) {
+    public Response updateClientPartial(@PathParam("id") final UUID id,
+                                        @Valid @NotNull(message = "Required values!") final UpdateClientRequest request) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Updating client partial");
         clientService.update(id, request);
@@ -109,12 +116,17 @@ public final class ClientResource {
     @PUT
     @RolesAllowed("user")
     @Transactional
-    @Path("{id}")
+    @Path("{id}/address")
     public Response updateAddress(@PathParam("id") final UUID id,
-                                  @Valid final Address address) {
+                                  @Valid @NotNull(message = "Required address") final Address address) {
 
-        log.info("Finding and verifyning if email exists in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Updating client address");
         clientService.update(id, address);
@@ -127,8 +139,15 @@ public final class ClientResource {
     @GET
     @Authenticated
     @Path("/{id}")
-    public Response findClientById(@PathParam("id")
-                                   @NotNull(message = "Required id!") final UUID id) {
+    public Response findClientById(@PathParam("id") @NotNull(message = "Required id!") final UUID id) {
+
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client by id");
         return Response.ok(clientService.findClientById(id))
@@ -140,6 +159,14 @@ public final class ClientResource {
     @Path("/created-at-period")
     public Response findClientsByCreatedAt(@BeanParam @Valid final ClientsByCreatedAtRequest request) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
         log.info("Finding clients by created at period");
         return Response.ok(clientService.findClientsByCreatedAt(request))
                 .build();
@@ -150,9 +177,16 @@ public final class ClientResource {
     @Path("/address-filter")
     public Response findClientsByAddressFilter(@BeanParam @Valid final ClientsByAddressFilterRequest request) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
+        log.info("Finding user email in keycloak");
+        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
         log.info("Finding clients by address filter");
-        PageResponse clientsByAddressFilter = clientService.findClientsByAddressFilter(request);
-        return Response.ok(clientsByAddressFilter)
+        return Response.ok(clientService.findClientsByAddressFilter(request))
                 .build();
     }
 

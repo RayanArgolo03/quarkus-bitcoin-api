@@ -1,6 +1,6 @@
 package dev.rayan.client;
 
-import dev.rayan.dto.response.bitcoin.BitcoinResponse;
+import dev.rayan.dto.response.transaction.BitcoinResponse;
 import jakarta.ws.rs.GET;
 import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.faulttolerance.Retry;

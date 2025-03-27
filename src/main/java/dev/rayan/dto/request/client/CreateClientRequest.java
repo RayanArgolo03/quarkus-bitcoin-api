@@ -26,5 +26,8 @@ public record CreateClientRequest(
         String cpf,
 
         @Valid
+        @NotNull(message = "Required address!")
         Address address
-) {}
+
+) {
+}
