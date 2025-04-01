@@ -17,6 +17,7 @@ import dev.rayan.services.TransactionService;
 import dev.rayan.utils.EnumConverterUtils;
 import dev.rayan.validation.EnumValidator;
 import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -34,6 +35,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+//Todo começar verificação de logins
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Path(TransactionResource.RESOURCE_PATH)
@@ -137,7 +139,7 @@ public final class TransactionResource {
         log.info("Mapping string types to enums");
         final List<TransactionType> transactionTypes = EnumConverterUtils.convertEnums(TransactionType.class, request.getTypes());
 
-        return Response.ok(transactionService.findTransactionsByType(request, client))
+        return Response.ok(transactionService.findByType(request, client))
                 .build();
     }
 
@@ -157,7 +159,7 @@ public final class TransactionResource {
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
 
-        return Response.ok(transactionService.findTransactionsByFilters(client, request))
+        return Response.ok(transactionService.findByFilters(client, request))
                 .build();
     }
 
@@ -172,7 +174,7 @@ public final class TransactionResource {
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoin = bitcoinService.quote();
 
-        return Response.ok(transactionService.findTransactionById(transactionId, bitcoin))
+        return Response.ok(transactionService.findById(transactionId, bitcoin))
                 .build();
     }
 
@@ -187,7 +189,7 @@ public final class TransactionResource {
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
 
-        return Response.ok(transactionService.findTransactionByQuantity(client, request))
+        return Response.ok(transactionService.findByQuantity(client, request))
                 .build();
     }
 
@@ -206,10 +208,9 @@ public final class TransactionResource {
         log.info("Mapping string period to enum");
         final TransactionReportPeriod period = EnumConverterUtils.convertEnum(TransactionReportPeriod.class, stringPeriod);
 
-        return Response.ok(transactionService.findTransactionCountByPeriod(client, period))
+        return Response.ok(transactionService.findCountByPeriod(client, period))
                 .build();
     }
-
 
     @GET
     @RolesAllowed("user")
@@ -229,7 +230,7 @@ public final class TransactionResource {
         final TransactionReportFormat format = EnumConverterUtils.convertEnum(TransactionReportFormat.class, request.getFormat());
 
         log.infof("Finding transaction report on %s", period);
-        final TransactionReportResponse response = transactionService.findTransactionReport(client, period);
+        final TransactionReportResponse response = transactionService.findReport(client, period);
 
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoinResponse = bitcoinService.quote();
@@ -247,5 +248,12 @@ public final class TransactionResource {
                 .build();
     }
 
+
+    @GET
+    @PermitAll
+    @Path("/total-made")
+    public double findTransactionsTotalMade() {
+        return transactionService.findTotalMade();
+    }
 
 }

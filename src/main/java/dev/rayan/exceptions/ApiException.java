@@ -10,8 +10,11 @@ public final class ApiException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public ApiException(String message) {
-        super(message);
+    private static final String MESSAGE = "The server was unable to complete your request, contact @rayan_argolo";
+
+    public ApiException() {
+        super(MESSAGE);
     }
+
 
 }

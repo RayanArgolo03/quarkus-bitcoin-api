@@ -1,6 +1,5 @@
 package dev.rayan.dto.response.transaction;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Getter
-@AllArgsConstructor
 public final class TransactionReportResponse {
 
     String transactionsMade;
@@ -32,6 +30,19 @@ public final class TransactionReportResponse {
     //Bitcoin attribute
     @Setter
     String bitcoinCurrentValue;
+
+
+    //Serialize JSON to Java constructor
+    public TransactionReportResponse(String transactionsMade, BigDecimal totalPurchased, String firstPurchase, String lastPurchase, BigDecimal totalSold, String firstSold, String lastSold, String lastTransaction) {
+        this.transactionsMade = transactionsMade;
+        this.totalPurchased = totalPurchased;
+        this.firstPurchase = firstPurchase;
+        this.lastPurchase = lastPurchase;
+        this.totalSold = totalSold;
+        this.firstSold = firstSold;
+        this.lastSold = lastSold;
+        this.lastTransaction = lastTransaction;
+    }
 
     public Map<String, String> getFieldsAndValues() throws IllegalAccessException {
 

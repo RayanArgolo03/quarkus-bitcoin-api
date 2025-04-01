@@ -14,6 +14,8 @@ import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.WebApplicationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.metrics.MetricUnits;
+import org.eclipse.microprofile.metrics.annotation.Gauge;
 import org.jboss.logging.Logger;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
@@ -37,8 +39,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static jakarta.ws.rs.core.Response.Status.GONE;
-import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
@@ -203,8 +204,8 @@ public final class KeycloakService {
             if (isFirstLogin(userRepresentation)) {
 
                 if (!isEmailVerified(userRepresentation)) {
-                    user.sendVerifyEmail();
-                    throw new NotAuthorizedException(format("You need to confirm the email %s, verify your email inbox!", response.getEmail()), UNAUTHORIZED);
+                    final String message = "You need to confirm the email %s, verify your email inbox or resend verification email!";
+                    throw new WebApplicationException(format(message, response.getEmail()), FORBIDDEN);
                 }
 
                 setFirstLoginAttribute(userRepresentation, "false");
@@ -230,7 +231,7 @@ public final class KeycloakService {
 
     public TokensResponse generateNewTokens(final String keycloakUserId, final Credential credential) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword);) {
+        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
 
             final UsersResource usersResource = getUsersResource(keycloak);
 
@@ -355,6 +356,7 @@ public final class KeycloakService {
         user.update(userRepresentation);
     }
 
+
     private Keycloak buildKeycloak(final String username, final String password) {
 
         final String grantType = (username.equals(adminUsername))
@@ -370,6 +372,26 @@ public final class KeycloakService {
                 .username(username)
                 .password(password)
                 .build();
+    }
+
+    @Gauge(
+            name = "auth.count.current.users.online",
+            absolute = true,
+            description = "Count current users online",
+            unit = MetricUnits.NONE
+    )
+    public long countUsersOnline() {
+
+        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+
+            final List<Map<String, String>> sessionStats = keycloak.realm(realm)
+                    .getClientSessionStats();
+
+            return (sessionStats.isEmpty())
+                    ? 0L
+                    : Long.parseLong(sessionStats.get(0).get("active"));
+        }
+
     }
 
 }

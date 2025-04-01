@@ -22,7 +22,7 @@ public final class AddressService {
                     if (addressFound.getCep() == null) throw new NotFoundException("CEP not exists!");
                     return addressFound;
                 })
-                .orElseThrow(() -> new ApiException("The server was unable to complete your request, contact @rayan_argolo"));
+                .orElseThrow(ApiException::new);
     }
 
 

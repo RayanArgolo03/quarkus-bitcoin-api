@@ -3,6 +3,7 @@ package dev.rayan.resources;
 import dev.rayan.services.BitcoinService;
 import dev.rayan.services.KeycloakService;
 import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -50,6 +51,14 @@ public final class BitcoinResource {
         log.info("Quoting bitcoin in external API");
         return Response.ok(bitcoinService.quote())
                 .build();
+    }
+
+    @GET
+    @PermitAll
+    @Path("/current-price")
+    public double getCurrentPrice() {
+        log.info("Quoting bitcoin in external API");
+        return bitcoinService.getCurrentPrice();
     }
 
 }

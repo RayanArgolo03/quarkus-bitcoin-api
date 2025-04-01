@@ -143,5 +143,4 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
                         .getSingleResult();
     }
 
-
 }

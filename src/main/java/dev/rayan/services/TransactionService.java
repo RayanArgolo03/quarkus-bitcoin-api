@@ -19,8 +19,11 @@ import dev.rayan.repositories.TransactionRepository;
 import dev.rayan.utils.PaginationUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
+import org.eclipse.microprofile.metrics.MetricUnits;
+import org.eclipse.microprofile.metrics.annotation.Gauge;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -80,14 +83,14 @@ public final class TransactionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public PageResponse findTransactionsByType(final TransactionByTypeRequest request, final Client client) {
+    public PageResponse findByType(final TransactionByTypeRequest request, final Client client) {
         return PaginationUtils.paginate(
                 repository.findTransactionsByType(request, client),
                 null
         );
     }
 
-    public PageResponse findTransactionsByFilters(final Client client, final TransactionFiltersRequest request) {
+    public PageResponse findByFilters(final Client client, final TransactionFiltersRequest request) {
         return PaginationUtils.paginate(
                 repository.findTransactionsByFilter(client, request),
                 request.getPaginationRequest()
@@ -95,27 +98,28 @@ public final class TransactionService {
     }
 
 
-    public TransactionResponse findTransactionById(final UUID transactionId, final BitcoinResponse bitcoin) {
+    public TransactionResponse findById(final UUID transactionId, final BitcoinResponse bitcoin) {
         return repository.findByIdOptional(transactionId)
                 .map(transaction -> mapper.transactionToResponse(transaction, bitcoin))
                 .orElseThrow(() -> new NotFoundException("Transaction not found!"));
     }
 
 
-    public PageResponse findTransactionByQuantity(final Client client, final TransactionByQuantityRequest request) {
+    public PageResponse findByQuantity(final Client client, final TransactionByQuantityRequest request) {
         return PaginationUtils.paginate(
                 repository.findTransactionByQuantity(client, request),
                 null
         );
     }
 
-    public TransactionCountResponse findTransactionCountByPeriod(final Client client, final TransactionReportPeriod period) {
+    public TransactionCountResponse findCountByPeriod(final Client client, final TransactionReportPeriod period) {
         return repository.findTransactionCount(client, period);
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
 
-        final TransactionCountResponse countResponse = findTransactionCountByPeriod(client, period);
+    public TransactionReportResponse findReport(final Client client, final TransactionReportPeriod period) {
+
+        final TransactionCountResponse countResponse = findCountByPeriod(client, period);
 
         if (countResponse.count() < 1L) {
             throw new NotFoundException(format("No transactions in the %s period", period.getValue()));
@@ -123,6 +127,15 @@ public final class TransactionService {
 
         return repository.findTransactionReport(client, period);
     }
+
+    @Transactional
+    @Gauge(
+            name = "transactions.current.total.made",
+            description = "Current total transactions made",
+            absolute = true,
+            unit = MetricUnits.NONE
+    )
+    public long findTotalMade() { return repository.count(); }
 
 }
 

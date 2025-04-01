@@ -58,19 +58,21 @@ public final class AuthenticationResource {
     @Transactional
     @PermitAll
     @Counted(
-            name = "auth.signup.requests.total",
+            name = "auth.create.credential.requests.total",
             absolute = true,
-            description = "Total request of endpoint create credential"
+            description = "Total registrations by createCredential"
     )
     @Timed(
-            name = "auth.signup.requests.execution.time", absolute = true,
-            description = "Execution time of endpoint create credential",
+            name = "auth.create.credential.execution.time",
+            absolute = true,
+            description = "Execution time of by createCredential",
             unit = MetricUnits.SECONDS
     )
     @Metered(
-            name = "auth.signup.requests.frequency", absolute = true,
-            description = "Frequency of endpoint create credential",
-            unit = MetricUnits.MINUTES
+            name = "auth.create.credential.frequency",
+            absolute = true,
+            description = "Registrations per hour by createCredential",
+            unit = MetricUnits.HOURS
     )
     @Path("/sign-up")
     public Response createCredential(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
@@ -94,6 +96,23 @@ public final class AuthenticationResource {
 
     @POST
     @PermitAll
+    @Counted(
+            name = "auth.login.requests.total",
+            absolute = true,
+            description = "Total unsuccessful login, email not verified"
+    )
+    @Timed(
+            name = "auth.login.execution.time",
+            absolute = true,
+            description = "Execution time of by login",
+            unit = MetricUnits.SECONDS
+    )
+    @Metered(
+            name = "auth.login.frequency",
+            absolute = true,
+            description = "Logins per hour by login",
+            unit = MetricUnits.MINUTES
+    )
     @Path("/login")
     public Response login(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
 
@@ -110,6 +129,18 @@ public final class AuthenticationResource {
 
     @DELETE
     @Authenticated
+    @Timed(
+            name = "auth.logout.execution.time",
+            absolute = true,
+            description = "Execution time of by logout",
+            unit = MetricUnits.SECONDS
+    )
+    @Metered(
+            name = "auth.logout.frequency",
+            absolute = true,
+            description = "Logouts per minute by logout",
+            unit = MetricUnits.MINUTES
+    )
     @Path("/logout")
     public Response logout(@Context final JsonWebToken token) {
 
@@ -133,6 +164,12 @@ public final class AuthenticationResource {
      **/
     @POST
     @PermitAll
+    @Timed(
+            name = "auth.generate.new.tokens.execution.time",
+            absolute = true,
+            description = "Execution time of generateNewTokens",
+            unit = MetricUnits.SECONDS
+    )
     @Path("/generate-new-tokens")
     public Response generateNewTokens(@NotNull(message = "Required refresh token!") final RefreshTokenRequest request) throws ParseException {
 
@@ -158,6 +195,17 @@ public final class AuthenticationResource {
 
     @PUT
     @PermitAll
+    @Counted(
+            name = "auth.resent.verify.email.requests.total",
+            absolute = true,
+            description = "Total of forwarded verification emails"
+    )
+    @Timed(
+            name = "auth.resent.verify.email.execution.time",
+            absolute = true,
+            description = "Execution time of resentVerifyEmail",
+            unit = MetricUnits.SECONDS
+    )
     @Path("{keycloakUserId}/resent-verify-email")
     public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
 
@@ -174,8 +222,14 @@ public final class AuthenticationResource {
     }
 
     @PATCH
-    @PermitAll
     @Transactional
+    @PermitAll
+    @Metered(
+            name = "auth.send.forgot.password.email.frequency",
+            absolute = true,
+            description = "Sent forgot password emails per day",
+            unit = MetricUnits.DAYS
+    )
     @Path("/forgot-password")
     public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
 
@@ -195,6 +249,22 @@ public final class AuthenticationResource {
     @PATCH
     @PermitAll
     @Transactional
+    @Counted(
+            name = "auth.update.forgot.password.requests.total",
+            absolute = true,
+            description = "Total requests by updateForgotPassword"
+    )
+    @Timed(
+            name = "auth.update.forgot.password.execution.time",
+            absolute = true,
+            description = "Execution time of updateForgotPassword",
+            unit = MetricUnits.SECONDS)
+    @Metered(
+            name = "auth.update.forgot.password.frequency",
+            absolute = true,
+            description = "Update forgot password per day",
+            unit = MetricUnits.DAYS
+    )
     @Path("/update-forgot-password")
     public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
                                          @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
@@ -213,6 +283,22 @@ public final class AuthenticationResource {
     @PATCH
     @Authenticated
     @Transactional
+    @Counted(
+            name = "auth.update.current.password.requests.total",
+            absolute = true,
+            description = "Total unsuccessful by updateCurrentPassword"
+    )
+    @Metered(
+            name = "auth.update.current.password.frequency",
+            absolute = true,
+            description = "Update current password per hour",
+            unit = MetricUnits.HOURS
+    )
+    @Timed(
+            name = "auth.update.current.password.execution.time",
+            absolute = true,
+            description = "Execution time of updateCurrentPassword"
+    )
     @Path("/update-current-password")
     public Response updateCurrentPassword(@Context final JsonWebToken token,
                                           @Valid @NotNull(message = "Required values!") final UpdatePasswordRequest request) {
@@ -230,6 +316,14 @@ public final class AuthenticationResource {
         keycloakService.updatePassword(email, encryptedPassword);
 
         return Response.ok("Password updated!")
+                .build();
+    }
+
+    @GET
+    @PermitAll
+    @Path("/count-users-online")
+    public Response getCountUsersOnline() {
+        return Response.ok(keycloakService.countUsersOnline())
                 .build();
     }
 

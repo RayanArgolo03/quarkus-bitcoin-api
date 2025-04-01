@@ -55,7 +55,6 @@ public final class ClientResource {
     @Context
     UriInfo uriInfo;
 
-
     @Claim(standard = Claims.sub)
     ClaimValue<String> keycloakUserIdClaim;
 
