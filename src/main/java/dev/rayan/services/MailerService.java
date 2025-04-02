@@ -14,7 +14,7 @@ import java.util.Map;
 @RequestScoped
 public final class MailerService {
 
-    private static final String CONTENT_TEMPLATE = """
+    private static final String FORGOT_HTML_TEMPLATE = """
                 <h2>This email should contains the link for a front-end ForgotPassword page. Request expired in ${expiredTime} ${timeUnit}s!</h2>
             <br>
                 <h3> Link below: if not works, copy this link and past in your navigator: http://localhost:8080${resourcePath}/update-forgot-password?code=${code}&email=${email}</h3>
@@ -24,7 +24,7 @@ public final class MailerService {
                 </p>
             """;
 
-    private static final String SUBJECT = "Forgot Quarkus Bitcoin Password";
+    private static final String FORGOT_SUBJECT = "Forgot Quarkus Bitcoin Password";
 
     @ConfigProperty(name = "expired-time")
     String expiredTime;
@@ -48,8 +48,24 @@ public final class MailerService {
                 "timeUnit", timeUnit
         );
 
-        final String content = StringSubstitutor.replace(CONTENT_TEMPLATE, params);
-        final Mail mail = Mail.withHtml(email, SUBJECT, content);
+        final String html = StringSubstitutor.replace(FORGOT_HTML_TEMPLATE, params);
+        final Mail mail = Mail.withHtml(email, FORGOT_SUBJECT, html);
+
+        mailer.send(mail);
+    }
+
+    public void sendDeletedEmail(final String email) {
+
+        final String subject = "Deleted Quarkus Bitcoin Account";
+        final String html = """
+                <h1>It was a pleasure to have you with us, give a star in Github!</h1>
+                <h2 style="color: red; font-family: Arial, sans-serif;">
+                     Quarkus-Bitcoin by Rayan Argolo
+                </h2>
+                 """;
+
+
+        final Mail mail = Mail.withHtml(email, subject, html);
 
         mailer.send(mail);
     }

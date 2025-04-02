@@ -53,7 +53,7 @@ public class Client {
     @Embedded
     Address address;
 
-    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "client",orphanRemoval = true, cascade = CascadeType.ALL)
     Set<Transaction> transactions;
 
     @Column(name = "created_at")

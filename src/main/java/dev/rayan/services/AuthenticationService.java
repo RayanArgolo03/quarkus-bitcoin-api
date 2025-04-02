@@ -21,9 +21,9 @@ import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.WebApplicationException;
 
 import java.util.Optional;
+import java.util.UUID;
 
-import static jakarta.ws.rs.core.Response.Status.CONFLICT;
-import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
@@ -128,4 +128,13 @@ public final class AuthenticationService {
         return credentialRepository.findCredentialByEmail(email);
     }
 
+    public void delete(final String id) {
+
+        final boolean deleted = credentialRepository.deleteById(UUID.fromString(id));
+
+        if (!deleted) {
+            final String message = format("%s or already deleted!", INVALID_CREDENTIAL_MESSAGE);
+            throw new WebApplicationException(message, GONE);
+        }
+    }
 }

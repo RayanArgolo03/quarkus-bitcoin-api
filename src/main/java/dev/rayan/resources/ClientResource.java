@@ -93,7 +93,7 @@ public final class ClientResource {
     @RolesAllowed("user")
     @Transactional
     @Path("{id}")
-    public Response updateClientPartial(@PathParam("id") final UUID id,
+    public Response updateClientPartial(@PathParam("id")  @org.hibernate.validator.constraints.UUID(message = "Invalid id!")final UUID id,
                                         @Valid @NotNull(message = "Required values!") final UpdateClientRequest request) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
@@ -116,7 +116,7 @@ public final class ClientResource {
     @RolesAllowed("user")
     @Transactional
     @Path("{id}/address")
-    public Response updateAddress(@PathParam("id") final UUID id,
+    public Response updateAddress(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID id,
                                   @Valid @NotNull(message = "Required address") final Address address) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
@@ -138,7 +138,7 @@ public final class ClientResource {
     @GET
     @Authenticated
     @Path("/{id}")
-    public Response findClientById(@PathParam("id") @NotNull(message = "Required id!") final UUID id) {
+    public Response findClientById(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID id) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 

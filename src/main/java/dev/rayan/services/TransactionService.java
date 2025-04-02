@@ -24,6 +24,7 @@ import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.annotation.Gauge;
+import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -42,6 +43,9 @@ public final class TransactionService {
 
     @Inject
     TransactionMapper mapper;
+
+    @Inject
+    Logger log;
 
     public TransactionResponse persist(final TransactionRequest request,
                                        final Client client,
@@ -135,7 +139,10 @@ public final class TransactionService {
             absolute = true,
             unit = MetricUnits.NONE
     )
-    public long findTotalMade() { return repository.count(); }
+    public long findTotalMade() {
+        log.info("Collecting Gauge metric");
+        return repository.count();
+    }
 
 }
 

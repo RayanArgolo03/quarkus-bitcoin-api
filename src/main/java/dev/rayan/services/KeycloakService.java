@@ -253,7 +253,7 @@ public final class KeycloakService {
                     .getEmail();
 
         } catch (WebApplicationException e) {
-            throw new NotAuthorizedException("Account not exists, you need!", UNAUTHORIZED);
+            throw new NotAuthorizedException("Account not exists!", UNAUTHORIZED);
         }
     }
 
@@ -329,7 +329,6 @@ public final class KeycloakService {
     }
 
     public void delete(final String keycloakUserId) {
-
         try (Keycloak keycloak = buildKeycloak(adminUsername, adminUsername)) {
             getUsersResource(keycloak)
                     .delete(keycloakUserId)
@@ -382,6 +381,7 @@ public final class KeycloakService {
     )
     public long countUsersOnline() {
 
+        log.info("Collecting Gauge metric");
         try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
 
             final List<Map<String, String>> sessionStats = keycloak.realm(realm)

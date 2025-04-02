@@ -15,6 +15,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -26,6 +27,7 @@ import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Metered;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.hibernate.validator.constraints.UUID;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -93,6 +95,34 @@ public final class AuthenticationResource {
                 .entity(response)
                 .build();
     }
+
+    @DELETE
+    @Transactional
+    @Authenticated
+    @Path("{id}")
+    public Response deleteCredential(@PathParam("id") @UUID(message = "Invalid id!") final String id,
+                                     @Context final JsonWebToken token) {
+
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Verifyning if user exists in keycloak and finding email");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
+        log.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
+        authenticationService.delete(id);
+        keycloakService.delete(keycloakUserId);
+
+        log.info("Sending email to deleted account");
+        mailerService.sendDeletedEmail(email);
+
+        //Front-end redirect to "index" page
+        return Response.ok("It was a pleasure to have you with us, verify your email!")
+                .build();
+    }
+
 
     @POST
     @PermitAll
@@ -207,7 +237,7 @@ public final class AuthenticationResource {
             unit = MetricUnits.SECONDS
     )
     @Path("{keycloakUserId}/resent-verify-email")
-    public Response resentVerifyEmail(@PathParam("keycloakUserId") final String keycloakUserId) {
+    public Response resentVerifyEmail(@PathParam("keycloakUserId") @NotEmpty(message = "Required keycloakUserId") final String keycloakUserId) {
 
         log.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
@@ -319,12 +349,13 @@ public final class AuthenticationResource {
                 .build();
     }
 
-    @GET
-    @PermitAll
-    @Path("/count-users-online")
-    public Response getCountUsersOnline() {
-        return Response.ok(keycloakService.countUsersOnline())
-                .build();
-    }
+
+//    @GET
+//    @PermitAll
+//    @Path("/count-users-online")
+//    public Response getCountUsersOnline() {
+//        return Response.ok(keycloakService.countUsersOnline())
+//                .build();
+//    }
 
 }

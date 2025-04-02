@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.annotation.Gauge;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public final class BitcoinService {
@@ -15,6 +16,9 @@ public final class BitcoinService {
     @Inject
     @RestClient
     QuoteRestClient quoteRestClient;
+
+    @Inject
+    Logger log;
 
     public BitcoinResponse quote() {
         return quoteRestClient.quote()
@@ -28,6 +32,7 @@ public final class BitcoinService {
             unit = MetricUnits.NONE
     )
     public double getCurrentPrice() {
+        log.info("Collecting Gauge metric");
         return quote().price()
                 .doubleValue();
     }

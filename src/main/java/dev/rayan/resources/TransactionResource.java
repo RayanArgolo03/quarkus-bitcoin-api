@@ -17,7 +17,6 @@ import dev.rayan.services.TransactionService;
 import dev.rayan.utils.EnumConverterUtils;
 import dev.rayan.validation.EnumValidator;
 import io.quarkus.security.Authenticated;
-import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -165,8 +164,8 @@ public final class TransactionResource {
 
     @GET
     @Authenticated
-    @Path("/{transactionId}")
-    public Response findTransactionById(@PathParam("transactionId") final UUID transactionId) {
+    @Path("/{id}")
+    public Response findTransactionById(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID transactionId) {
 
         log.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
@@ -249,11 +248,11 @@ public final class TransactionResource {
     }
 
 
-    @GET
-    @PermitAll
-    @Path("/total-made")
-    public double findTransactionsTotalMade() {
-        return transactionService.findTotalMade();
-    }
+//    @GET
+//    @PermitAll
+//    @Path("/total-made")
+//    public double findTransactionsTotalMade() {
+//        return transactionService.findTotalMade();
+//    }
 
 }
