@@ -27,7 +27,7 @@ import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
-public final class AuthenticationService {
+public class AuthenticationService {
 
     private static final String INVALID_CREDENTIAL_MESSAGE = "Account not exists!";
 

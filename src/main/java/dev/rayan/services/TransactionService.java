@@ -36,7 +36,7 @@ import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
 
 @ApplicationScoped
-public final class TransactionService {
+public class TransactionService {
 
     @Inject
     TransactionRepository repository;

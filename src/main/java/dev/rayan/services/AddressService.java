@@ -9,7 +9,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
-public final class AddressService {
+public class AddressService {
 
     @Inject
     @RestClient

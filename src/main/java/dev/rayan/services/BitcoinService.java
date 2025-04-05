@@ -11,7 +11,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
-public final class BitcoinService {
+public class BitcoinService {
 
     @Inject
     @RestClient

@@ -24,7 +24,7 @@ import java.util.UUID;
 import static jakarta.ws.rs.core.Response.Status.*;
 
 @ApplicationScoped
-public final class ClientService {
+public class ClientService {
 
     @Inject
     ClientRepository repository;

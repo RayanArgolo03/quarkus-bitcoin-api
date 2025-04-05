@@ -37,7 +37,7 @@ import static java.lang.String.format;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Path(AuthenticationResource.RESOURCE_PATH)
-public final class AuthenticationResource {
+public class AuthenticationResource {
 
     public static final String RESOURCE_PATH = "/api/v1/auth";
 

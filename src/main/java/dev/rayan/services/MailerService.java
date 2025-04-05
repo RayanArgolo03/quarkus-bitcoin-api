@@ -12,7 +12,7 @@ import org.jboss.logging.Logger;
 import java.util.Map;
 
 @RequestScoped
-public final class MailerService {
+public class MailerService {
 
     private static final String FORGOT_HTML_TEMPLATE = """
                 <h2>This email should contains the link for a front-end ForgotPassword page. Request expired in ${expiredTime} ${timeUnit}s!</h2>
@@ -63,7 +63,6 @@ public final class MailerService {
                      Quarkus-Bitcoin by Rayan Argolo
                 </h2>
                  """;
-
 
         final Mail mail = Mail.withHtml(email, subject, html);
 

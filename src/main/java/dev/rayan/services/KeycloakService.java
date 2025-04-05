@@ -44,7 +44,7 @@ import static java.lang.String.format;
 
 @ApplicationScoped
 //@Startup
-public final class KeycloakService {
+public class KeycloakService {
 
     @ConfigProperty(name = "quarkus.keycloak.admin-client.server-url")
     String serverUrl;
