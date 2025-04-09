@@ -1,6 +1,6 @@
 
 <!-- TÍTULO -->
-# Bitcoin Exchange com Quarkus, Postgresql, Docker, Panache Hibernate, Insomnia, JWT, Keycloak, Flyway, Liquibase, MongoDB, Jax-RS, FaultTolerance, Mapstruct, Lombok, Prometheus, Grafana, Kubernetes e RestClient
+# Bitcoin Exchange com Quarkus, Postgresql, Docker, Panache Hibernate, Insomnia, JWT, Keycloak, Flyway, Liquibase, MongoDB, Jax-RS, FaultTolerance, Mapstruct, Lombok, Prometheus, Grafana, Kubernetes, Junit5, Mockito, RestAssured e RestClient
 <!-- SUB TÍTULO-->
 ##  Transações fictícias de Bitcoins
 
