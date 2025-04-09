@@ -1,15 +1,19 @@
 package dev.rayan.dto.request.authentication;
 
-import jakarta.validation.constraints.Email;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import lombok.Builder;
+import lombok.extern.jackson.Jacksonized;
 
+@Jacksonized
+@Builder
 public record CredentialRequest(
 
-        @NotNull(message = "Email required!")
-        @Email(message = "Invalid email! Pattern required: xxx@domain.com",
-                regexp = "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,3}")
-        String email,
+        @JsonUnwrapped
+        @Valid
+        EmailRequest emailRequest,
 
         @NotNull(message = "Password required!")
         @Pattern(message = "Invalid password! Between 5 and 8 characters, at least 1 special character and a capital letter!",

@@ -19,6 +19,7 @@ import java.util.UUID;
 @Builder
 @Getter
 @Setter
+@EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
@@ -53,7 +54,7 @@ public class Client {
     @Embedded
     Address address;
 
-    @OneToMany(mappedBy = "client",orphanRemoval = true, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "client", orphanRemoval = true, cascade = CascadeType.ALL)
     Set<Transaction> transactions;
 
     @Column(name = "created_at")
@@ -61,6 +62,7 @@ public class Client {
 
     @NonFinal
     @Column(name = "updated_at")
+    @Builder.Default
     LocalDateTime updatedAt = null;
 
     @PreUpdate

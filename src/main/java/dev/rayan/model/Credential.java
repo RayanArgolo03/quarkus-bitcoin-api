@@ -11,8 +11,10 @@ import java.util.UUID;
 
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Setter
 @Getter
+@EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
@@ -40,6 +42,7 @@ public class Credential {
     final LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")
+    @Builder.Default
     LocalDateTime updatedAt = null;
 
     @PreUpdate

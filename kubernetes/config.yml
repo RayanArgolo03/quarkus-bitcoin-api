@@ -1,8 +1,6 @@
-
-
-kind: Cluster
-name: quarkus
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-  - role: worker
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+data:
+  POSTGRES_HOST_AUTH_METHOD: "trust"

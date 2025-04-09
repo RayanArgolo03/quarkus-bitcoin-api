@@ -12,7 +12,10 @@ import org.mapstruct.Named;
 
 import java.util.Map;
 
-@Mapper(componentModel = "jakarta-cdi", uses = CredentialMapper.class)
+import static org.mapstruct.MappingConstants.ComponentModel.JAKARTA_CDI;
+import static org.mapstruct.ReportingPolicy.ERROR;
+
+@Mapper(componentModel = JAKARTA_CDI, unmappedTargetPolicy = ERROR, uses = CredentialMapper.class)
 public interface ClientMapper {
 
     @Named(value = "formatCompleteAddress")

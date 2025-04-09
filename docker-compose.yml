@@ -18,6 +18,12 @@ services:
       - "prometheus_data:/var/lib/prometheus"
     ports:
       - "9090:9090"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '800m'
+
 
   node_exporter:
     container_name: "node_exporter"
@@ -26,6 +32,11 @@ services:
     image: prom/node-exporter
     ports:
       - "9100:9100"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: '250m'
 
   grafana:
     container_name: "grafana"
@@ -37,4 +48,9 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-        - "prometheus"
+      - "prometheus"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '800m'

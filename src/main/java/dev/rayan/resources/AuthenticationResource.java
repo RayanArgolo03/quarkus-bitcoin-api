@@ -264,7 +264,7 @@ public class AuthenticationResource {
     public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
 
         log.info("Persiting the forgot password register in mongodb");
-        final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request.email());
+        final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request);
 
         log.info("Sending the email with code and timestamp to expire");
         mailerService.sendForgotPasswordEmail(

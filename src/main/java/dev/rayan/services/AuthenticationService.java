@@ -1,6 +1,7 @@
 package dev.rayan.services;
 
 import dev.rayan.dto.request.authentication.CredentialRequest;
+import dev.rayan.dto.request.authentication.EmailRequest;
 import dev.rayan.dto.request.authentication.ForgotPasswordRequest;
 import dev.rayan.dto.request.authentication.UpdatePasswordRequest;
 import dev.rayan.dto.response.client.CredentialResponse;
@@ -14,6 +15,7 @@ import dev.rayan.repositories.CredentialRepository;
 import dev.rayan.repositories.ForgotPasswordRepository;
 import dev.rayan.scheduler.ExpiredForgotPasswordScheduler;
 import dev.rayan.utils.CryptographyUtils;
+import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ForbiddenException;
@@ -26,6 +28,7 @@ import java.util.UUID;
 import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
+@Unremovable
 @ApplicationScoped
 public class AuthenticationService {
 
@@ -48,8 +51,8 @@ public class AuthenticationService {
 
     public CredentialResponse persistCredential(final CredentialRequest request) {
 
-        if (findCredentialByEmail(request.email()).isPresent()) {
-            throw new NotAuthorizedException(format("Client with email %s already exists!", request.email()), UNAUTHORIZED);
+        if (findCredentialByEmail(request.emailRequest().email()).isPresent()) {
+            throw new WebApplicationException(format("Client with email %s already exists!", request.emailRequest().email()), CONFLICT);
         }
 
         final Credential credential = credentialMapper.requestToCredential(request);
@@ -60,7 +63,7 @@ public class AuthenticationService {
 
     public CredentialResponse login(final CredentialRequest request) {
 
-        final Credential credential = findCredentialByEmail(request.email())
+        final Credential credential = findCredentialByEmail(request.emailRequest().email())
                 .orElseThrow(() -> new NotAuthorizedException(INVALID_CREDENTIAL_MESSAGE, UNAUTHORIZED));
 
         if (!CryptographyUtils.equals(request.password(), credential.getPassword())) {
@@ -70,15 +73,16 @@ public class AuthenticationService {
         return credentialMapper.credentialToResponse(credential);
     }
 
-    public ForgotPasswordResponse persistForgotPassword(final String email) {
+    public ForgotPasswordResponse persistForgotPassword(final EmailRequest request) {
 
-        final Credential credential = findCredentialByEmail(email)
+        final Credential credential = findCredentialByEmail(request.email())
                 .orElseThrow(() -> new NotAuthorizedException(INVALID_CREDENTIAL_MESSAGE, UNAUTHORIZED));
 
         final ForgotPassword forgotPassword = new ForgotPassword(credential.getId());
         forgotPasswordRepository.persist(forgotPassword);
 
-        return forgotPasswordMapper.forgotPasswordToResponse(forgotPassword);
+        ForgotPasswordResponse forgotPasswordResponse = forgotPasswordMapper.forgotPasswordToResponse(forgotPassword);
+        return forgotPasswordResponse;
     }
 
 

@@ -3,7 +3,6 @@ package dev.rayan.model;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.bson.codecs.pojo.annotations.BsonCreator;
 import org.bson.codecs.pojo.annotations.BsonId;
@@ -14,7 +13,6 @@ import java.util.UUID;
 
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Getter
-@Setter
 @MongoEntity(collection = "forgot_password_requests")
 public class ForgotPassword {
 
@@ -42,5 +40,7 @@ public class ForgotPassword {
         this.credentialId = credentialId;
         this.madeAt = madeAt;
     }
+
+
 }
 

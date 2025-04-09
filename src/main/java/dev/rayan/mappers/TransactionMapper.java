@@ -13,7 +13,10 @@ import org.mapstruct.Named;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 
-@Mapper(componentModel = "jakarta-cdi")
+import static org.mapstruct.MappingConstants.ComponentModel.JAKARTA_CDI;
+import static org.mapstruct.ReportingPolicy.ERROR;
+
+@Mapper(componentModel = JAKARTA_CDI, unmappedTargetPolicy = ERROR)
 public interface TransactionMapper {
 
     @Mapping(target = "client", source = "client")
