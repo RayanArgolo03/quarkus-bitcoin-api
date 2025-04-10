@@ -2,6 +2,8 @@ package dev.rayan.services;
 
 import dev.rayan.dto.request.authentication.CredentialRequest;
 import dev.rayan.dto.request.authentication.EmailRequest;
+import dev.rayan.dto.request.authentication.ForgotPasswordRequest;
+import dev.rayan.dto.request.authentication.NewPasswordRequest;
 import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.client.ForgotPasswordResponse;
 import dev.rayan.mappers.CredentialMapper;
@@ -29,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mapstruct.factory.Mappers;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -36,8 +39,7 @@ import java.util.UUID;
 import static jakarta.ws.rs.core.Response.Status.CONFLICT;
 import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @QuarkusComponentTest
@@ -365,8 +367,196 @@ public class AuthenticationServiceTest {
             verify(forgotPasswordRepository).persist(forgotPassword);
             verify(forgotPasswordMapper).forgotPasswordToResponse(forgotPassword);
         }
+    }
 
 
+    @Nested
+    @DisplayName("---- ForgotPasswordRequestTests ----")
+    class ForgotPasswordRequestTests {
+
+        @Test
+        @DisplayName("Must have one violation when email is null")
+        void givenUpdateForgotPassword_whenEmailIsNull_thenThrowConstraintViolationException() {
+
+            final String code = "8c878e6fff134a37a2087510c2638944";
+            final ForgotPasswordRequest request = new ForgotPasswordRequest(null, code);
+
+            final Set<ConstraintViolation<ForgotPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Email required!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, violations.size());
+            assertEquals(expectedMessage, message);
+        }
+
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "plainaddress", "@missingusername.com", "username@.com", "username@.com.", "username@domain..com",
+                "username@domain.c", "username@domain.toolong", "username@domain,com", "username@domain@domain.com",
+                "username@domain..com", "username@domain.com (Joe Smith)", "username@domain.com.", "username@domain.com-",
+                "username@domain.com_", "username@domain.com+", "username@domain.com%", "username@domain.com#",
+                "username@domain.com$", "username@domain.com!", "username@domain.com^", "username@domain.com&",
+                "username@domain.com*", "username@domain.com(", "username@domain.com)", "username@domain.com=",
+                "username@domain.com{", "username@domain.com}", "username@domain.com[", "username@domain.com]"
+        })
+        @DisplayName("Must have one violation when email is invalid in pattern xxx@domain.com")
+        void givenUpdateForgotPassword_whenEmailIsInvalid_thenThrowConstraintViolationException(@SkipInject final String email) {
+
+            final String code = "8c878e6fff134a37a2087510c2638944";
+            final ForgotPasswordRequest request = new ForgotPasswordRequest(email, code);
+
+            final Set<ConstraintViolation<ForgotPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Invalid email!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
+
+        @Test
+        @DisplayName("Must have one violation when code is null")
+        void givenUpdateForgotPassword_whenCodeIsNull_thenThrowConstraintViolationException() {
+
+            final String email = "admin@gmail.com";
+            final ForgotPasswordRequest request = new ForgotPasswordRequest(email, null);
+
+            final Set<ConstraintViolation<ForgotPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Required code!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, violations.size());
+            assertEquals(expectedMessage, message);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "   "})
+        void givenUpdateForgotPassword_whenCodeIsInvalid_thenThrowConstraintViolationException(@SkipInject final String code) {
+
+            final String email = "local@local.com";
+            final ForgotPasswordRequest request = new ForgotPasswordRequest(email, code);
+
+            final Set<ConstraintViolation<ForgotPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Required code!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedMessage, message);
+            assertEquals(expectedSize, size);
+        }
+    }
+
+    //Todokk
+    @Nested
+    @DisplayName("---- NewPasswordRequest tests ----")
+    class NewPasswordRequestTests {
+
+        @Test
+        @DisplayName("Must have two violations when new password is null")
+        void givenUpdateForgotPassword_whenNewPasswordIsNull_thenThrowConstraintViolationException() {
+
+            final String confirmedNewPassword = "#Admin12";
+            final NewPasswordRequest request = new NewPasswordRequest(null, confirmedNewPassword);
+
+            final List<String> violationsMessages = hibernateValidator.validate(request)
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .toList();
+
+            final String expectedEqualsPasswordMessage = "Different passwords: confirmed password should be equals to new password!";
+            final String expectedNewPasswordMessage = "New password required!";
+
+            final int expectedSize = 2;
+
+            assertEquals(expectedSize, violationsMessages.size());
+            assertTrue(violationsMessages.contains(expectedEqualsPasswordMessage));
+            assertTrue(violationsMessages.contains(expectedNewPasswordMessage));
+        }
+
+        @Test
+        @DisplayName("Must have two violations when confirmed new password is null")
+        void givenUpdateForgotPassword_whenConfirmedNewPasswordIsNull_thenThrowConstraintViolationException() {
+
+            final String newPassword = "#Admin12";
+            final NewPasswordRequest request = new NewPasswordRequest(newPassword, null);
+
+            final List<String> violationsMessages = hibernateValidator.validate(request)
+                    .stream()
+                    .map(ConstraintViolation::getMessage)
+                    .toList();
+
+            final String expectedEqualsPasswordMessage = "Different passwords: confirmed password should be equals to new password!";
+            final String expectedNewPasswordMessage = "Confirmed new password required!";
+
+            final int expectedSize = 2;
+
+            assertEquals(expectedSize, violationsMessages.size());
+            assertTrue(violationsMessages.contains(expectedEqualsPasswordMessage));
+            assertTrue(violationsMessages.contains(expectedNewPasswordMessage));
+        }
+
+
+        @Test
+        @DisplayName("Must have one violation when confirmed new password is different from new password")
+        void givenUpdateForgotPassword_whenConfirmedNewPasswordIsDifferentFromNewPassword_thenThrowConstraintViolationException() {
+
+            final String newPassword = "#Admin1";
+            final String confirmedNewPassword = newPassword + "1";
+            final NewPasswordRequest request = new NewPasswordRequest(newPassword, confirmedNewPassword);
+
+            final Set<ConstraintViolation<NewPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Different passwords: confirmed password should be equals to new password!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "abcde", "ABCDE", "12345", "abc123", "ABC123", "abc!@#", "123!@#", "abcABC", "abcABC123",
+                "abcABC!@#", "123ABC!@#", "abc123!@#", "abcABC123!@#", "abcdE", "abcdE1",
+                "abcdE1!@#", "abcdE1!@#2", "abcdE1!@#23", "abcdE1!@#234", "abcdE1!@#2345", "abcdE1!@#23456", "abcdE1!@#234567",
+                "abcdE1!@#2345678", "abcdE1!@#23456789", "abcdE1!@#234567890", "abcdE1!@#2345678901"
+        })
+        @DisplayName("Must have one violation when new password and confirmed new password are invalid in pattern '5 and 8 characters, at least 1 special character and a capital letter'")
+        void givenUpdateForgotPassword_whenPasswordIsInvalid_thenThrowConstraintViolationException(@SkipInject final String password) {
+
+            final NewPasswordRequest request = new NewPasswordRequest(password, password);
+
+            final Set<ConstraintViolation<NewPasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Invalid password! Between 5 and 8 characters, at least 1 special character and a capital letter!";
+
+            final int size = violations.size(),
+                    expectedSize = 2;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
     }
 
 

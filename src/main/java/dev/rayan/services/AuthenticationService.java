@@ -1,9 +1,6 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.authentication.CredentialRequest;
-import dev.rayan.dto.request.authentication.EmailRequest;
-import dev.rayan.dto.request.authentication.ForgotPasswordRequest;
-import dev.rayan.dto.request.authentication.UpdatePasswordRequest;
+import dev.rayan.dto.request.authentication.*;
 import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.client.ForgotPasswordResponse;
 import dev.rayan.exceptions.BusinessException;
@@ -86,13 +83,15 @@ public class AuthenticationService {
     }
 
 
-    public String updateForgotPassword(final ForgotPasswordRequest forgotRequest, final String newPassword) {
+    public String updateForgotPassword(final ForgotPasswordRequest forgotRequest, final NewPasswordRequest newPasswordRequest) {
 
         final Credential credential = findCredentialByEmail(forgotRequest.getEmail())
                 .orElseThrow(() -> new NotAuthorizedException(INVALID_CREDENTIAL_MESSAGE, UNAUTHORIZED));
 
         final ForgotPassword forgotPassword = forgotPasswordRepository.findByIdOptional(forgotRequest.getCode())
                 .orElseThrow(() -> new ForbiddenException("Invalid or expired code, use a valid code or request a new forgot password email on login page!"));
+
+        final String newPassword = newPasswordRequest.newPassword();
 
         if (CryptographyUtils.equals(newPassword, credential.getPassword())) {
             throw new BusinessException("New password can´t be equals to the current password!");

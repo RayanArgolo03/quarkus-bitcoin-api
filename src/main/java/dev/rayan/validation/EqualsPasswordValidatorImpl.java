@@ -6,7 +6,7 @@ import jakarta.validation.ConstraintValidatorContext;
 
 import java.util.Objects;
 
-public class ConfirmedPasswordValidatorImpl implements ConstraintValidator<ConfirmedPasswordEquals, NewPasswordRequest> {
+public class EqualsPasswordValidatorImpl implements ConstraintValidator<EqualsPassword, NewPasswordRequest> {
 
     @Override
     public boolean isValid(final NewPasswordRequest newPasswordRequest, final ConstraintValidatorContext context) {

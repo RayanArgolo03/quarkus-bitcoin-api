@@ -96,34 +96,6 @@ public class AuthenticationResource {
                 .build();
     }
 
-    @DELETE
-    @Transactional
-    @Authenticated
-    @Path("{id}")
-    public Response deleteCredential(@PathParam("id") @UUID(message = "Invalid id!") final String id,
-                                     @Context final JsonWebToken token) {
-
-        final String keycloakUserId = token.getSubject();
-
-        log.info("Verifyning if user exists in keycloak and finding email");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
-
-        log.info("Verifyning if is logged in");
-        keycloakService.verifyIfLoggedIn(keycloakUserId);
-
-        log.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
-        authenticationService.delete(id);
-        keycloakService.delete(keycloakUserId);
-
-        log.info("Sending email to deleted account");
-        mailerService.sendDeletedEmail(email);
-
-        //Front-end redirect to "index" page
-        return Response.ok("It was a pleasure to have you with us, verify your email!")
-                .build();
-    }
-
-
     @POST
     @PermitAll
     @Counted(
@@ -154,6 +126,129 @@ public class AuthenticationResource {
         //Front-end redirect to pageNumber-page
         return Response.ok()
                 .entity(response)
+                .build();
+    }
+
+    @PATCH
+    @Transactional
+    @PermitAll
+    @Metered(
+            name = "auth.send.forgot.password.email.frequency",
+            absolute = true,
+            description = "Sent forgot password emails per day",
+            unit = MetricUnits.DAYS
+    )
+    @Path("/forgot-password")
+    public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
+
+        log.info("Persiting the forgot password register in mongodb");
+        final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request);
+
+        log.info("Sending the email with code and timestamp to expire");
+        mailerService.sendForgotPasswordEmail(
+                RESOURCE_PATH, request.email(), response.code()
+        );
+
+        return Response.accepted()
+                .entity(response)
+                .build();
+    }
+
+    @PATCH
+    @PermitAll
+    @Transactional
+    @Counted(
+            name = "auth.update.forgot.password.requests.total",
+            absolute = true,
+            description = "Total requests by updateForgotPassword"
+    )
+    @Timed(
+            name = "auth.update.forgot.password.execution.time",
+            absolute = true,
+            description = "Execution time of updateForgotPassword",
+            unit = MetricUnits.SECONDS)
+    @Metered(
+            name = "auth.update.forgot.password.frequency",
+            absolute = true,
+            description = "Update forgot password per day",
+            unit = MetricUnits.DAYS
+    )
+    @Path("/update-forgot-password")
+    public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
+                                         @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
+
+        log.info("Validating and updating the password in the database and keycloak");
+        final String encryptedPassword = authenticationService.updateForgotPassword(forgotRequest, newPasswordRequest);
+        keycloakService.updatePassword(forgotRequest.getEmail(), encryptedPassword);
+
+        return Response.ok("Password updated!")
+                .build();
+    }
+
+    @PATCH
+    @Authenticated
+    @Transactional
+    @Counted(
+            name = "auth.update.current.password.requests.total",
+            absolute = true,
+            description = "Total unsuccessful by updateCurrentPassword"
+    )
+    @Metered(
+            name = "auth.update.current.password.frequency",
+            absolute = true,
+            description = "Update current password per hour",
+            unit = MetricUnits.HOURS
+    )
+    @Timed(
+            name = "auth.update.current.password.execution.time",
+            absolute = true,
+            description = "Execution time of updateCurrentPassword"
+    )
+    @Path("/update-current-password")
+    public Response updateCurrentPassword(@Context final JsonWebToken token,
+                                          @Valid @NotNull(message = "Required values!") final UpdatePasswordRequest request) {
+
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Finding user email in keycloak");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
+        log.info("Validating and updating password in the database and keycloak");
+        final String encryptedPassword = authenticationService.updateCurrentPassword(email, request);
+        keycloakService.updatePassword(email, encryptedPassword);
+
+        return Response.ok("Password updated!")
+                .build();
+    }
+
+
+    @DELETE
+    @Transactional
+    @Authenticated
+    @Path("{id}")
+    public Response deleteCredential(@PathParam("id") @UUID(message = "Invalid id!") final String id,
+                                     @Context final JsonWebToken token) {
+
+        final String keycloakUserId = token.getSubject();
+
+        log.info("Verifyning if user exists in keycloak and finding email");
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
+
+        log.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
+        authenticationService.delete(id);
+        keycloakService.delete(keycloakUserId);
+
+        log.info("Sending email to deleted account");
+        mailerService.sendDeletedEmail(email);
+
+        //Front-end redirect to "index" page
+        return Response.ok("It was a pleasure to have you with us, verify your email!")
                 .build();
     }
 
@@ -250,105 +345,6 @@ public class AuthenticationResource {
                 .entity(format("Verify email forwarded to %s!", email))
                 .build();
     }
-
-    @PATCH
-    @Transactional
-    @PermitAll
-    @Metered(
-            name = "auth.send.forgot.password.email.frequency",
-            absolute = true,
-            description = "Sent forgot password emails per day",
-            unit = MetricUnits.DAYS
-    )
-    @Path("/forgot-password")
-    public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
-
-        log.info("Persiting the forgot password register in mongodb");
-        final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request);
-
-        log.info("Sending the email with code and timestamp to expire");
-        mailerService.sendForgotPasswordEmail(
-                RESOURCE_PATH, request.email(), response.code()
-        );
-
-        return Response.accepted()
-                .entity(response)
-                .build();
-    }
-
-    @PATCH
-    @PermitAll
-    @Transactional
-    @Counted(
-            name = "auth.update.forgot.password.requests.total",
-            absolute = true,
-            description = "Total requests by updateForgotPassword"
-    )
-    @Timed(
-            name = "auth.update.forgot.password.execution.time",
-            absolute = true,
-            description = "Execution time of updateForgotPassword",
-            unit = MetricUnits.SECONDS)
-    @Metered(
-            name = "auth.update.forgot.password.frequency",
-            absolute = true,
-            description = "Update forgot password per day",
-            unit = MetricUnits.DAYS
-    )
-    @Path("/update-forgot-password")
-    public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
-                                         @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
-
-        log.info("Validating and updating password in the database and keycloak");
-        final String encryptedPassword = authenticationService.updateForgotPassword(
-                forgotRequest,
-                newPasswordRequest.newPassword()
-        );
-        keycloakService.updatePassword(forgotRequest.getEmail(), encryptedPassword);
-
-        return Response.ok("Password updated!")
-                .build();
-    }
-
-    @PATCH
-    @Authenticated
-    @Transactional
-    @Counted(
-            name = "auth.update.current.password.requests.total",
-            absolute = true,
-            description = "Total unsuccessful by updateCurrentPassword"
-    )
-    @Metered(
-            name = "auth.update.current.password.frequency",
-            absolute = true,
-            description = "Update current password per hour",
-            unit = MetricUnits.HOURS
-    )
-    @Timed(
-            name = "auth.update.current.password.execution.time",
-            absolute = true,
-            description = "Execution time of updateCurrentPassword"
-    )
-    @Path("/update-current-password")
-    public Response updateCurrentPassword(@Context final JsonWebToken token,
-                                          @Valid @NotNull(message = "Required values!") final UpdatePasswordRequest request) {
-
-        final String keycloakUserId = token.getSubject();
-
-        log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
-
-        log.info("Verifyning if is logged in");
-        keycloakService.verifyIfLoggedIn(keycloakUserId);
-
-        log.info("Validating and updating password in the database and keycloak");
-        final String encryptedPassword = authenticationService.updateCurrentPassword(email, request);
-        keycloakService.updatePassword(email, encryptedPassword);
-
-        return Response.ok("Password updated!")
-                .build();
-    }
-
 
 //    @GET
 //    @PermitAll
