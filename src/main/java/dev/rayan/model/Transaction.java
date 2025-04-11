@@ -2,9 +2,6 @@ package dev.rayan.model;
 
 
 import dev.rayan.enums.TransactionType;
-import dev.rayan.model.Client;
-import io.quarkus.arc.All;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -29,6 +26,7 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Setter(value = AccessLevel.PRIVATE)
     @Column(name = "transaction_id")
     UUID id;
 

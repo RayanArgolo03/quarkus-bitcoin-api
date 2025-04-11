@@ -30,14 +30,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mapstruct.factory.Mappers;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static jakarta.ws.rs.core.Response.Status.CONFLICT;
-import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -559,6 +559,134 @@ public class AuthenticationServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("---- UpdateForgotPassword tests ----")
+    class UpdateForgotPasswordTests {
+
+        ForgotPasswordRequest forgotPasswordRequest;
+
+        NewPasswordRequest newPasswordRequest;
+
+        @BeforeEach
+        void setUp() {
+            forgotPasswordRequest = new ForgotPasswordRequest("admin@admin.com", "8c878e6fff134a37-a208-7510c2638944");
+            newPasswordRequest = new NewPasswordRequest("#Admin0", "#Admin0");
+        }
+
+        @Test
+        @DisplayName("Should be throw NotAuthorizedException with status code 401 Unauthorized when credential not exists by email")
+        void givenUpdateForgotPassword_whenCredentialNotExistsByEmail_thenThrowNotAuthorizedException() {
+
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+                    .thenReturn(Optional.empty());
+
+            final NotAuthorizedException e = assertThrows(NotAuthorizedException.class,
+                    () -> service.updateForgotPassword(forgotPasswordRequest, newPasswordRequest));
+
+            final String expectedMessage = "Account not exists!";
+            final Response.Status expectedStatusCode = UNAUTHORIZED;
+
+            assertEquals(expectedMessage, e.getMessage());
+            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+        }
+
+        @Test
+        @DisplayName("Should be throw WebApplicationException with status code 410 Gone when code is invalid or expired")
+        void givenUpdateForgotPasswword_whenCodeIsInvalidOrExpired_thenThrowWebApplicationException() {
+
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+                    .thenReturn(Optional.of(new Credential()));
+
+            final WebApplicationException e = assertThrows(WebApplicationException.class,
+                    () -> service.updateForgotPassword(forgotPasswordRequest, newPasswordRequest));
+
+            final String expectedMessage = "Invalid or expired code, use a valid code or request a new forgot password email on login page!";
+            final Response.Status expectedStatusCode = GONE;
+
+            assertEquals(expectedMessage, e.getMessage());
+            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+        }
+
+        @Test
+        @DisplayName("Should be throw WebApplicationException with status code 409 Conflict when the new password is equals to the current password")
+        void givenUpdateForgotPasswword_whenNewPasswordIsEqualsToCurrentPassword_thenThrowWebApplicationException() {
+
+            final String encryptedPassword = CryptographyUtils.encrypt(newPasswordRequest.newPassword());
+
+            final Credential credential = Credential.builder()
+                    .id(UUID.randomUUID())
+                    .email(forgotPasswordRequest.getEmail())
+                    .password(encryptedPassword)
+                    .build();
+
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+                    .thenReturn(Optional.of(credential));
+
+            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.getCode()))
+                    .thenReturn(Optional.of(new ForgotPassword(credential.getId())));
+
+            final WebApplicationException e = assertThrows(WebApplicationException.class,
+                    () -> service.updateForgotPassword(forgotPasswordRequest, newPasswordRequest));
+
+            final String expectedMessage = "New password can´t be equals to the current password!";
+            final Response.Status expectedStatusCode = CONFLICT;
+
+            assertEquals(expectedMessage, e.getMessage());
+            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+            verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.getCode());
+        }
+
+        @Test
+        @DisplayName("Should update and return encryptedPassword when request is valid")
+        void givenUpdateForgotPassword_whenRequestIsValid_thenPersistAndReturnEncryptedPassword() {
+
+            final String credentialPassword = CryptographyUtils.encrypt(
+                    newPasswordRequest + "!"
+            );
+
+            final Credential credential = Credential.builder()
+                    .id(UUID.randomUUID())
+                    .email(forgotPasswordRequest.getEmail())
+                    .password((credentialPassword))
+                    .build();
+
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+                    .thenReturn(Optional.of(credential));
+
+            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.getCode()))
+                    .thenReturn(Optional.of(new ForgotPassword(credential.getId())));
+
+            doNothing().when(forgotPasswordRepository)
+                    .delete(any(ForgotPassword.class));
+
+            doNothing().when(credentialRepository)
+                    .persist(credential);
+
+            final String expectedPassword = CryptographyUtils.encrypt(newPasswordRequest.newPassword());
+
+            try (MockedStatic<CryptographyUtils> mockedStatic = mockStatic(CryptographyUtils.class)) {
+
+                mockedStatic.when(() -> CryptographyUtils.encrypt(any(String.class)))
+                        .thenReturn(expectedPassword);
+
+                final String encryptedPassword = service.updateForgotPassword(forgotPasswordRequest, newPasswordRequest);
+
+                assertEquals(expectedPassword, encryptedPassword);
+
+                mockedStatic.verify(() -> CryptographyUtils.encrypt(any(String.class)));
+                verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+                verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.getCode());
+                verify(forgotPasswordRepository).delete(any(ForgotPassword.class));
+                verify(credentialRepository).persist(credential);
+            }
+        }
+    }
 
 }
 

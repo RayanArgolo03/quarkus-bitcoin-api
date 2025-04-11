@@ -25,6 +25,7 @@ public class Credential {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Setter(value = AccessLevel.PRIVATE)
     @Column(name = "credential_id")
     UUID id;
 

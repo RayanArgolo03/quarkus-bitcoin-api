@@ -31,6 +31,7 @@ import java.util.UUID;
 public class Client {
 
     @Id
+    @Setter(value = AccessLevel.PRIVATE)
     @Column(name = "credential_id")
     UUID id;
 

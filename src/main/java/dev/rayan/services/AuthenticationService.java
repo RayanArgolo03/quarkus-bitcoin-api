@@ -15,7 +15,6 @@ import dev.rayan.utils.CryptographyUtils;
 import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.WebApplicationException;
 
@@ -82,27 +81,28 @@ public class AuthenticationService {
         return forgotPasswordResponse;
     }
 
-
     public String updateForgotPassword(final ForgotPasswordRequest forgotRequest, final NewPasswordRequest newPasswordRequest) {
 
         final Credential credential = findCredentialByEmail(forgotRequest.getEmail())
                 .orElseThrow(() -> new NotAuthorizedException(INVALID_CREDENTIAL_MESSAGE, UNAUTHORIZED));
 
+        //if expired will be deleted by scheduler
         final ForgotPassword forgotPassword = forgotPasswordRepository.findByIdOptional(forgotRequest.getCode())
-                .orElseThrow(() -> new ForbiddenException("Invalid or expired code, use a valid code or request a new forgot password email on login page!"));
+                .orElseThrow(() -> new WebApplicationException("Invalid or expired code, use a valid code or request a new forgot password email on login page!", GONE));
 
         final String newPassword = newPasswordRequest.newPassword();
 
         if (CryptographyUtils.equals(newPassword, credential.getPassword())) {
-            throw new BusinessException("New password can´t be equals to the current password!");
+            throw new WebApplicationException("New password can´t be equals to the current password!", CONFLICT);
         }
 
-        forgotPasswordRepository.deleteForgotPassword(forgotPassword.getCode());
+        forgotPasswordRepository.delete(forgotPassword);
         updatePassword(credential, newPassword);
 
         return credential.getPassword();
     }
 
+    //TODO
     public String updateCurrentPassword(final String email, final UpdatePasswordRequest request) {
 
         //Credential has been found in Keycloak, get() is secure
