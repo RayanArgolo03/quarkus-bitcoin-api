@@ -3,28 +3,22 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
-    app: nginx
-  name: nginx
+    app: deploy
+  name: deploy
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
-      app: nginx
-  strategy:
-    type: Recreate
+      app: deploy
+  strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
-        app: nginx
+        app: deploy
     spec:
       containers:
-        - image: nginx
-          name: nginx
-          ports:
-            - containerPort: 80
-          resources:
-            limits:
-              memory: "128Mi"
-              cpu: "250m"
-status: { }
+        - image: mateusmuller2/webserver:0.1-878d903
+          name: 0-1-878d903-vnmkz
+          resources: {}
+status: {}

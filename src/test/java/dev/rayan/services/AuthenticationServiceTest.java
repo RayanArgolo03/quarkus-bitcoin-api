@@ -1,9 +1,6 @@
 package dev.rayan.services;
 
-import dev.rayan.dto.request.authentication.CredentialRequest;
-import dev.rayan.dto.request.authentication.EmailRequest;
-import dev.rayan.dto.request.authentication.ForgotPasswordRequest;
-import dev.rayan.dto.request.authentication.NewPasswordRequest;
+import dev.rayan.dto.request.authentication.*;
 import dev.rayan.dto.response.client.CredentialResponse;
 import dev.rayan.dto.response.client.ForgotPasswordResponse;
 import dev.rayan.mappers.CredentialMapper;
@@ -20,7 +17,9 @@ import jakarta.inject.Inject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mapstruct.factory.Mappers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.List;
@@ -82,7 +82,7 @@ public class AuthenticationServiceTest {
             final int size = violations.size(),
                     expectedSize = 1;
 
-            assertEquals(expectedSize, violations.size());
+            assertEquals(expectedSize, size);
             assertEquals(expectedMessage, message);
 
         }
@@ -97,7 +97,7 @@ public class AuthenticationServiceTest {
                 "username@domain.com*", "username@domain.com(", "username@domain.com)", "username@domain.com=",
                 "username@domain.com{", "username@domain.com}", "username@domain.com[", "username@domain.com]"
         })
-        @DisplayName("Must have one violation when email is invalid in pattern xxx@domain.com")
+        @DisplayName("Must have one violation when email is invalid at pattern xxx@domain.com")
         void givenPersistCredential_whenEmailIsInvalid_thenThrowConstraintViolationException(@SkipInject final String email) {
 
             final String password = "#Rayan12";
@@ -142,7 +142,7 @@ public class AuthenticationServiceTest {
                 "abcdE1!@#", "abcdE1!@#2", "abcdE1!@#23", "abcdE1!@#234", "abcdE1!@#2345", "abcdE1!@#23456", "abcdE1!@#234567",
                 "abcdE1!@#2345678", "abcdE1!@#23456789", "abcdE1!@#234567890", "abcdE1!@#2345678901"
         })
-        @DisplayName("Must have one violation when password is invalid in pattern '5 and 8 characters, at least 1 special character and a capital letter'")
+        @DisplayName("Must have one violation when password is invalid at pattern '5 and 8 characters, at least 1 special character and a capital letter'")
         void givenPersistCredential_whenPasswordIsInvalid_thenThrowConstraintViolationException(@SkipInject final String password) {
 
             final String email = "admin@gmail.com";
@@ -264,10 +264,17 @@ public class AuthenticationServiceTest {
         @DisplayName("Should be throw NotAuthorizedException with status code 401 Unauthorized when password is incorrect")
         void givenLogin_whenPasswordIsIncorrect_thenThrowNotAuthorizedException() {
 
-            final String password = request.password() + "!";
+            final String credentialPassword = CryptographyUtils.encrypt(
+                    request.password() + "!"
+            );
+
+            final Credential credential = Credential.builder()
+                    .email(request.emailRequest().email())
+                    .password(credentialPassword)
+                    .build();
 
             when(credentialRepository.findCredentialByEmail(request.emailRequest().email()))
-                    .thenReturn(Optional.of(new Credential()));
+                    .thenReturn(Optional.of(credential));
 
             final NotAuthorizedException e = assertThrows(NotAuthorizedException.class,
                     () -> service.login(request));
@@ -284,9 +291,11 @@ public class AuthenticationServiceTest {
         @DisplayName("Should be return CredentialResponse when request is valid")
         void givenLogin_whenRequestIsValid_thenReturnCredentialResponse() {
 
+            final String credentialPassword = CryptographyUtils.encrypt(request.password());
+
             final Credential credential = Credential.builder()
                     .email(request.emailRequest().email())
-                    .password(CryptographyUtils.encrypt(request.password()))
+                    .password(credentialPassword)
                     .build();
 
             final CredentialResponse expectedResponse = CredentialResponse.builder()
@@ -341,7 +350,7 @@ public class AuthenticationServiceTest {
 
         @Test
         @DisplayName("Should persist and return ForgotPasswordResponse when request is valid")
-        void givenPersistForgotPassword_whenRequestIsValid_thenPersitAndReturnForgotPasswordResponse() {
+        void givenPersistForgotPassword_whenRequestIsValid_thenPersistAndReturnForgotPasswordResponse() {
 
             final Credential credential = Credential.builder()
                     .id(UUID.randomUUID())
@@ -353,19 +362,26 @@ public class AuthenticationServiceTest {
                     forgotPassword.getCode(), forgotPassword.getMadeAt()
             );
 
+            final ArgumentCaptor<ForgotPassword> forgotPasswordCaptor = ArgumentCaptor.forClass(ForgotPassword.class);
+
             when(credentialRepository.findCredentialByEmail(request.email()))
                     .thenReturn(Optional.of(credential));
 
-            doNothing().when(forgotPasswordRepository).persist(forgotPassword);
+            doNothing().when(forgotPasswordRepository)
+                    .persist(forgotPasswordCaptor.capture());
 
             when(forgotPasswordMapper.forgotPasswordToResponse(any(ForgotPassword.class)))
                     .thenReturn(expectedResponse);
 
             assertEquals(expectedResponse, service.persistForgotPassword(request));
 
+            final ForgotPassword forgotPasswordCaptured = forgotPasswordCaptor.getValue();
+
             verify(credentialRepository).findCredentialByEmail(request.email());
-            verify(forgotPasswordRepository).persist(forgotPassword);
-            verify(forgotPasswordMapper).forgotPasswordToResponse(forgotPassword);
+            verify(forgotPasswordRepository).persist(forgotPasswordCaptured);
+            verify(forgotPasswordMapper).forgotPasswordToResponse(any(ForgotPassword.class));
+
+            assertEquals(forgotPasswordCaptured.getCredentialId(), forgotPassword.getCredentialId());
         }
     }
 
@@ -389,7 +405,7 @@ public class AuthenticationServiceTest {
             final int size = violations.size(),
                     expectedSize = 1;
 
-            assertEquals(expectedSize, violations.size());
+            assertEquals(expectedSize, size);
             assertEquals(expectedMessage, message);
         }
 
@@ -404,7 +420,7 @@ public class AuthenticationServiceTest {
                 "username@domain.com*", "username@domain.com(", "username@domain.com)", "username@domain.com=",
                 "username@domain.com{", "username@domain.com}", "username@domain.com[", "username@domain.com]"
         })
-        @DisplayName("Must have one violation when email is invalid in pattern xxx@domain.com")
+        @DisplayName("Must have one violation when email is invalid at pattern xxx@domain.com")
         void givenUpdateForgotPassword_whenEmailIsInvalid_thenThrowConstraintViolationException(@SkipInject final String email) {
 
             final String code = "8c878e6fff134a37a2087510c2638944";
@@ -438,7 +454,7 @@ public class AuthenticationServiceTest {
             final int size = violations.size(),
                     expectedSize = 1;
 
-            assertEquals(expectedSize, violations.size());
+            assertEquals(expectedSize, size);
             assertEquals(expectedMessage, message);
         }
 
@@ -457,12 +473,11 @@ public class AuthenticationServiceTest {
             final int size = violations.size(),
                     expectedSize = 1;
 
-            assertEquals(expectedMessage, message);
             assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
         }
     }
 
-    //Todokk
     @Nested
     @DisplayName("---- NewPasswordRequest tests ----")
     class NewPasswordRequestTests {
@@ -540,7 +555,7 @@ public class AuthenticationServiceTest {
                 "abcdE1!@#", "abcdE1!@#2", "abcdE1!@#23", "abcdE1!@#234", "abcdE1!@#2345", "abcdE1!@#23456", "abcdE1!@#234567",
                 "abcdE1!@#2345678", "abcdE1!@#23456789", "abcdE1!@#234567890", "abcdE1!@#2345678901"
         })
-        @DisplayName("Must have one violation when new password and confirmed new password are invalid in pattern '5 and 8 characters, at least 1 special character and a capital letter'")
+        @DisplayName("Must have one violation when new password and confirmed new password are invalid at pattern '5 and 8 characters, at least 1 special character and a capital letter'")
         void givenUpdateForgotPassword_whenPasswordIsInvalid_thenThrowConstraintViolationException(@SkipInject final String password) {
 
             final NewPasswordRequest request = new NewPasswordRequest(password, password);
@@ -577,7 +592,7 @@ public class AuthenticationServiceTest {
         @DisplayName("Should be throw NotAuthorizedException with status code 401 Unauthorized when credential not exists by email")
         void givenUpdateForgotPassword_whenCredentialNotExistsByEmail_thenThrowNotAuthorizedException() {
 
-            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.email()))
                     .thenReturn(Optional.empty());
 
             final NotAuthorizedException e = assertThrows(NotAuthorizedException.class,
@@ -589,14 +604,14 @@ public class AuthenticationServiceTest {
             assertEquals(expectedMessage, e.getMessage());
             assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
 
-            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.email());
         }
 
         @Test
         @DisplayName("Should be throw WebApplicationException with status code 410 Gone when code is invalid or expired")
         void givenUpdateForgotPasswword_whenCodeIsInvalidOrExpired_thenThrowWebApplicationException() {
 
-            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.email()))
                     .thenReturn(Optional.of(new Credential()));
 
             final WebApplicationException e = assertThrows(WebApplicationException.class,
@@ -608,7 +623,7 @@ public class AuthenticationServiceTest {
             assertEquals(expectedMessage, e.getMessage());
             assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
 
-            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.email());
         }
 
         @Test
@@ -619,14 +634,14 @@ public class AuthenticationServiceTest {
 
             final Credential credential = Credential.builder()
                     .id(UUID.randomUUID())
-                    .email(forgotPasswordRequest.getEmail())
+                    .email(forgotPasswordRequest.email())
                     .password(encryptedPassword)
                     .build();
 
-            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.email()))
                     .thenReturn(Optional.of(credential));
 
-            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.getCode()))
+            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.code()))
                     .thenReturn(Optional.of(new ForgotPassword(credential.getId())));
 
             final WebApplicationException e = assertThrows(WebApplicationException.class,
@@ -638,8 +653,8 @@ public class AuthenticationServiceTest {
             assertEquals(expectedMessage, e.getMessage());
             assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
 
-            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
-            verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.getCode());
+            verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.email());
+            verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.code());
         }
 
         @Test
@@ -652,14 +667,14 @@ public class AuthenticationServiceTest {
 
             final Credential credential = Credential.builder()
                     .id(UUID.randomUUID())
-                    .email(forgotPasswordRequest.getEmail())
+                    .email(forgotPasswordRequest.email())
                     .password((credentialPassword))
                     .build();
 
-            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.getEmail()))
+            when(credentialRepository.findCredentialByEmail(forgotPasswordRequest.email()))
                     .thenReturn(Optional.of(credential));
 
-            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.getCode()))
+            when(forgotPasswordRepository.findByIdOptional(forgotPasswordRequest.code()))
                     .thenReturn(Optional.of(new ForgotPassword(credential.getId())));
 
             doNothing().when(forgotPasswordRepository)
@@ -680,13 +695,331 @@ public class AuthenticationServiceTest {
                 assertEquals(expectedPassword, encryptedPassword);
 
                 mockedStatic.verify(() -> CryptographyUtils.encrypt(any(String.class)));
-                verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.getEmail());
-                verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.getCode());
+                verify(credentialRepository).findCredentialByEmail(forgotPasswordRequest.email());
+                verify(forgotPasswordRepository).findByIdOptional(forgotPasswordRequest.code());
                 verify(forgotPasswordRepository).delete(any(ForgotPassword.class));
                 verify(credentialRepository).persist(credential);
             }
         }
     }
+
+    @Nested
+    @DisplayName("---- UpdatePasswordRequest tests ----")
+    class UpdatePasswordRequestTests {
+
+        String newPassword = "#Admin1";
+
+        @Test
+        @DisplayName("Must have one violation when the current password is null")
+        void givenUpdateCurrentPassword_thenCurrentPasswordIsNull_thenThrowConstraintViolationException() {
+
+            final UpdatePasswordRequest request = new UpdatePasswordRequest(
+                    null, new NewPasswordRequest(newPassword, newPassword)
+            );
+
+            final Set<ConstraintViolation<UpdatePasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Current password required!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
+
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "abcde", "ABCDE", "12345", "abc123", "ABC123", "abc!@#", "123!@#", "abcABC", "abcABC123",
+                "abcABC!@#", "123ABC!@#", "abc123!@#", "abcABC123!@#", "abcdE", "abcdE1",
+                "abcdE1!@#", "abcdE1!@#2", "abcdE1!@#23", "abcdE1!@#234", "abcdE1!@#2345", "abcdE1!@#23456", "abcdE1!@#234567",
+                "abcdE1!@#2345678", "abcdE1!@#23456789", "abcdE1!@#234567890", "abcdE1!@#2345678901"
+        })
+        @DisplayName("Must have one violation when the current password is invalid at pattern '5 and 8 characters, at least 1 special character and a capital letter'")
+        void givenUpdateCurrentPassword_whenCurrentPasswordIsInvalid_thenThrowConstraintViolationException(@SkipInject final String currentPassword) {
+
+
+            final UpdatePasswordRequest request = new UpdatePasswordRequest(
+                    currentPassword, new NewPasswordRequest(newPassword, newPassword)
+            );
+
+            final Set<ConstraintViolation<UpdatePasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Invalid password! Between 5 and 8 characters, at least 1 special character and a capital letter!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
+
+        @Test
+        @DisplayName("Must have one violation when the new password request is null")
+        void givenUpdateCurrentPassword_whenNewPasswordRequestIsNull_thenThrowConstraintViolationException() {
+
+            final UpdatePasswordRequest request = new UpdatePasswordRequest(
+                    newPassword, null
+            );
+
+            final Set<ConstraintViolation<UpdatePasswordRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "New passwords required!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+
+        }
+    }
+
+    @Nested
+    @DisplayName("---- UpdateCurrentPassword tests ----")
+    class UpdateCurrentPasswordTests {
+
+        String email;
+
+        UpdatePasswordRequest request;
+
+        @BeforeEach
+        void setUp() {
+            email = "admin@admin.com";
+
+            final String currentPassword = "#Admin1";
+            final String newPassword = "#Admin2";
+
+            request = new UpdatePasswordRequest(currentPassword, new NewPasswordRequest(newPassword, newPassword));
+        }
+
+        @Test
+        @DisplayName("Should be throw ForbiddenException with code 403 Forbidden when the current password is different to credential password")
+        void givenUpdateCurrentPassword_whenCurrentPasswordIsDifferentToCredentialPassword_thenThrowForbiddenException() {
+
+            final String credentialPassword = CryptographyUtils.encrypt(
+                    request.currentPassword() + "%"
+            );
+
+            final Credential credential = Credential.builder()
+                    .email(email)
+                    .password(credentialPassword)
+                    .build();
+
+            when(credentialRepository.findCredentialByEmail(email))
+                    .thenReturn(Optional.of(credential));
+
+            final ForbiddenException e = assertThrows(ForbiddenException.class,
+                    () -> service.updateCurrentPassword(email, request));
+
+            final String expectedMessage = "Invalid current password, if you don´t remember go to 'forgot password' on the login page!";
+            final Response.Status expectedStatusCode = FORBIDDEN;
+
+            assertEquals(expectedMessage, e.getMessage());
+            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+            verify(credentialRepository).findCredentialByEmail(email);
+        }
+
+        @Test
+        @DisplayName("Should be throw WebApplicationException with code 409 Conflict when the new password is equals to credential password")
+        void givenUpdateCurrentPassword_whenNewPasswordIsEqualsToCredentialPassword_thenThrowWebApplicationException() {
+
+            final String credentialPassword = CryptographyUtils.encrypt(request.newPasswordRequest().newPassword());
+
+            final Credential credential = Credential.builder()
+                    .email(email)
+                    .password(credentialPassword)
+                    .build();
+
+            when(credentialRepository.findCredentialByEmail(email))
+                    .thenReturn(Optional.of(credential));
+
+            try (MockedStatic<CryptographyUtils> mockedStatic = mockStatic(CryptographyUtils.class)) {
+
+                mockedStatic.when(() -> CryptographyUtils.equals(request.currentPassword(), credential.getPassword()))
+                        .thenReturn(true);
+
+                mockedStatic.when(() -> CryptographyUtils.equals(request.newPasswordRequest().newPassword(), credential.getPassword()))
+                        .thenReturn(true);
+
+                final WebApplicationException e = assertThrows(WebApplicationException.class,
+                        () -> service.updateCurrentPassword(email, request));
+
+                final String expectedMessage = "New password can´t be equals to the current password!";
+                final Response.Status expectedStatusCode = CONFLICT;
+
+                assertEquals(expectedMessage, e.getMessage());
+                assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+                verify(credentialRepository).findCredentialByEmail(email);
+                mockedStatic.verify(
+                        () -> CryptographyUtils.equals(anyString(), anyString()),
+                        times(2)
+                );
+            }
+
+        }
+
+        @Test
+        @DisplayName("Should update and return encryptedPassword when request is valid")
+        void givenUpdateCurrentPassword_whenRequestIsValid_thenPersistAndReturnEncryptedPassword() {
+
+            final String currentPassword = request.currentPassword();
+            final String credentialPassword = CryptographyUtils.encrypt(currentPassword);
+
+            final Credential credential = Credential.builder()
+                    .email(email)
+                    .password(credentialPassword)
+                    .build();
+
+            when(credentialRepository.findCredentialByEmail(email))
+                    .thenReturn(Optional.of(credential));
+
+            final String newPassword = request.newPasswordRequest().newPassword();
+            final String expectedPassword = CryptographyUtils.encrypt(newPassword);
+
+            try (MockedStatic<CryptographyUtils> mockedStatic = mockStatic(CryptographyUtils.class)) {
+
+                mockedStatic.when(() -> CryptographyUtils.equals(currentPassword, credential.getPassword()))
+                        .thenReturn(true);
+
+                mockedStatic.when(() -> CryptographyUtils.equals(newPassword, credential.getPassword()))
+                        .thenReturn(false);
+
+                mockedStatic.when(() -> CryptographyUtils.encrypt(newPassword))
+                        .thenReturn(expectedPassword);
+
+                doNothing().when(credentialRepository).persist(credential);
+
+                final String encryptedPassword = service.updateCurrentPassword(email, request);
+
+                assertEquals(expectedPassword, encryptedPassword);
+
+                verify(credentialRepository).findCredentialByEmail(email);
+                verify(credentialRepository).persist(credential);
+
+                mockedStatic.verify(
+                        () -> CryptographyUtils.equals(anyString(), anyString()),
+                        times(2)
+                );
+
+                mockedStatic.verify(() -> CryptographyUtils.encrypt(newPassword));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("---- DeleteCredentialRequest tests ---- ")
+    class DeleteCredentialRequestTests {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "", " ", "   ", "a", "12345", "invalid-uuid", "550e8400e29b41d4a716446655440000", "550e8400-e29b-41d4-a716-44665544000",
+                "550e8400-e29b-41d4-a716-4466554400000", "550e8400-e29b-41d4-a716-44665544zzzz", "550e8400-e29b-41d4-a716-44665544****",
+                "550e8400-e29b-41d4-a716-44665544@!#$", "550e8400-e29b-41d4-a716-44665544abcd1234", "550e8400-e29b-41d4-a716-44665544",
+                "550e8400e29b41d4a7164466554400000000", "550e8400-e29b-41d4-a716-44665544-0000", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-zzzz", "550e8400-e29b-41d4-a716-44665544-1234",
+                "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000",
+                "550e8400-e29b-41d4-a716-44665544-zzzzzz", "550e8400-e29b-41d4-a716-44665544-****", "550e8400-e29b-41d4-a716-44665544-",
+                "550e8400-e29b-41d4-a716-44665544-123456", "550e8400-e29b-41d4-a716-44665544-@!#$", "550e8400-e29b-41d4-a716-44665544-000000"
+        })
+        @DisplayName("Must have one violation when id is invalid")
+        void givenDeleteCredential_whenIdIsInvalid_thenThrowConstraintViolationException(@SkipInject final String id) {
+
+            final DeleteCredentialRequest request = new DeleteCredentialRequest(id);
+
+            final Set<ConstraintViolation<DeleteCredentialRequest>> violations = hibernateValidator.validate(request);
+
+            final String message = violations.iterator().next().getMessage(),
+                    expectedMessage = "Invalid id!";
+
+            final int size = violations.size(),
+                    expectedSize = 1;
+
+            assertEquals(expectedSize, size);
+            assertEquals(expectedMessage, message);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "550e8400-e29b-41d4-a716-446655440000",
+                "123e4567-e89b-12d3-a456-426614174000",
+                "9f8e7d6c-5b4a-3c2d-1e0f-123456789abc"
+        })
+        @DisplayName("Should do nothing when the id is valid")
+        void givenDeleteCredential_whenIdIsValid_thenDoNothing(@SkipInject final String id) {
+            final DeleteCredentialRequest request = new DeleteCredentialRequest(id);
+            assertTrue(
+                    hibernateValidator.validate(request).isEmpty()
+            );
+        }
+    }
+
+    @Nested
+    @DisplayName("---- DeleteCredential tests ----")
+    class DeleteCredentialTests {
+
+        DeleteCredentialRequest request;
+
+        UUID id;
+
+        @BeforeEach
+        void setUp() {
+            request = new DeleteCredentialRequest("8c878e6f-ff13-4a37-a208-7510c2638944");
+            id = UUID.fromString(request.id());
+        }
+
+        @Test
+        @DisplayName("Should be throw NotFountException with status code 404 NotFound when the credential not exists")
+        void givenDeleteCredential_whenCredentialNotExists_thenThrowNotFoundException() {
+
+            when(credentialRepository.deleteById(id))
+                    .thenReturn(false);
+
+            final NotFoundException e = assertThrows(NotFoundException.class,
+                    () -> service.deleteCredential(request));
+
+            final String expectedMessage = "Account not exists!";
+            final Response.Status expectedStatusCode = NOT_FOUND;
+
+            assertEquals(expectedMessage, e.getMessage());
+            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+            verify(credentialRepository).deleteById(id);
+        }
+
+
+        @Test
+        @DisplayName("Should does not throw NotFoundException when credential exists")
+        void givenDeleteCredential_whenCredentialExists_thenDoesNotThrowNotFoundException() {
+
+            when(credentialRepository.deleteById(id))
+                    .thenReturn(true);
+
+            assertDoesNotThrow(() -> service.deleteCredential(request));
+
+            verify(credentialRepository).deleteById(id);
+        }
+
+    }
+
 
 }
 

@@ -27,7 +27,6 @@ import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Metered;
 import org.eclipse.microprofile.metrics.annotation.Timed;
-import org.hibernate.validator.constraints.UUID;
 import org.jboss.logging.Logger;
 
 import java.net.URI;
@@ -179,7 +178,7 @@ public class AuthenticationResource {
 
         log.info("Validating and updating the password in the database and keycloak");
         final String encryptedPassword = authenticationService.updateForgotPassword(forgotRequest, newPasswordRequest);
-        keycloakService.updatePassword(forgotRequest.getEmail(), encryptedPassword);
+        keycloakService.updatePassword(forgotRequest.email(), encryptedPassword);
 
         return Response.ok("Password updated!")
                 .build();
@@ -224,12 +223,11 @@ public class AuthenticationResource {
                 .build();
     }
 
-
     @DELETE
     @Transactional
     @Authenticated
     @Path("{id}")
-    public Response deleteCredential(@PathParam("id") @UUID(message = "Invalid id!") final String id,
+    public Response deleteCredential(@BeanParam @Valid final DeleteCredentialRequest request,
                                      @Context final JsonWebToken token) {
 
         final String keycloakUserId = token.getSubject();
@@ -241,14 +239,14 @@ public class AuthenticationResource {
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
-        authenticationService.delete(id);
+        authenticationService.deleteCredential(request);
         keycloakService.delete(keycloakUserId);
 
         log.info("Sending email to deleted account");
         mailerService.sendDeletedEmail(email);
 
         //Front-end redirect to "index" page
-        return Response.ok("It was a pleasure to have you with us, verify your email!")
+        return Response.noContent()
                 .build();
     }
 
@@ -346,12 +344,12 @@ public class AuthenticationResource {
                 .build();
     }
 
-//    @GET
-//    @PermitAll
-//    @Path("/count-users-online")
-//    public Response getCountUsersOnline() {
-//        return Response.ok(keycloakService.countUsersOnline())
-//                .build();
-//    }
+/*    @GET
+    @PermitAll
+    @Path("/count-users-online")
+    public Response getCountUsersOnline() {
+        return Response.ok(keycloakService.countUsersOnline())
+                .build();
+    }*/
 
 }
