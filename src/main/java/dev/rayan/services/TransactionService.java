@@ -17,6 +17,7 @@ import dev.rayan.model.Client;
 import dev.rayan.model.Transaction;
 import dev.rayan.repositories.TransactionRepository;
 import dev.rayan.utils.PaginationUtils;
+import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -35,6 +36,7 @@ import java.util.UUID;
 import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
 
+@Unremovable
 @ApplicationScoped
 public class TransactionService {
 
@@ -55,7 +57,8 @@ public class TransactionService {
         final Transaction transaction = mapper.requestToTransaction(request, client, type);
         repository.persist(transaction);
 
-        return mapper.transactionToResponse(transaction, bitcoin);
+        TransactionResponse transactionResponse = mapper.transactionToResponse(transaction, bitcoin);
+        return transactionResponse;
     }
 
     public void validateTransaction(final Client client, final BigDecimal quantity) {

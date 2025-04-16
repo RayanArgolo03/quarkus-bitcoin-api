@@ -25,8 +25,8 @@ import java.util.UUID;
 import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
-@ApplicationScoped
 @Unremovable
+@ApplicationScoped
 public class AuthenticationService {
 
     private static final String INVALID_CREDENTIAL_MESSAGE = "Account not exists!";

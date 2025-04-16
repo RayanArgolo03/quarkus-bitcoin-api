@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 
 @QuarkusComponentTest
 @DisplayName("--- Authentication service tests ---")
-public class AuthenticationServiceTest {
+class AuthenticationServiceTest {
 
     @Inject
     AuthenticationService service;
@@ -1019,7 +1019,6 @@ public class AuthenticationServiceTest {
         }
 
     }
-
 
 }
 

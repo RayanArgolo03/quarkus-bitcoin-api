@@ -20,7 +20,7 @@ public record BitcoinResponse(
 
 ) {
 
-    //Instancing quotedAt after serialising
+    //Instancing quotedAt after deserialise
     public BitcoinResponse { quotedAt = LocalDateTime.now(); }
 
     //Serialise "price" as money format - XX.XX R$

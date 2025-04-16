@@ -21,12 +21,15 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.eclipse.microprofile.jwt.Claim;
+import org.eclipse.microprofile.jwt.ClaimValue;
+import org.eclipse.microprofile.jwt.Claims;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -34,7 +37,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-//Todo começar verificação de logins
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Path(TransactionResource.RESOURCE_PATH)
@@ -60,17 +62,22 @@ public final class TransactionResource {
     @Context
     UriInfo uriInfo;
 
-    @Inject
-    JsonWebToken token;
+    @Claim(standard = Claims.sub)
+    ClaimValue<String> keycloakUserIdClaim;
 
     @POST
     @Transactional
     @RolesAllowed("user")
-    @Path("/buy-bitcoins")
-    public Response buyBitcoins(@Valid final TransactionRequest request) {
+    @Path("/buy")
+    public Response buyBitcoins(@Valid @NotNull(message = "Required value!") final TransactionRequest request) {
+
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
 
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -79,7 +86,9 @@ public final class TransactionResource {
         final BitcoinResponse bitcoin = bitcoinService.quote();
 
         log.info("Persisting purchase transaction");
-        final TransactionResponse response = transactionService.persist(request, client, TransactionType.PURCHASE, bitcoin);
+        final TransactionResponse response = transactionService.persist(
+                request, client, TransactionType.PURCHASE, bitcoin
+        );
 
         log.info("Creating resource URI");
         final URI uri = uriInfo.getAbsolutePathBuilder()
@@ -95,11 +104,16 @@ public final class TransactionResource {
     @POST
     @Transactional
     @RolesAllowed("user")
-    @Path("/sell-bitcoins")
+    @Path("/sell")
     public Response sellBitcoins(@Valid final TransactionRequest request) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -129,8 +143,13 @@ public final class TransactionResource {
     @Path("/by-types")
     public Response findTransactionsByTypes(@Valid @BeanParam final TransactionByTypeRequest request) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -147,13 +166,13 @@ public final class TransactionResource {
     @Path("/by-filters")
     public Response findTransactionsByFilters(@BeanParam @Valid final TransactionFiltersRequest request) {
 
-        final String keycloakUserId = token.getSubject();
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
 
         log.info("Finding user email in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -167,8 +186,13 @@ public final class TransactionResource {
     @Path("/{id}")
     public Response findTransactionById(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID transactionId) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Quoting bitcoin");
         final BitcoinResponse bitcoin = bitcoinService.quote();
@@ -182,8 +206,13 @@ public final class TransactionResource {
     @Path("/by-quantity")
     public Response findTransactionsByQuantity(@Valid @BeanParam final TransactionByQuantityRequest request) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -198,8 +227,13 @@ public final class TransactionResource {
     public Response findTransactionCountByPeriod(@QueryParam("period")
                                                  @EnumValidator(enumClass = TransactionReportPeriod.class) final String stringPeriod) {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -216,8 +250,13 @@ public final class TransactionResource {
     @Path("/report")
     public Response createTransactionsReport(@Valid @BeanParam final TransactionReportRequest request) throws IOException, IllegalAccessException {
 
+        final String keycloakUserId = keycloakUserIdClaim.getValue();
+
         log.info("Finding user email in keycloak");
-        final String email = keycloakService.findUserEmailByKeycloakUserId(token.getSubject());
+        final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
+
+        log.info("Verifyning if is logged in");
+        keycloakService.verifyIfLoggedIn(keycloakUserId);
 
         log.info("Finding client in the database");
         final Client client = clientService.findClientByEmail(email);
@@ -248,11 +287,11 @@ public final class TransactionResource {
     }
 
 
-//    @GET
-//    @PermitAll
-//    @Path("/total-made")
-//    public double findTransactionsTotalMade() {
-//        return transactionService.findTotalMade();
-//    }
+/*    @GET
+    @PermitAll
+    @Path("/total-made")
+    public double findTransactionsTotalMade() {
+        return transactionService.findTotalMade();
+    }*/
 
 }

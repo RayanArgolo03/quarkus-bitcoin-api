@@ -7,10 +7,13 @@ import java.math.BigDecimal;
 
 public record TransactionRequest(
 
-        @DecimalMin(value = "0.000001", inclusive = false,
+        @NotNull(message = "Quantity required!")
+        @DecimalMin(
+                value = "0.000001",
+                inclusive = true,
                 message = "Quantity must be greater than 0.000001!"
         )
-        @NotNull(message = "Quantity required!")
         BigDecimal quantity) {
+
 
 }

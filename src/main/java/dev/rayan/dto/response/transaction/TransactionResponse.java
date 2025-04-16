@@ -2,11 +2,13 @@ package dev.rayan.dto.response.transaction;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Builder
 public record TransactionResponse(
         UUID id,
         String bitcoinCurrentValue,

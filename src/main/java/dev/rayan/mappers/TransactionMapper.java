@@ -19,15 +19,17 @@ import static org.mapstruct.ReportingPolicy.ERROR;
 @Mapper(componentModel = JAKARTA_CDI, unmappedTargetPolicy = ERROR)
 public interface TransactionMapper {
 
-    @Mapping(target = "client", source = "client")
-    @Mapping(target = "id", ignore = true)
-    Transaction requestToTransaction(TransactionRequest request, Client client, TransactionType type);
-
     @Named("formatMoney")
     default String formatMoney(final BigDecimal value) {
         return NumberFormat.getCurrencyInstance()
                 .format(value);
     }
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "quantity", source = "request.quantity")
+    @Mapping(target = "client", source = "client")
+    @Mapping(target = "type", source = "type")
+    Transaction requestToTransaction(TransactionRequest request, Client client, TransactionType type);
 
     @Mapping(target = "bitcoinCurrentValue", source = "bitcoin.price", qualifiedByName = "formatMoney")
     @Mapping(target = "currentValueDate", source = "bitcoin.quotedAt")

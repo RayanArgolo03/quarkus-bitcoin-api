@@ -13,14 +13,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@NoArgsConstructor
+@NoArgsConstructor(force = true)
 @AllArgsConstructor
 @Builder
 @Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
 @Table(name = "transactions")
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @DynamicInsert
 public class Transaction {
 
@@ -31,16 +31,16 @@ public class Transaction {
     UUID id;
 
     @Column(nullable = false)
-    BigDecimal quantity;
+    final BigDecimal quantity;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "credential_id", nullable = false)
-    Client client;
+    final Client client;
 
     @Enumerated(value = EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
     @Column(nullable = false)
-    TransactionType type;
+    final TransactionType type;
 
     @Column(name = "created_at")
     final LocalDateTime createdAt = LocalDateTime.now();
