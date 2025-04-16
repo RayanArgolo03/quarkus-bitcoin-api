@@ -20,22 +20,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mapstruct.factory.Mappers;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.*;
 
 @QuarkusComponentTest
-@ExtendWith(MockitoExtension.class)
 @DisplayName("---- TransactionService tests ----")
 class TransactionServiceTest {
 
@@ -112,6 +108,8 @@ class TransactionServiceTest {
             assertEquals(0, hibernateValidator.validate(request).size());
         }
 
+
+        //Problem here!
         @Test
         void givenPersist_whenRequestIsValid_thenPersistAndReturnTransactionResponse() {
 
@@ -126,9 +124,17 @@ class TransactionServiceTest {
                     .type(type)
                     .build();
 
+            //Not working
             doCallRealMethod().when(mapper).requestToTransaction(
                     request, client, type
             );
+
+            //Not working
+            when(mapper.requestToTransaction(request, client, type))
+                    .thenCallRealMethod();
+
+            //Not working
+            doNothing().when(mapper).requestToTransaction(request, client, type);
 
             doNothing().when(repository).persist(transaction);
 
