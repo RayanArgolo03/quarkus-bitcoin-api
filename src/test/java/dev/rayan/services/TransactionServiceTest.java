@@ -5,13 +5,13 @@ import dev.rayan.dto.response.transaction.BitcoinResponse;
 import dev.rayan.dto.response.transaction.TransactionResponse;
 import dev.rayan.enums.TransactionType;
 import dev.rayan.mappers.TransactionMapper;
+import dev.rayan.mappers.TransactionMapperImpl;
 import dev.rayan.model.Client;
 import dev.rayan.model.Transaction;
 import dev.rayan.repositories.TransactionRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.component.QuarkusComponentTest;
 import io.quarkus.test.component.SkipInject;
-import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -22,27 +22,26 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mapstruct.factory.Mappers;
 
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
 
-@QuarkusComponentTest
+@QuarkusComponentTest(value = TransactionMapperImpl.class)
 @DisplayName("---- TransactionService tests ----")
 class TransactionServiceTest {
 
     @Inject
     TransactionService service;
 
+    @Inject
+    TransactionMapper mapper;
+
     @InjectMock
     TransactionRepository repository;
-
-    @InjectSpy
-    TransactionMapper mapper = Mappers.getMapper(TransactionMapper.class);
 
     Validator hibernateValidator = Validation.buildDefaultValidatorFactory().getValidator();
 
@@ -108,8 +107,6 @@ class TransactionServiceTest {
             assertEquals(0, hibernateValidator.validate(request).size());
         }
 
-
-        //Problem here!
         @Test
         void givenPersist_whenRequestIsValid_thenPersistAndReturnTransactionResponse() {
 
@@ -124,22 +121,10 @@ class TransactionServiceTest {
                     .type(type)
                     .build();
 
-            //Not working
-            doCallRealMethod().when(mapper).requestToTransaction(
-                    request, client, type
-            );
-
-            //Not working
-            when(mapper.requestToTransaction(request, client, type))
-                    .thenCallRealMethod();
-
-            //Not working
-            doNothing().when(mapper).requestToTransaction(request, client, type);
-
             doNothing().when(repository).persist(transaction);
 
             final TransactionResponse response = service.persist(request, client, type, bitcoin);
         }
-
     }
+
 }
