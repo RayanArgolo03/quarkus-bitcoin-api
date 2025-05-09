@@ -22,8 +22,7 @@ public final class BitcoinResource {
 
     public static final String RESOUCE_PATH = "/api/v1/bitcoins";
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(ClientResource.class);
 
     @Inject
     BitcoinService bitcoinService;
@@ -41,13 +40,13 @@ public final class BitcoinResource {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Verifyning if user exists in keycloak");
+        LOG.info("Verifyning if user exists in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Quoting bitcoin in external API");
+        LOG.info("Quoting bitcoin in external API");
         return Response.ok(bitcoinService.quote())
                 .build();
     }

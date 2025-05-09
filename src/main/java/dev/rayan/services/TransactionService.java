@@ -20,12 +20,8 @@ import dev.rayan.utils.PaginationUtils;
 import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
-import org.eclipse.microprofile.metrics.MetricUnits;
-import org.eclipse.microprofile.metrics.annotation.Gauge;
-import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -33,7 +29,6 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
-import static jakarta.ws.rs.core.Response.Status.UNAUTHORIZED;
 import static java.lang.String.format;
 
 @Unremovable
@@ -46,9 +41,6 @@ public class TransactionService {
     @Inject
     TransactionMapper mapper;
 
-    @Inject
-    Logger log;
-
     public TransactionResponse persist(final TransactionRequest request,
                                        final Client client,
                                        final TransactionType type,
@@ -57,86 +49,89 @@ public class TransactionService {
         final Transaction transaction = mapper.requestToTransaction(request, client, type);
         repository.persist(transaction);
 
-        TransactionResponse transactionResponse = mapper.transactionToResponse(transaction, bitcoin);
-        return transactionResponse;
+        return mapper.transactionToResponse(transaction, bitcoin);
     }
 
     public void validateTransaction(final Client client, final BigDecimal quantity) {
 
-        final List<Transaction> transactions = repository.find("client", client)
-                .list();
+        final List<Transaction> transactions = repository.findAllTransactions(client);
 
-        if (transactions.isEmpty()) throw new NotAuthorizedException("No has transactions!", UNAUTHORIZED);
+        if (transactions.isEmpty()) {
+            throw new ForbiddenException("You don´t have transactions made!");
+        }
 
-        final BigDecimal purchaseQuantity = sumQuantity(transactions, TransactionType.PURCHASE);
-        final BigDecimal saleQuantity = sumQuantity(transactions, TransactionType.SALE);
+        final BigDecimal purchaseSum = sumQuantity(TransactionType.PURCHASE, transactions);
+        final BigDecimal saleSum = sumQuantity(TransactionType.SALE, transactions);
 
-        final BigDecimal availableQuantity = purchaseQuantity.subtract(
-                saleQuantity, new MathContext(6, RoundingMode.UP)
-        );
+        final MathContext calcPrecision = new MathContext(6, RoundingMode.HALF_UP);
+        final BigDecimal availableQuantity = purchaseSum.subtract(saleSum, calcPrecision);
 
-        final boolean hasAvailableQuantity = availableQuantity.compareTo(BigDecimal.ZERO) > 0;
-        if (!hasAvailableQuantity) throw new BusinessException("No has bitcoins to sale!");
+        final boolean hasAvailableQuantity = availableQuantity.signum() > 0;
+        if (!hasAvailableQuantity) {
+            throw new BusinessException("No has bitcoins to sale!");
+        }
 
         final boolean isValidQuantity = availableQuantity.compareTo(quantity) > -1;
-        if (!isValidQuantity) throw new BusinessException("Cannot sell the quantity desired!");
-
+        if (!isValidQuantity) {
+            final String messageFormat = "Quantity desired (%s) is greater than the available quantity (%s)!";
+            throw new BusinessException(format(messageFormat, quantity, availableQuantity));
+        }
     }
 
-    private BigDecimal sumQuantity(final List<Transaction> transactions, final TransactionType type) {
+    private BigDecimal sumQuantity(final TransactionType type, final List<Transaction> transactions) {
         return transactions.stream()
-                .filter(t -> t.getType() == type)
+                .filter(transaction -> transaction.getType() == type)
                 .map(Transaction::getQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public PageResponse findByType(final TransactionByTypeRequest request, final Client client) {
+    public PageResponse findByTypes(final TransactionByTypeRequest request,
+                                    final Client client,
+                                    final List<TransactionType> transactionTypes) {
         return PaginationUtils.paginate(
-                repository.findTransactionsByType(request, client),
+                repository.findTransactionsByTypes(request, client, transactionTypes),
                 null
         );
     }
 
-    public PageResponse findByFilters(final Client client, final TransactionFiltersRequest request) {
+    public PageResponse findByFilters(final TransactionFiltersRequest request, final Client client) {
         return PaginationUtils.paginate(
-                repository.findTransactionsByFilter(client, request),
-                request.getPaginationRequest()
+                repository.findTransactionsByFilters(request, client),
+                request.paginationRequest()
         );
     }
 
-
-    public TransactionResponse findById(final UUID transactionId, final BitcoinResponse bitcoin) {
-        return repository.findByIdOptional(transactionId)
+    public TransactionResponse findById(final String transactionId, final BitcoinResponse bitcoin) {
+        return repository.findByIdOptional(UUID.fromString(transactionId))
                 .map(transaction -> mapper.transactionToResponse(transaction, bitcoin))
                 .orElseThrow(() -> new NotFoundException("Transaction not found!"));
     }
 
 
-    public PageResponse findByQuantity(final Client client, final TransactionByQuantityRequest request) {
+    public PageResponse findByQuantity(final TransactionByQuantityRequest request, final Client client) {
         return PaginationUtils.paginate(
-                repository.findTransactionByQuantity(client, request),
-                null
+                repository.findTransactionByQuantity(request, client),
+                request.paginationRequest()
         );
     }
 
-    public TransactionCountResponse findCountByPeriod(final Client client, final TransactionReportPeriod period) {
-        return repository.findTransactionCount(client, period);
+    public TransactionCountResponse findCountByPeriod(final TransactionReportPeriod period, final Client client) {
+        return repository.findTransactionCount(period, client);
     }
 
+    public TransactionReportResponse findReport(final TransactionReportPeriod period, final Client client) {
 
-    public TransactionReportResponse findReport(final Client client, final TransactionReportPeriod period) {
+        boolean hasTransactions = findCountByPeriod(period, client).transactionsInPeriod() > 0L;
 
-        final TransactionCountResponse countResponse = findCountByPeriod(client, period);
-
-        if (countResponse.count() < 1L) {
-            throw new NotFoundException(format("No transactions in the %s period", period.getValue()));
+        if (!hasTransactions) {
+            final String messageFormat = "No has transactions in the %s period";
+            throw new ForbiddenException(format(messageFormat, period.getValue()));
         }
 
-        return repository.findTransactionReport(client, period);
+        return repository.findTransactionReport(period, client);
     }
 
-    @Transactional
-    @Gauge(
+    /*@Gauge(
             name = "transactions.current.total.made",
             description = "Current total transactions made",
             absolute = true,
@@ -144,8 +139,8 @@ public class TransactionService {
     )
     public long findTotalMade() {
         log.info("Collecting Gauge metric");
-        return repository.count();
-    }
+        return repository.transactionsInPeriod();
+    }*/
 
 }
 

@@ -15,15 +15,14 @@ public class AddressService {
     @RestClient
     ViaCepRestClient viaCepRestClient;
 
-    //throw ApiException if the ViaCepApi is undergoing downtime
-    public Address findAdressByCep(final String cep) {
-        return viaCepRestClient.findAdressByCep(cep)
+    //throw ApiException if the ViaCepApi downtime
+    public Address findAddressByCep(final String cep) {
+        return viaCepRestClient.findAddressByCep(cep)
                 .map(addressFound -> {
                     if (addressFound.getCep() == null) throw new NotFoundException("CEP not exists!");
                     return addressFound;
                 })
                 .orElseThrow(ApiException::new);
     }
-
 
 }

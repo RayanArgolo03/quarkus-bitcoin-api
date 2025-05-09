@@ -21,7 +21,7 @@ public interface ViaCepRestClient {
     @Retry(delayUnit = ChronoUnit.SECONDS, delay = 1, maxRetries = 2)
     @Fallback(fallbackMethod = "fallback")
     @Path("/{cep}/json/")
-    Optional<Address> findAdressByCep(@PathParam("cep") String cep);
+    Optional<Address> findAddressByCep(@PathParam("cep") String cep);
 
     default Optional<Address> fallback(final String cep) {
         return Optional.empty();

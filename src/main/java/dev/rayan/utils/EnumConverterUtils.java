@@ -16,7 +16,7 @@ public final class EnumConverterUtils {
         return Arrays.stream(enumClass.getEnumConstants())
                 .filter(e -> e.getValue().equalsIgnoreCase(value))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundException("Resource not found!"));
+                .orElseThrow(() -> new NotFoundException("Resource not exists!"));
     }
 
     public static <T extends Enum<T> & BaseEnum<T>> List<T> convertEnums(final Class<T> enumClass, final List<String> values) {

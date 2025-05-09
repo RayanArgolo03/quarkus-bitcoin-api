@@ -1,5 +1,8 @@
 package dev.rayan.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum TransactionReportFormat implements BaseEnum<TransactionReportFormat> {
 
     EXCEL("Excel"),
@@ -9,11 +12,6 @@ public enum TransactionReportFormat implements BaseEnum<TransactionReportFormat>
 
     TransactionReportFormat(String value) {
         this.value = value;
-    }
-
-    @Override
-    public String getValue() {
-        return value;
     }
 
 }

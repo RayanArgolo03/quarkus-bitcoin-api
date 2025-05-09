@@ -49,8 +49,7 @@ public final class ClientResource {
     @Inject
     AuthenticationService authenticationService;
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(ClientResource.class);
 
     @Context
     UriInfo uriInfo;
@@ -60,25 +59,25 @@ public final class ClientResource {
 
     @POST
     @RolesAllowed("user")
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     public Response createClient(@Valid @NotNull(message = "Required values!") final CreateClientRequest request) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Getting credential");
+        LOG.info("Getting credential");
         final Credential credential = authenticationService.findCredentialByEmail(email)
                 .get();
 
-        log.info("Creating client");
+        LOG.info("Creating client");
         final ClientResponse response = clientService.persist(credential, request);
 
-        log.info("Creating uri info");
+        LOG.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("id")
                 .resolveTemplate("{id}", response.credential().getId())
@@ -91,20 +90,20 @@ public final class ClientResource {
 
     @PATCH
     @RolesAllowed("user")
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @Path("{id}")
     public Response updateClientPartial(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID id,
                                         @Valid @NotNull(message = "Required values!") final UpdateClientRequest request) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Updating client partial");
+        LOG.info("Updating client partial");
         clientService.update(id, request);
 
         return Response.ok()
@@ -114,20 +113,20 @@ public final class ClientResource {
 
     @PUT
     @RolesAllowed("user")
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @Path("{id}/address")
     public Response updateAddress(@PathParam("id") @org.hibernate.validator.constraints.UUID(message = "Invalid id!") final UUID id,
                                   @Valid @NotNull(message = "Required address") final Address address) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Updating client address");
+        LOG.info("Updating client address");
         clientService.update(id, address);
 
         return Response.ok()
@@ -142,13 +141,13 @@ public final class ClientResource {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Finding client by id");
+        LOG.info("Finding client by id");
         return Response.ok(clientService.findClientById(id))
                 .build();
     }
@@ -160,13 +159,13 @@ public final class ClientResource {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Finding clients by created at period");
+        LOG.info("Finding clients by created at period");
         return Response.ok(clientService.findClientsByCreatedAt(request))
                 .build();
     }
@@ -178,13 +177,13 @@ public final class ClientResource {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Finding clients by address filter");
+        LOG.info("Finding clients by address filter");
         return Response.ok(clientService.findClientsByAddressFilter(request))
                 .build();
     }

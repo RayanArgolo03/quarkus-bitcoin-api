@@ -1,21 +1,23 @@
 package dev.rayan.dto.request.transaction;
 
+import dev.rayan.enums.TransactionType;
+import dev.rayan.validation.EnumValidator;
 import io.quarkus.panache.common.Sort;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
-import lombok.Getter;
 
 import java.util.List;
 
-@Getter
-public final class TransactionByTypeRequest {
+public record TransactionByTypeRequest(
 
-    @QueryParam("type")
-    List<@NotBlank(message = "Required type!") String> types;
+        @QueryParam("type")
+        List<@NotBlank(message = "Required type!")
+        @EnumValidator(message = "Invalid transaction type!", enumClass = TransactionType.class)
+                String> types,
 
-    @QueryParam("sortType")
-    @DefaultValue("Ascending")
-    Sort.Direction sortType;
-
+        @QueryParam("sortType")
+        @DefaultValue("Ascending")
+        Sort.Direction sortType
+) {
 }

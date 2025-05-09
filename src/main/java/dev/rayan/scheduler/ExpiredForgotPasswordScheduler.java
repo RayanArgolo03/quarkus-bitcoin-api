@@ -3,6 +3,7 @@ package dev.rayan.scheduler;
 
 
 import dev.rayan.repositories.ForgotPasswordRepository;
+import dev.rayan.resources.TransactionResource;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,8 +18,7 @@ public final class ExpiredForgotPasswordScheduler {
     @Inject
     ForgotPasswordRepository repository;
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(ExpiredForgotPasswordScheduler.class);
 
     @ConfigProperty(name = "expired-time")
     String expiredTime;
@@ -40,7 +40,7 @@ public final class ExpiredForgotPasswordScheduler {
     @Scheduled(every = "30m")
     public void deleteExpiredForgotPasswordRequestTime() {
 
-        log.info("Scheduler deleting expired forgot password requests");
+        LOG.info("Scheduler deleting expired forgot password requests");
 
         final Map<String, Object> parameters = Map.of(
                 "timeUnit", timeUnit,

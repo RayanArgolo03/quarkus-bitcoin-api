@@ -9,23 +9,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class EnumValidatorImpl implements ConstraintValidator<EnumValidator, CharSequence> {
+public class EnumValidatorImpl implements ConstraintValidator<EnumValidator, String> {
 
     private List<String> acceptedValues;
 
     @Override
     public void initialize(EnumValidator annotation) {
-        acceptedValues = StringToLowerUtils.toLower(
-                Stream.of(annotation.enumClass().getEnumConstants())
-                        .map(BaseEnum::getValue)
-                        .collect(Collectors.toList())
-        );
+
+        //BaseEnum is father in inheritance, getValue returns the Enum in string format
+        final List<String> baseEnumList = Stream.of(annotation.enumClass().getEnumConstants())
+                .map(BaseEnum::getValue)
+                .collect(Collectors.toList());
+
+        acceptedValues = StringToLowerUtils.toLower(baseEnumList);
     }
 
     @Override
-    public boolean isValid(final CharSequence value, final ConstraintValidatorContext context) {
+    public boolean isValid(final String value, final ConstraintValidatorContext context) {
         if (value == null) return false;
-        return acceptedValues.contains(value.toString().toLowerCase());
+        return acceptedValues.contains(value.toLowerCase());
     }
 }
 

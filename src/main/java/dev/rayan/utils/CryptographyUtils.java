@@ -11,5 +11,7 @@ public final class CryptographyUtils {
         return BcryptUtil.bcryptHash(value);
     }
 
-    public static boolean equals(final String value, final String encryptedValue) { return BcryptUtil.matches(value, encryptedValue); }
+    public static boolean equals(final String value, final String encryptedValue) {
+        return BcryptUtil.matches(value, encryptedValue);
+    }
 }

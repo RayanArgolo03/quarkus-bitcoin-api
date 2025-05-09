@@ -98,6 +98,6 @@ public class ClientService {
     public Client findClientByEmail(final String email) {
         return repository.find("credential.email = ?1", email)
                 .singleResultOptional()
-                .orElseThrow(() -> new NotFoundException("Client not found!"));
+                .orElseThrow(() -> new NotFoundException("Client not found, need to complete your registration!"));
     }
 }

@@ -139,6 +139,5 @@ public class AuthenticationService {
         );
 
         if (!deleted) throw new NotFoundException(INVALID_CREDENTIAL_MESSAGE);
-
     }
 }

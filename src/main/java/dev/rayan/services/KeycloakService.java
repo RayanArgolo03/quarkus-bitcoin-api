@@ -43,7 +43,6 @@ import static jakarta.ws.rs.core.Response.Status.*;
 import static java.lang.String.format;
 
 @ApplicationScoped
-//@Startup
 public class KeycloakService {
 
     @ConfigProperty(name = "quarkus.keycloak.admin-client.server-url")
@@ -58,21 +57,17 @@ public class KeycloakService {
     @ConfigProperty(name = "keycloak.secret")
     String secret;
 
-    @ConfigProperty(name = "keycloak.admin-username")
-    String adminUsername;
-
-    @ConfigProperty(name = "keycloak.admin-password")
-    String adminPassword;
+    @ConfigProperty(name = "keycloak.admin")
+    String admin;
 
     @Inject
     JWTParser jwtParser;
 
     @Inject
-    Logger log;
-
-    @Inject
     @All
     List<TokenStrategy> tokenStrategies;
+
+    private static final Logger LOG = Logger.getLogger(KeycloakService.class);
 
     private static final String ADMIN_EMAIL = "admin@gmail.com";
 
@@ -80,32 +75,9 @@ public class KeycloakService {
 
     private static final String FIRST_LOGIN_ATTRIBUTE = "first_login";
 
-//    @PostConstruct
-//    private void persistMigrationsMock() {
-//        log.info("Persisting migrations mock");
-//        //Id is null because the keycloak generates a new id in each persist
-//        final CredentialResponse response = new CredentialResponse(null, ADMIN_EMAIL, "$2a$10$jkVa9r1OC6uRUhV.sRwGEOMuw4nJQ/doFCB1xM.P8KXYMEd4INCZW", LocalDateTime.now());
-//        persist(response, true);
-//    }
-
-//    @PreDestroy
-//    private void deleteMigrationsMock() {
-//
-//        log.info("Deleting migrations mock");
-//        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
-//
-//            final UsersResource usersResource = getUsersResource(keycloak);
-//            final String keycloakUserId = getUserRepresentation(usersResource, ADMIN_EMAIL)
-//                    .getId();
-//
-//            delete(keycloakUserId);
-//        }
-//
-//    }
-
     public void persist(final CredentialResponse response, final boolean isEmailVerified) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             final UserResource user = createUser(getUsersResource(keycloak), response, isEmailVerified);
             assignRolesToUser(keycloak.realm(realm).roles(), user, response.getEmail());
@@ -180,7 +152,7 @@ public class KeycloakService {
 
     public void resentVerifyEmail(final String keycloakUserId) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
 
@@ -195,7 +167,7 @@ public class KeycloakService {
 
     public TokensResponse login(final CredentialResponse response) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             final UsersResource usersResource = getUsersResource(keycloak);
             final UserRepresentation userRepresentation = getUserRepresentation(usersResource, response.getEmail());
@@ -223,7 +195,7 @@ public class KeycloakService {
 
 
     public void logout(final String keycloakUserId) {
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
             getUserResource(getUsersResource(keycloak), keycloakUserId)
                     .logout();
         }
@@ -231,7 +203,7 @@ public class KeycloakService {
 
     public TokensResponse generateNewTokens(final String keycloakUserId, final Credential credential) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             final UsersResource usersResource = getUsersResource(keycloak);
 
@@ -246,7 +218,7 @@ public class KeycloakService {
 
     public String findUserEmailByKeycloakUserId(final String keycloakUserId) throws WebApplicationException {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             return getUserResource(getUsersResource(keycloak), keycloakUserId)
                     .toRepresentation()
@@ -259,7 +231,7 @@ public class KeycloakService {
 
     public void verifyIfLoggedIn(final String keycloakUserId) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
             final UserResource user = getUserResource(getUsersResource(keycloak), keycloakUserId);
             if (!hasSession(user)) throw new ForbiddenException("Desconnected, you need to login again!");
         }
@@ -329,7 +301,7 @@ public class KeycloakService {
     }
 
     public void delete(final String keycloakUserId) {
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminUsername)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
             getUsersResource(keycloak)
                     .delete(keycloakUserId)
                     .close();
@@ -338,7 +310,7 @@ public class KeycloakService {
 
     public void updatePassword(final String email, final String newPassword) {
 
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
             final UsersResource usersResource = getUsersResource(keycloak);
 
             final UserRepresentation userRepresentation = getUserRepresentation(usersResource, email);
@@ -358,7 +330,7 @@ public class KeycloakService {
 
     private Keycloak buildKeycloak(final String username, final String password) {
 
-        final String grantType = (username.equals(adminUsername))
+        final String grantType = (username.equals(admin))
                 ? OAuth2Constants.CLIENT_CREDENTIALS
                 : OAuth2Constants.PASSWORD;
 
@@ -374,15 +346,15 @@ public class KeycloakService {
     }
 
     @Gauge(
-            name = "auth.count.current.users.online",
+            name = "auth.transactionsInPeriod.current.users.online",
             absolute = true,
             description = "Count current users online",
             unit = MetricUnits.NONE
     )
     public long countUsersOnline() {
 
-        log.info("Collecting Gauge metric");
-        try (Keycloak keycloak = buildKeycloak(adminUsername, adminPassword)) {
+        LOG.info("Collecting Gauge metric");
+        try (Keycloak keycloak = buildKeycloak(admin, admin)) {
 
             final List<Map<String, String>> sessionStats = keycloak.realm(realm)
                     .getClientSessionStats();

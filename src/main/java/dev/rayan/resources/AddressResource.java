@@ -27,30 +27,29 @@ public final class AddressResource {
     @Inject
     KeycloakService keycloakService;
 
-    @Inject
-    Logger log;
-
     @Claim(standard = Claims.sub)
     ClaimValue<String> keycloakUserIdClaim;
+
+    private static final Logger LOG = Logger.getLogger(AddressResource.class);
 
     @GET
     @Authenticated
     @Path("/{cep}")
-    public Response findAdressByCep(@PathParam("cep")
-                                    @NotBlank(message = "Required CEP!")
-                                    @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!") final String cep) {
+    public Response findAddressByCep(@PathParam("cep")
+                                     @NotBlank(message = "Required CEP!")
+                                     @Pattern(regexp = "^\\d{8}$", message = "The CEP should have strictly 8 numbers!") final String cep) {
 
         final String keycloakUserId = keycloakUserIdClaim.getValue();
 
-        log.info("Verifyning if user exists in keycloak");
+        LOG.info("Verifyning if user exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Finding adress by cep");
+        LOG.info("Finding address by cep");
         return Response.ok()
-                .entity(addressService.findAdressByCep(cep))
+                .entity(addressService.findAddressByCep(cep))
                 .build();
     }
 

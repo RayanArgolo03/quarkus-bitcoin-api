@@ -33,9 +33,13 @@ public final class TxtReport extends ReportAbstractFile {
 
 
     private void createReportInfo(final PrintWriter writer, final Map<String, String> fieldsAndValues) {
+
+        final String infoFormat = "%s: %s";
+
         fieldsAndValues.forEach((field, value) ->
-                writer.println(format("%s: %s", field, value))
+                writer.println(format(infoFormat, field, value))
         );
+
     }
 
 }

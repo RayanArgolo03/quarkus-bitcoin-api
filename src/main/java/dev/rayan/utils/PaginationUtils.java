@@ -9,26 +9,31 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PaginationUtils {
 
-    public static PageResponse paginate(PanacheQuery<?> elements, final PaginationRequest pagination) {
+    public static PageResponse paginate(final PanacheQuery<?> elements, final PaginationRequest paginationRequest) {
 
-        if (pagination == null) {
-            return new PageResponse(elements.list(), null, true, 1);
+        final int totalElements = (int) elements.count();
+
+        if (paginationRequest == null) {
+            return new PageResponse(elements.list(), null, true, totalElements, 1, 1);
         }
 
-        if (elements.count() == 0L) {
-            return new PageResponse(elements.list(), null, false, 0);
+        if (totalElements == 0) {
+            return new PageResponse(elements.list(), null, false, totalElements, 0, 0);
         }
+
+        elements.page(paginationRequest.getPage());
 
         final int totalPages = elements.pageCount();
         final int lastPageIndex = totalPages - 1;
-        final int desiredPageIndex = pagination.getPageIndex();
+        final int desiredPageIndex = paginationRequest.pageIndex();
 
         if (desiredPageIndex > lastPageIndex) {
-            elements = elements.lastPage();
-            pagination.setPageNumber(totalPages);
+            elements.lastPage();
         }
 
-        return new PageResponse(elements.list(), pagination, true, totalPages);
+        final int currentPage = elements.page().index + 1;
+
+        return new PageResponse(elements.list(), paginationRequest, true, totalElements, currentPage, totalPages);
     }
 
 }

@@ -84,8 +84,6 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-oidc</artifactId>
         </dependency>
-
-
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-mailer</artifactId>
@@ -102,14 +100,33 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-scheduler</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.quarkiverse.mailpit</groupId>
             <artifactId>quarkus-mailpit</artifactId>
             <version>1.6.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.quarkiverse.mailpit</groupId>
+            <artifactId>quarkus-mailpit-testing</artifactId>
+            <version>1.6.2</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-metrics</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-container-image-jib</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
 
         <dependency>
@@ -123,150 +140,143 @@
             <artifactId>quarkus-junit5-component</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5-mockito</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client</artifactId>
+        </dependency>
 
-    <dependency>
-        <groupId>io.rest-assured</groupId>
-        <artifactId>rest-assured</artifactId>
-        <scope>test</scope>
-    </dependency>
-
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-observability-devservices-lgtm</artifactId>
-        <scope>provided</scope>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-rest-jackson</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-text</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-rest-client</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-rest-client-jackson</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-keycloak-authorization</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-keycloak-admin-rest-client</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>1.18.34</version>
-        <scope>provided</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok-mapstruct-binding</artifactId>
-        <version>0.2.0</version>
-    </dependency>
-    <dependency>
-        <groupId>org.mapstruct</groupId>
-        <artifactId>mapstruct</artifactId>
-        <version>1.6.2</version>
-    </dependency>
-    <dependency>
-        <groupId>org.mapstruct</groupId>
-        <artifactId>mapstruct-processor</artifactId>
-        <version>1.6.2</version>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi-ooxml</artifactId>
-        <version>5.3.0</version>
-    </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-keycloak-authorization</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-keycloak-admin-rest-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.34</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok-mapstruct-binding</artifactId>
+            <version>0.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.3.0</version>
+        </dependency>
 
 
-</dependencies>
+    </dependencies>
 
-<build>
-<plugins>
-    <plugin>
-        <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${quarkus.platform.version}</version>
-        <extensions>true</extensions>
-        <executions>
-            <execution>
-                <goals>
-                    <goal>build</goal>
-                    <goal>generate-code</goal>
-                    <goal>generate-code-tests</goal>
-                    <goal>native-image-agent</goal>
-                </goals>
-            </execution>
-        </executions>
-    </plugin>
-    <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
-        <configuration>
-            <parameters>true</parameters>
-        </configuration>
-    </plugin>
-    <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
-        <configuration>
-            <systemPropertyVariables>
-                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            </systemPropertyVariables>
-        </configuration>
-    </plugin>
-    <plugin>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
-        <executions>
-            <execution>
-                <goals>
-                    <goal>integration-test</goal>
-                    <goal>verify</goal>
-                </goals>
-            </execution>
-        </executions>
-        <configuration>
-            <systemPropertyVariables>
-                <native.image.path>${project.build.directory}/${project.build.finalName}-runner
-                </native.image.path>
-                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            </systemPropertyVariables>
-        </configuration>
-    </plugin>
-</plugins>
-</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
+                            <goal>generate-code-tests</goal>
+                            <goal>native-image-agent</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler-plugin.version}</version>
+                <configuration>
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner
+                        </native.image.path>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
-<profiles>
-<profile>
-    <id>native</id>
-    <activation>
-        <property>
-            <name>native</name>
-        </property>
-    </activation>
-    <properties>
-        <skipITs>false</skipITs>
-        <quarkus.native.enabled>true</quarkus.native.enabled>
-    </properties>
-</profile>
-</profiles>
-        </project>
+    <profiles>
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+            </properties>
+        </profile>
+    </profiles>
+</project>

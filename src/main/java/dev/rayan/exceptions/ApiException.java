@@ -1,19 +1,20 @@
 package dev.rayan.exceptions;
 
-import lombok.Getter;
+import jakarta.ws.rs.WebApplicationException;
 
 import java.io.Serial;
 
-@Getter
-public final class ApiException extends RuntimeException {
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
+
+public final class ApiException extends WebApplicationException {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static final String MESSAGE = "The server was unable to complete your request, contact @rayan_argolo";
+    private static final String MESSAGE = "The service is unavailable, contact the support in Linkedin @rayan_argolo";
 
     public ApiException() {
-        super(MESSAGE);
+        super(MESSAGE, SERVICE_UNAVAILABLE);
     }
 
 

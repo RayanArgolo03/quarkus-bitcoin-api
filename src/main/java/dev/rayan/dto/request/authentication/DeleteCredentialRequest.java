@@ -5,6 +5,6 @@ import org.hibernate.validator.constraints.UUID;
 
 public record DeleteCredentialRequest(
         @PathParam("id")
-        @UUID(message = "Invalid id!")
+        @UUID(message = "Invalid UUID!")
         String id
 ) {}

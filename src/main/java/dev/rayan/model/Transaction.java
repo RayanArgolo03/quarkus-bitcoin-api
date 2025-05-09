@@ -17,6 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Getter
+@EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
 @Entity
@@ -26,7 +27,6 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Setter(value = AccessLevel.PRIVATE)
     @Column(name = "transaction_id")
     UUID id;
 

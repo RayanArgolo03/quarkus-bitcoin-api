@@ -8,7 +8,6 @@ import dev.rayan.model.Client;
 import dev.rayan.utils.StringToLowerUtils;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -30,7 +29,6 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
                 .singleResultOptional();
     }
 
-
     public PanacheQuery<FoundClientResponse> findClientsByCreatedAt(final ClientsByCreatedAtRequest request) {
 
         final String hasUpdatedParam = request.hasUpdated() ? "IS NOT NULL" : "IS NULL";
@@ -40,14 +38,13 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
                 .append(hasUpdatedParam);
 
         final Map<String, Object> parameters = Map.of(
-                "startDate", request.getDatePeriod().getStartDate(),
-                "endDate", request.getDatePeriod().getEndDate()
+                "startDate", request.getDatePeriod().startDate(),
+                "endDate", request.getDatePeriod().endDate()
         );
 
         final Sort sort = Sort.by("firstName", request.getSortFirstName());
 
         return find(baseQuery.toString(), sort, parameters)
-                .page(request.getPagination().getPage())
                 .project(FoundClientResponse.class);
     }
 
@@ -56,7 +53,6 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
 
         final Sort sortCreatedAt = Sort.by("c.createdAt", request.getSortCreatedAt());
         final Class<FoundClientResponse> responseClass = FoundClientResponse.class;
-        final Page page = request.getPagination().getPage();
 
         final AddressFilterRequest addressFilter = request.getAddressFilter();
         final Map<String, Object> parameters = new HashMap<>();
@@ -67,7 +63,6 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
 
         if (parameters.isEmpty()) {
             return find(FIND_CLIENT_QUERY, sortCreatedAt)
-                    .page(page)
                     .project(responseClass);
         }
 
@@ -76,7 +71,6 @@ public final class ClientRepository implements PanacheRepositoryBase<Client, UUI
                 .append(createQueryFilter(parameters));
 
         return find(baseQuery.toString(), sortCreatedAt, parameters)
-                .page(page)
                 .project(responseClass);
     }
 

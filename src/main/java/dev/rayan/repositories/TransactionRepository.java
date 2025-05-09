@@ -5,22 +5,27 @@ import dev.rayan.dto.request.transaction.TransactionByTypeRequest;
 import dev.rayan.dto.request.transaction.TransactionFiltersRequest;
 import dev.rayan.dto.response.transaction.*;
 import dev.rayan.enums.TransactionReportPeriod;
+import dev.rayan.enums.TransactionType;
 import dev.rayan.model.Client;
 import dev.rayan.model.Transaction;
-import dev.rayan.utils.StringToLowerUtils;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @ApplicationScoped
 public final class TransactionRepository implements PanacheRepositoryBase<Transaction, UUID> {
 
-    public PanacheQuery<TransactionByTypeResponse> findTransactionsByType(final TransactionByTypeRequest request, final Client client) {
+    public List<Transaction> findAllTransactions(final Client client) {
+        return list("client", client);
+    }
+
+    public PanacheQuery<TransactionByTypeResponse> findTransactionsByTypes(final TransactionByTypeRequest request, final Client client, final List<TransactionType> transactionTypes) {
 
         final StringBuilder query = new StringBuilder("""  
                 SELECT
@@ -31,7 +36,7 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
                      MAX(createdAt) AS lastTransactionDate,
                      CONCAT(
                         TIMESTAMPDIFF(DAY, MIN(createdAt), MAX(createdAt)),
-                        ' days(s)'
+                        ' day(s)'
                      ) AS periodBetweenFirstAndLast
                 FROM
                      Transaction t
@@ -43,21 +48,24 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
                 Map.of("client", client)
         );
 
-        if (!request.getTypes().isEmpty()) {
-            query.append("AND LOWER(CAST(type AS STRING)) IN (:types)");
-            parameters.put("types", StringToLowerUtils.toLower(request.getTypes()));
+        if (!request.types().isEmpty()) {
+            query.append("AND type IN (:types)");
+            parameters.put("types", transactionTypes);
         }
 
         query.append("GROUP BY type");
 
-        return find(query.toString(), Sort.by("type", request.getSortType()), parameters)
+        return find(query.toString(), Sort.by("type", request.sortType()), parameters)
                 .project(TransactionByTypeResponse.class);
     }
 
-    public PanacheQuery<TransactionByFilterResponse> findTransactionsByFilter(final Client client, final TransactionFiltersRequest request) {
+    public PanacheQuery<TransactionByFilterResponse> findTransactionsByFilters(final TransactionFiltersRequest request, final Client client) {
 
         final String query = """
-                SELECT type, CONCAT(quantity, ' units') AS quantity, createdAt
+                SELECT
+                    type,
+                    CONCAT(quantity, ' unit(s)') AS quantity,
+                    createdAt AS madeAt
                 FROM Transaction t
                 WHERE client = :client
                 AND (DATE(createdAt) BETWEEN :startDate AND :endDate)
@@ -66,22 +74,21 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
 
         final Map<String, Object> parameters = Map.of(
                 "client", client,
-                "startDate", request.getDatePeriod().getStartDate(),
-                "endDate", request.getDatePeriod().getEndDate(),
-                "minQuantity", request.getMinQuantity(),
-                "maxQuantity", request.getMaxQuantity()
+                "startDate", request.datePeriod().startDate(),
+                "endDate", request.datePeriod().endDate(),
+                "minQuantity", request.minQuantity(),
+                "maxQuantity", request.maxQuantity()
         );
 
-        final Sort sort = Sort.by("createdAt", request.getSortCreatedAt())
-                .and("quantity", request.getSortQuantity())
-                .and("type", request.getSortType());
+        final Sort sort = Sort.by("createdAt", request.sortCreatedAt())
+                .and("quantity", request.sortQuantity())
+                .and("type", request.sortType());
 
         return find(query, sort, parameters)
-                .page(request.getPaginationRequest().getPage())
                 .project(TransactionByFilterResponse.class);
     }
 
-    public PanacheQuery<TransactionByQuantityResponse> findTransactionByQuantity(final Client client, final TransactionByQuantityRequest request) {
+    public PanacheQuery<TransactionByQuantityResponse> findTransactionByQuantity(final TransactionByQuantityRequest request, final Client client) {
 
         final String query = """
                 SELECT t.type, t.quantity, cc.email AS clientEmail, t.createdAt
@@ -93,15 +100,15 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
                 """;
 
         final Map<String, Object> parameters = Map.of(
-                "quantity", request.getQuantity(),
+                "quantity", request.quantity(),
                 "client", client
         );
 
-        return find(query, Sort.by("t.createdAt", request.getSortCreatedAt()), parameters)
+        return find(query, Sort.by("t.createdAt", request.sortCreatedAt()), parameters)
                 .project(TransactionByQuantityResponse.class);
     }
 
-    public TransactionCountResponse findTransactionCount(final Client client, final TransactionReportPeriod period) {
+    public TransactionCountResponse findTransactionCount(final TransactionReportPeriod period, final Client client) {
 
         final String whereFilter = """
                 client = :client AND (DATE(createdAt) BETWEEN :startDate AND :endDate)
@@ -113,10 +120,12 @@ public final class TransactionRepository implements PanacheRepositoryBase<Transa
                 "endDate", period.getEndDate()
         );
 
-        return new TransactionCountResponse(count(whereFilter, parameters));
+        return new TransactionCountResponse(
+                count(whereFilter, parameters)
+        );
     }
 
-    public TransactionReportResponse findTransactionReport(final Client client, final TransactionReportPeriod period) {
+    public TransactionReportResponse findTransactionReport(final TransactionReportPeriod period, final Client client) {
 
         final String query = """
                 SELECT

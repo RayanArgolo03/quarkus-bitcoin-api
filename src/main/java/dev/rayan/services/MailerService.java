@@ -26,6 +26,15 @@ public class MailerService {
 
     private static final String FORGOT_SUBJECT = "Forgot Quarkus Bitcoin Password";
 
+    private static final String DELETED_HTML_TEMPLATE = """
+            <h1>It was a pleasure to have you with us, give a star in Github!</h1>
+            <h2 style="color: red; font-family: Arial, sans-serif;">
+                 Quarkus-Bitcoin by Rayan Argolo
+            </h2>
+             """;
+
+    private final static String DELETED_SUBJECT = "Deleted Quarkus Bitcoin Account";
+
     @ConfigProperty(name = "expired-time")
     String expiredTime;
 
@@ -35,10 +44,9 @@ public class MailerService {
     @Inject
     Mailer mailer;
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(MailerService.class);
 
-    public void sendForgotPasswordEmail(final String resourcePath, final String email, final String code) {
+    public void sendEmail(final String resourcePath, final String email, final String code) {
 
         final Map<String, Object> params = Map.of(
                 "resourcePath", resourcePath,
@@ -51,21 +59,12 @@ public class MailerService {
         final String html = StringSubstitutor.replace(FORGOT_HTML_TEMPLATE, params);
         final Mail mail = Mail.withHtml(email, FORGOT_SUBJECT, html);
 
+        LOG.info("Sending forgot password email");
         mailer.send(mail);
     }
 
-    public void sendDeletedEmail(final String email) {
-
-        final String subject = "Deleted Quarkus Bitcoin Account";
-        final String html = """
-                <h1>It was a pleasure to have you with us, give a star in Github!</h1>
-                <h2 style="color: red; font-family: Arial, sans-serif;">
-                     Quarkus-Bitcoin by Rayan Argolo
-                </h2>
-                 """;
-
-        final Mail mail = Mail.withHtml(email, subject, html);
-
-        mailer.send(mail);
+    public void sendEmail(final String email) {
+        LOG.info("Sending deleted email");
+        mailer.send(Mail.withHtml(email, DELETED_SUBJECT, DELETED_HTML_TEMPLATE));
     }
 }

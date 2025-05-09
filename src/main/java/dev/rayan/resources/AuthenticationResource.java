@@ -49,14 +49,13 @@ public class AuthenticationResource {
     @Inject
     MailerService mailerService;
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(AuthenticationResource.class);
 
     @Inject
     UriInfo uriInfo;
 
     @POST
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @PermitAll
     @Counted(
             name = "auth.create.credential.requests.total",
@@ -78,11 +77,11 @@ public class AuthenticationResource {
     @Path("/sign-up")
     public Response createCredential(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
 
-        log.info("Persisting client credential in database and keycloak");
+        LOG.info("Persisting client credential in database and keycloak");
         final CredentialResponse response = authenticationService.persistCredential(request);
         keycloakService.persist(response, false);
 
-        log.info("Creating uri info");
+        LOG.info("Creating uri info");
         final URI uri = uriInfo.getAbsolutePathBuilder()
                 .path("/{id}")
                 .resolveTemplate("id", response.getId())
@@ -117,7 +116,7 @@ public class AuthenticationResource {
     @Path("/login")
     public Response login(@Valid @NotNull(message = "Required values!") final CredentialRequest request) {
 
-        log.info("Login and generate tokens");
+        LOG.info("Login and generate tokens");
         final TokensResponse response = keycloakService.login(
                 authenticationService.login(request)
         );
@@ -129,7 +128,7 @@ public class AuthenticationResource {
     }
 
     @PATCH
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @PermitAll
     @Metered(
             name = "auth.send.forgot.password.email.frequency",
@@ -140,11 +139,11 @@ public class AuthenticationResource {
     @Path("/forgot-password")
     public Response sendForgotPasswordEmail(@Valid @NotNull(message = "Required value!") final EmailRequest request) {
 
-        log.info("Persiting the forgot password register in mongodb");
+        LOG.info("Persiting the forgot password register in mongodb");
         final ForgotPasswordResponse response = authenticationService.persistForgotPassword(request);
 
-        log.info("Sending the email with code and timestamp to expire");
-        mailerService.sendForgotPasswordEmail(
+        LOG.info("Sending the email with code and timestamp to expire");
+        mailerService.sendEmail(
                 RESOURCE_PATH, request.email(), response.code()
         );
 
@@ -155,7 +154,7 @@ public class AuthenticationResource {
 
     @PATCH
     @PermitAll
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @Counted(
             name = "auth.update.forgot.password.requests.total",
             absolute = true,
@@ -176,7 +175,7 @@ public class AuthenticationResource {
     public Response updateForgotPassword(@BeanParam @Valid final ForgotPasswordRequest forgotRequest,
                                          @Valid @NotNull(message = "Required new passwords!") final NewPasswordRequest newPasswordRequest) {
 
-        log.info("Validating and updating the password in the database and keycloak");
+        LOG.info("Validating and updating the password in the database and keycloak");
         final String encryptedPassword = authenticationService.updateForgotPassword(forgotRequest, newPasswordRequest);
         keycloakService.updatePassword(forgotRequest.email(), encryptedPassword);
 
@@ -186,7 +185,7 @@ public class AuthenticationResource {
 
     @PATCH
     @Authenticated
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @Counted(
             name = "auth.update.current.password.requests.total",
             absolute = true,
@@ -209,13 +208,13 @@ public class AuthenticationResource {
 
         final String keycloakUserId = token.getSubject();
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Validating and updating password in the database and keycloak");
+        LOG.info("Validating and updating password in the database and keycloak");
         final String encryptedPassword = authenticationService.updateCurrentPassword(email, request);
         keycloakService.updatePassword(email, encryptedPassword);
 
@@ -224,7 +223,7 @@ public class AuthenticationResource {
     }
 
     @DELETE
-    @Transactional
+    @Transactional(rollbackOn = Exception.class)
     @Authenticated
     @Path("{id}")
     public Response deleteCredential(@BeanParam @Valid final DeleteCredentialRequest request,
@@ -232,18 +231,18 @@ public class AuthenticationResource {
 
         final String keycloakUserId = token.getSubject();
 
-        log.info("Verifyning if user exists in keycloak and finding email");
+        LOG.info("Verifyning if user exists in keycloak and finding email");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
+        LOG.info("Deleting credential, client (if created) and transactions (if made) in database and keycloak");
         authenticationService.deleteCredential(request);
         keycloakService.delete(keycloakUserId);
 
-        log.info("Sending email to deleted account");
-        mailerService.sendDeletedEmail(email);
+        LOG.info("Sending email to deleted account");
+        mailerService.sendEmail(email);
 
         //Front-end redirect to "index" page
         return Response.noContent()
@@ -269,13 +268,13 @@ public class AuthenticationResource {
 
         final String keycloakUserId = token.getSubject();
 
-        log.info("Verifyning if user exists in keycloak");
+        LOG.info("Verifyning if user exists in keycloak");
         keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Verifyning if is logged in");
+        LOG.info("Verifyning if is logged in");
         keycloakService.verifyIfLoggedIn(keycloakUserId);
 
-        log.info("Logout user and revoke token");
+        LOG.info("Logout user and revoke token");
         keycloakService.logout(keycloakUserId);
 
         return Response.ok("Sucessfully Logout!")
@@ -296,19 +295,19 @@ public class AuthenticationResource {
     @Path("/generate-new-tokens")
     public Response generateNewTokens(@NotNull(message = "Required refresh token!") final RefreshTokenRequest request) throws ParseException {
 
-        log.info("Getting keycloak user id");
+        LOG.info("Getting keycloak user id");
         final String keycloakUserId = keycloakService.getKeycloakUserIdByRefreshToken(
                 request.refreshToken()
         );
 
-        log.info("Finding the user email in keycloak");
+        LOG.info("Finding the user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Getting credential to use the email");
+        LOG.info("Getting credential to use the email");
         final Credential credential = authenticationService.findCredentialByEmail(email)
                 .get();
 
-        log.info("Generate new tokens");
+        LOG.info("Generate new tokens");
         final TokensResponse response = keycloakService.generateNewTokens(keycloakUserId, credential);
 
         return Response.ok()
@@ -332,10 +331,10 @@ public class AuthenticationResource {
     @Path("{keycloakUserId}/resent-verify-email")
     public Response resentVerifyEmail(@PathParam("keycloakUserId") @NotEmpty(message = "Required keycloakUserId") final String keycloakUserId) {
 
-        log.info("Finding user email in keycloak");
+        LOG.info("Finding user email in keycloak");
         final String email = keycloakService.findUserEmailByKeycloakUserId(keycloakUserId);
 
-        log.info("Resending verify email");
+        LOG.info("Resending verify email");
         keycloakService.resentVerifyEmail(keycloakUserId);
 
         //Front-end redirect to the login page after confirmation verification
@@ -346,7 +345,7 @@ public class AuthenticationResource {
 
 /*    @GET
     @PermitAll
-    @Path("/count-users-online")
+    @Path("/transactionsInPeriod-users-online")
     public Response getCountUsersOnline() {
         return Response.ok(keycloakService.countUsersOnline())
                 .build();

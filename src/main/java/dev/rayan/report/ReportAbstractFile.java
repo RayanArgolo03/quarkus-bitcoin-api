@@ -2,7 +2,7 @@ package dev.rayan.report;
 
 import dev.rayan.dto.response.transaction.TransactionReportResponse;
 import dev.rayan.enums.TransactionReportPeriod;
-import lombok.Getter;
+import org.jboss.logging.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +15,8 @@ public abstract class ReportAbstractFile {
     private static final String DOWNLOAD_FOLDER = "Downloads";
     private static final String FILE_NAME = "transactions_report";
 
+    private static final Logger LOG = Logger.getLogger(ReportAbstractFile.class);
+
     protected abstract String getExtension();
 
     public abstract void createReport(TransactionReportResponse response, TransactionReportPeriod period)
@@ -22,6 +24,7 @@ public abstract class ReportAbstractFile {
 
     protected File createFile() {
 
+        LOG.info("Creating file");
         File file = getFilePath(0);
 
         for (int version = 1; file.exists(); version++) {

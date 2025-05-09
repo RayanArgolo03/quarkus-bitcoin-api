@@ -489,19 +489,21 @@ class AuthenticationServiceTest {
             final String confirmedNewPassword = "#Admin12";
             final NewPasswordRequest request = new NewPasswordRequest(null, confirmedNewPassword);
 
-            final List<String> violationsMessages = hibernateValidator.validate(request)
+            final List<String> messages = List.of(
+                    "Different passwords: confirmed password should be equals to new password!",
+                    "New password required!"
+            );
+
+            final List<String> expectedMessages = hibernateValidator.validate(request)
                     .stream()
                     .map(ConstraintViolation::getMessage)
                     .toList();
 
-            final String expectedEqualsPasswordMessage = "Different passwords: confirmed password should be equals to new password!";
-            final String expectedNewPasswordMessage = "New password required!";
+            final int size = messages.size();
+            final int expectedSize = expectedMessages.size();
 
-            final int expectedSize = 2;
-
-            assertEquals(expectedSize, violationsMessages.size());
-            assertTrue(violationsMessages.contains(expectedEqualsPasswordMessage));
-            assertTrue(violationsMessages.contains(expectedNewPasswordMessage));
+            assertEquals(expectedSize, size);
+            assertTrue(expectedMessages.containsAll(messages));
         }
 
         @Test
@@ -511,19 +513,21 @@ class AuthenticationServiceTest {
             final String newPassword = "#Admin12";
             final NewPasswordRequest request = new NewPasswordRequest(newPassword, null);
 
-            final List<String> violationsMessages = hibernateValidator.validate(request)
+            final List<String> messages = List.of(
+                    "Different passwords: confirmed password should be equals to new password!",
+                    "Confirmed new password required!"
+            );
+
+            final List<String> expectedMessages = hibernateValidator.validate(request)
                     .stream()
                     .map(ConstraintViolation::getMessage)
                     .toList();
 
-            final String expectedEqualsPasswordMessage = "Different passwords: confirmed password should be equals to new password!";
-            final String expectedNewPasswordMessage = "Confirmed new password required!";
+            final int size = expectedMessages.size();
+            final int expectedSize = messages.size();
 
-            final int expectedSize = 2;
-
-            assertEquals(expectedSize, violationsMessages.size());
-            assertTrue(violationsMessages.contains(expectedEqualsPasswordMessage));
-            assertTrue(violationsMessages.contains(expectedNewPasswordMessage));
+            assertEquals(expectedSize, size);
+            assertTrue(expectedMessages.containsAll(messages));
         }
 
 

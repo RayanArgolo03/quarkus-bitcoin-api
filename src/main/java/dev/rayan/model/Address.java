@@ -7,22 +7,21 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import lombok.AccessLevel;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor
 
 @Embeddable
 public final class Address {
 
+    @Setter
     @NotBlank(message = "Required CEP!")
-    @Pattern(regexp = "^\\d{8}$", message = "The CEP should have only 8 numbers!")
+    @Pattern(regexp = "^\\d{8}$", message = "The CEP should have strictly 8 numbers!")
     @JsonProperty("cep")
     @Column(nullable = false, length = 8)
     String cep;

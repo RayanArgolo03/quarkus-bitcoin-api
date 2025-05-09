@@ -17,8 +17,7 @@ public class BitcoinService {
     @RestClient
     QuoteRestClient quoteRestClient;
 
-    @Inject
-    Logger log;
+    private static final Logger LOG = Logger.getLogger(BitcoinService.class);
 
     public BitcoinResponse quote() {
         return quoteRestClient.quote()
@@ -32,7 +31,7 @@ public class BitcoinService {
             unit = MetricUnits.NONE
     )
     public double getCurrentPrice() {
-        log.info("Collecting Gauge metric");
+        LOG.info("Collecting Gauge metric");
         return quote().price()
                 .doubleValue();
     }
