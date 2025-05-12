@@ -1,22 +1,32 @@
 package dev.rayan.health;
 
+
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
+import org.jboss.logging.Logger;
 
-@ApplicationScoped //Se não for definido será Singleton, precisa de instância global
+import static java.lang.String.format;
 
-@Liveness //Se não marcar com anotação nenhum check será contabilizado
-//HealthCheck é interface funcional
-public final class LivenessCheck implements HealthCheck {
+@Liveness
+@ApplicationScoped
+public class LivenessCheck implements HealthCheck {
 
-    private static final String MESSAGE = "Application instance is available";
+    @ConfigProperty(name = "quarkus.http.port")
+    String port;
+
+    private static final Logger LOG = Logger.getLogger(ReadinessCheck.class);
 
     @Override
-    //HealthCheckResponse segue padrão Fluent Builder
-    //Tem HealthCheckBuilder abstrato o qual é implementado em execução por ResponseBuilder
     public HealthCheckResponse call() {
-        return HealthCheckResponse.up(MESSAGE);
+
+        LOG.info("Start liveness check");
+
+        return HealthCheckResponse.up(format(
+                "Application is up in the port %s!",
+                port
+        ));
     }
 }

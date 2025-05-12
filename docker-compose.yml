@@ -5,8 +5,18 @@ volumes:
 networks:
   monitoring:
     driver: "bridge"
+  application:
+    driver: "bridge"
 
 services:
+  web:
+    container_name: "quarkus-bitcoin"
+    networks:
+      - application
+    image: localhost:5000/rayan-argolo
+    ports:
+      - "8080:8080"
+
   prometheus:
     container_name: "prometheus"
     networks:
@@ -32,6 +42,8 @@ services:
     image: prom/node-exporter
     ports:
       - "9100:9100"
+    depends_on:
+      - "prometheus"
     deploy:
       resources:
         limits:

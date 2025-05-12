@@ -1,8 +1,5 @@
 package dev.rayan.enums;
 
-import lombok.Getter;
-
-@Getter
 public enum TransactionType implements BaseEnum<TransactionType> {
 
     PURCHASE("Purchase"), SALE("Sale");
@@ -13,4 +10,8 @@ public enum TransactionType implements BaseEnum<TransactionType> {
         this.value = value;
     }
 
+    @Override
+    public String getValue() {
+        return value;
+    }
 }

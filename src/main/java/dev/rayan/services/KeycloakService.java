@@ -327,8 +327,8 @@ public class KeycloakService {
         user.update(userRepresentation);
     }
 
-
-    private Keycloak buildKeycloak(final String username, final String password) {
+    //Don´t works
+    public Keycloak buildKeycloak(final String username, final String password) {
 
         final String grantType = (username.equals(admin))
                 ? OAuth2Constants.CLIENT_CREDENTIALS
@@ -365,7 +365,6 @@ public class KeycloakService {
         }
 
     }
-
 }
 
 

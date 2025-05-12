@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class AddressResourceTest extends AccessTokenProvider {
 
     private static final String RESOUCE_PATH = "/api/v1/addresses";
+
     @BeforeAll
     static void beforeAll() {
         filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
@@ -55,7 +56,7 @@ public class AddressResourceTest extends AccessTokenProvider {
                             contentType(ContentType.JSON).
                             auth().oauth2(accessToken).
                             pathParam("cep", entityCep).
-                    when().
+                            when().
                             get(CEP_PATH);
 
             assertEquals(expectedStatusCode, response.statusCode());
@@ -64,14 +65,13 @@ public class AddressResourceTest extends AccessTokenProvider {
     }
 }
 
-    /*
-     caso favorável
-    *  //não autenticado,
-    *  cep vazio,
-    *  cep inválido
-    * usuário inexistente,
-    * usuário deslogado,
-    *
-    * */
+/*
+ *  //não autenticado,
+ *  cep vazio,
+ *  cep inválido
+ * usuário inexistente,
+ * usuário deslogado,
+ *
+ * */
 
 

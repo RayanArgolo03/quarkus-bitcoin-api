@@ -24,5 +24,8 @@ public enum TransactionReportPeriod implements BaseEnum<TransactionReportPeriod>
         this.endDate = LocalDate.now();
     }
 
-
+    @Override
+    public String getValue() {
+        return value;
+    }
 }
