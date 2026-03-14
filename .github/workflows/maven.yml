@@ -7,8 +7,6 @@ on:
       - "feature/*"
       - "integration/*"
       - "fix/*"
-    branches-ignore:
-      - "chore/*"
   pull_request:
     branches: [ "main" ]
     types: [ "opened", "reopened", "synchronize" ]
