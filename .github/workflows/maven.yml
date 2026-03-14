@@ -12,7 +12,7 @@ on:
     types: [ "opened", "reopened", "synchronize" ]
 
 jobs:
-  set-up:
+  Set UP:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -25,17 +25,17 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-  build:
+  Build Maven:
     runs-on: ubuntu-latest
-    needs: set-up
+    needs: Set UP
     steps:
       - uses: actions/checkout@v4
-      - name: Build aplicação
+      - name: Build Maven aplicação
         run: ./mvnw -B -DskipTests clean package
 
-  test:
+  Teste:
     runs-on: ubuntu-latest
-    needs: build
+    needs: Build Maven
     steps:
       - uses: actions/checkout@v4
       - name: Setup JDK para testes
@@ -47,12 +47,12 @@ jobs:
       - name: Rodar testes (Dev Services)
         run: ./mvnw -B verify -Dquarkus.test.continuous-testing=disabled
 
-  deploy:
+  Deploy:
     runs-on: ubuntu-latest
-    needs: test
+    needs: Teste
     steps:
       - uses: actions/checkout@v4
-      - name: Setup JDK para deploy
+      - name: Setup JDK para Deploy
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -65,16 +65,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Buildar e Push da imagem com Jib
+      - name: Build Mavenar e Push da imagem com Jib
         run: |
           ./mvnw package \
-            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.Build Maven=true \
             -Dquarkus.container-image.push=true \
             -Dquarkus.container-image.image=docker.io/${{ secrets.DOCKER_USERNAME }}/quarkus-bitcoin:latest
 
   scan-docker-image:
      runs-on: ubuntu-latest
-     needs: deploy
+     needs: Deploy
      steps:
        - name: Scan Docker Image com Trivy
          uses: aquasecurity/trivy-action@0.24.0
