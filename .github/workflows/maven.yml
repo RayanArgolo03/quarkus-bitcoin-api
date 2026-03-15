@@ -12,22 +12,30 @@ on:
     types: [ "opened", "reopened", "synchronize" ]
 
 jobs:
-  Set UP:
+  Set-UP:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Setup JDK pro checkiuyt
+      - name: Setup JDK pro checkout
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
-  Build Maven:
+      - name: Cache JIB Imagem Docker
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/jib
+          key: ${{ runner.os }}-jib-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-jib
+
+  Build-Maven:
     runs-on: ubuntu-latest
-    needs: Set UP
+    needs: Set-UP
     steps:
       - uses: actions/checkout@v4
       - name: Build Maven aplicação
@@ -35,7 +43,7 @@ jobs:
 
   Teste:
     runs-on: ubuntu-latest
-    needs: Build Maven
+    needs: Build-Maven
     steps:
       - uses: actions/checkout@v4
       - name: Setup JDK para testes
@@ -65,14 +73,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Mavenar e Push da imagem com Jib
+      - name: Deploy Maven e Push da imagem com Jib
         run: |
           ./mvnw package \
             -Dquarkus.container-image.Build Maven=true \
             -Dquarkus.container-image.push=true \
             -Dquarkus.container-image.image=docker.io/${{ secrets.DOCKER_USERNAME }}/quarkus-bitcoin:latest
 
-  scan-docker-image:
+  Scan-Docker-Image:
      runs-on: ubuntu-latest
      needs: Deploy
      steps:
@@ -90,4 +98,9 @@ jobs:
          with:
             scan-type: fs
             format: table
-           
+
+       - name: Scan secrets com Gitleaks
+         uses: gitleaks/gitleaks-action@v2
+         with:
+            github_token: ${{ secrets.GITHUB_TOKEN }} 
+            args: detect --report-format json --report-path gitleaks-report.json
