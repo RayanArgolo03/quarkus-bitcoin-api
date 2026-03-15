@@ -75,8 +75,8 @@ jobs:
 
       - name: Deploy Maven e Push da imagem com Jib
         run: |
-          ./mvnw package \
-            -Dquarkus.container-image.Build Maven=true \
+          ./mvnw package -DskipTests \
+            -Dquarkus.container-image.build=true \
             -Dquarkus.container-image.push=true \
             -Dquarkus.container-image.image=docker.io/${{ secrets.DOCKER_USERNAME }}/quarkus-bitcoin:latest
 
