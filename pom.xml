@@ -14,7 +14,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.21.1</quarkus.platform.version>
+        <quarkus.platform.version>3.25.3</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.0</surefire-plugin.version>
     </properties>
@@ -36,7 +36,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest</artifactId>
-            <version>3.32.3</version>
         </dependency>
 
         <dependency>
@@ -50,7 +49,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-postgresql</artifactId>
-            <version>3.32.2</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.quarkus/quarkus-rest-jackson -->
@@ -174,7 +172,6 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-keycloak-admin-rest-client</artifactId>
-            <version>3.14.4</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
