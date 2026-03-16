@@ -102,5 +102,6 @@ jobs:
        - name: Scan secrets com Gitleaks
          uses: gitleaks/gitleaks-action@v2
          with:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             args: detect --report-format json --report-path gitleaks-report.json
+         env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
