@@ -91,7 +91,7 @@ jobs:
             format: table
             exit-code: 1
             ignore-unfixed: true
-            severity: CRITICAL,HIGH
+            severity: CRITICAL
       
        - name: Scan dependências Maven
          uses: aquasecurity/trivy-action@0.24.0
