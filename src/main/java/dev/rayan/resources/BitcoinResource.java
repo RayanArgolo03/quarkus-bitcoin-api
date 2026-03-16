@@ -1,8 +1,12 @@
 package dev.rayan.resources;
 
+import org.eclipse.microprofile.jwt.Claim;
+import org.eclipse.microprofile.jwt.ClaimValue;
+import org.eclipse.microprofile.jwt.Claims;
+import org.jboss.logging.Logger;
+
 import dev.rayan.services.BitcoinService;
 import dev.rayan.services.KeycloakService;
-import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -10,10 +14,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.jwt.Claim;
-import org.eclipse.microprofile.jwt.ClaimValue;
-import org.eclipse.microprofile.jwt.Claims;
-import org.jboss.logging.Logger;
 
 @Path(BitcoinResource.RESOUCE_PATH)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -34,7 +34,6 @@ public final class BitcoinResource {
     ClaimValue<String> keycloakUserIdClaim;
 
     @GET
-    @Authenticated
     @Path("/quote")
     public Response quote() {
 
@@ -51,12 +50,12 @@ public final class BitcoinResource {
                 .build();
     }
 
-//    @GET
-//    @PermitAll
-//    @Path("/current-price")
-//    public double getCurrentPrice() {
-//        log.info("Quoting bitcoin in external API");
-//        return bitcoinService.getCurrentPrice();
-//    }
+    // @GET
+    // @PermitAll
+    // @Path("/current-price")
+    // public double getCurrentPrice() {
+    // log.info("Quoting bitcoin in external API");
+    // return bitcoinService.getCurrentPrice();
+    // }
 
 }

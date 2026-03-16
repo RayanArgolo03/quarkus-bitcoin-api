@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "main"
+      - "feature/*"
+      - "integration/*"
+      - "fix/*"
+  pull_request:
+    branches: [ "main" ]
+    types: [ "opened", "reopened", "synchronize" ]
+
+jobs:
+  Set-UP:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup JDK pro checkout
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache JIB Imagem Docker
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/jib
+          key: ${{ runner.os }}-jib-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-jib
+
+  Build-Maven:
+    runs-on: ubuntu-latest
+    needs: Set-UP
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Maven aplicação
+        run: ./mvnw -B -DskipTests clean package
+
+  Teste:
+    runs-on: ubuntu-latest
+    needs: Build-Maven
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK para testes
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Rodar testes (Dev Services)
+        run: ./mvnw -B verify -Dquarkus.test.continuous-testing=disabled
+
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: Teste
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK para Deploy
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Login no Docker Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Deploy Maven e Push da imagem com Jib
+        run: |
+          ./mvnw package -DskipTests \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.push=true \
+            -Dquarkus.container-image.image=docker.io/${{ secrets.DOCKER_USERNAME }}/quarkus-bitcoin:latest
+
+  Scan-Docker-Image:
+     runs-on: ubuntu-latest
+     needs: Deploy
+     steps:
+       - name: Setup Scan
+         uses: actions/checkout@v4
+         with:
+             fetch-depth: 0
+          
+       - name: Scan Docker Image com Trivy
+         uses: aquasecurity/trivy-action@0.24.0
+         with:
+            image-ref: docker.io/${{ secrets.DOCKER_USERNAME }}/quarkus-bitcoin:latest
+            format: table
+            exit-code: 1
+            ignore-unfixed: true
+            severity: CRITICAL
+      
+       - name: Scan dependências Maven
+         uses: aquasecurity/trivy-action@0.24.0
+         with:
+            scan-type: fs
+            format: table
+
+       - name: Scan secrets com Gitleaks
+         uses: gitleaks/gitleaks-action@v2
+         with:
+            args: detect --report-format json --report-path gitleaks-report.json
+         env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

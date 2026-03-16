@@ -57,375 +57,371 @@ import static org.mockito.Mockito.*;
 @DisplayName("---- TransactionService tests ----")
 class TransactionServiceTest {
 
-    @Inject
-    TransactionService service;
+        @Inject
+        TransactionService service;
 
-    @Inject
-    TransactionMapper mapper;
+        @Inject
+        TransactionMapper mapper;
 
-    @InjectMock
-    TransactionRepository repository;
+        @InjectMock
+        TransactionRepository repository;
 
-    Validator hibernateValidator = Validation.buildDefaultValidatorFactory().getValidator();
+        Validator hibernateValidator = Validation.buildDefaultValidatorFactory().getValidator();
 
-    @Nested
-    @DisplayName("---- Persist tests ----")
-    class PersistTests {
+        @Nested
+        @DisplayName("---- Persist tests ----")
+        class PersistTests {
 
-        Client client;
+                Client client;
 
-        TransactionType type;
+                TransactionType type;
 
-        BitcoinResponse bitcoin;
+                BitcoinResponse bitcoin;
 
-        @BeforeEach
-        void setUp() {
-            client = new Client();
-            type = TransactionType.PURCHASE;
-            bitcoin = new BitcoinResponse(new BigDecimal(10), LocalDateTime.now());
+                @BeforeEach
+                void setUp() {
+                        client = new Client();
+                        type = TransactionType.PURCHASE;
+                        bitcoin = new BitcoinResponse(new BigDecimal(10), LocalDateTime.now());
+                }
+
+                @Test
+                @DisplayName("Must have one violation when quantity is null")
+                void givenPersist_whenQuantityIsNull_thenThrowConstraintViolationException() {
+
+                        final TransactionRequest request = new TransactionRequest(null);
+
+                        final Set<ConstraintViolation<TransactionRequest>> violations = hibernateValidator
+                                        .validate(request);
+
+                        final String message = violations.iterator().next().getMessage(),
+                                        expectedMessage = "Quantity required!";
+
+                        final int size = violations.size(),
+                                        expectedSize = 1;
+
+                        assertEquals(expectedSize, size);
+                        assertEquals(expectedMessage, message);
+                }
+
+                @ParameterizedTest
+                @ValueSource(strings = { "0", "-1", "0.0000001" })
+                @DisplayName("Must have one violation when quantity is less than decimal min")
+                void givenPersist_whenQuantityLessThanDecimalMin_thenThrowConstraintViolationException(
+                                @SkipInject final BigDecimal quantity) {
+
+                        final TransactionRequest request = new TransactionRequest(quantity);
+
+                        final Set<ConstraintViolation<TransactionRequest>> violations = hibernateValidator
+                                        .validate(request);
+
+                        final String message = violations.iterator().next().getMessage(),
+                                        expectedMessage = "Quantity must be greater than 0.000001!";
+
+                        final int size = violations.size(),
+                                        expectedSize = 1;
+
+                        assertEquals(expectedSize, size);
+                        assertEquals(expectedMessage, message);
+                }
+
+                @ParameterizedTest
+                @ValueSource(strings = { "1", "10", "0.000002" })
+                @DisplayName("Should does nothing when request is valid")
+                void givenPersist_whenRequestIsValid_thenDoesNothing(@SkipInject final BigDecimal quantity) {
+                        final TransactionRequest request = new TransactionRequest(quantity);
+                        assertEquals(0, hibernateValidator.validate(request).size());
+                }
+
+                @Test
+                @DisplayName("---- Should persist and return TransactionResponse when request is valid")
+                void givenPersist_whenRequestIsValid_thenPersistAndReturnTransactionResponse() {
+
+                        final TransactionRequest request = new TransactionRequest(
+                                        new BigDecimal("1"));
+
+                        final Transaction expectedTransaction = Transaction.builder()
+                                        .client(client)
+                                        .quantity(request.quantity())
+                                        .type(type)
+                                        .build();
+
+                        final ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor
+                                        .forClass(Transaction.class);
+
+                        final String bitcoinCurrentValue = NumberFormatUtils.formatNumber(bitcoin.price());
+                        final String quantity = request.quantity() + " unit(s)";
+
+                        final String transactionTotal = NumberFormatUtils.formatNumber(
+                                        bitcoin.price().multiply(request.quantity()));
+
+                        final TransactionResponse expectedResponse = TransactionResponse.builder()
+                                        .bitcoinCurrentValue(bitcoinCurrentValue)
+                                        .currentValueDate(bitcoin.quotedAt().toLocalDate())
+                                        .quantity(quantity)
+                                        .createdAt(expectedTransaction.getCreatedAt())
+                                        .type(type.getValue())
+                                        .transactionTotal(transactionTotal)
+                                        .build();
+
+                        try (MockedStatic<LocalDateTime> mockCreatedAt = mockStatic(LocalDateTime.class)) {
+
+                                // Used by mapper request to transaction in build()
+                                mockCreatedAt.when(LocalDateTime::now).thenReturn(expectedTransaction.getCreatedAt());
+                                doNothing().when(repository).persist(transactionCaptor.capture());
+
+                                final TransactionResponse response = service.persist(request, client, type, bitcoin);
+                                final Transaction capturedTransaction = transactionCaptor.getValue();
+
+                                assertEquals(expectedResponse, response);
+                                assertEquals(expectedTransaction, capturedTransaction);
+
+                                verify(repository).persist(capturedTransaction);
+                        }
+                }
         }
 
-        @Test
-        @DisplayName("Must have one violation when quantity is null")
-        void givenPersist_whenQuantityIsNull_thenThrowConstraintViolationException() {
+        @Nested
+        class ValidateTransactionTests {
 
-            final TransactionRequest request = new TransactionRequest(null);
+                Client client;
 
-            final Set<ConstraintViolation<TransactionRequest>> violations = hibernateValidator.validate(request);
+                BigDecimal quantity;
 
-            final String message = violations.iterator().next().getMessage(),
-                    expectedMessage = "Quantity required!";
+                @BeforeEach
+                void setUp() {
+                        client = new Client();
+                        quantity = new BigDecimal("3.5");
+                }
 
-            final int size = violations.size(),
-                    expectedSize = 1;
+                @Test
+                @DisplayName("Should be throw ForbiddenException with status code 409 Forbidden when no has transactions made")
+                void givenValidateTransaction_whenNoHasTransactions_thenThrowForbiddenException() {
 
-            assertEquals(expectedSize, size);
-            assertEquals(expectedMessage, message);
+                        when(repository.findAllTransactions(client)).thenReturn(List.of());
+
+                        final ForbiddenException e = assertThrows(ForbiddenException.class,
+                                        () -> service.validateTransaction(client, quantity));
+
+                        final String expectedMessage = "You don´t have transactions made!";
+                        final Response.Status expectedStatusCode = FORBIDDEN;
+
+                        assertEquals(expectedMessage, e.getMessage());
+                        assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+                        verify(repository).findAllTransactions(client);
+                }
+
+                @Test
+                @DisplayName("Should be throw BusinessException with status code 400 Bad Request when no has available quantity")
+                void givenValidateTransaction_whenNoHasAvailableQuantity_thenThrowBusinessException() {
+
+                        final BigDecimal totalSum = new BigDecimal(quantity.toString());
+
+                        final Transaction purchaseTransaction = Transaction.builder()
+                                        .type(TransactionType.PURCHASE)
+                                        .quantity(totalSum)
+                                        .build();
+
+                        final Transaction saleTransaction = Transaction.builder()
+                                        .type(TransactionType.SALE)
+                                        .quantity(totalSum)
+                                        .build();
+
+                        when(repository.findAllTransactions(client))
+                                        .thenReturn(List.of(purchaseTransaction, saleTransaction));
+
+                        final BusinessException e = assertThrows(BusinessException.class,
+                                        () -> service.validateTransaction(client, quantity));
+
+                        final String expectedMessage = "No has bitcoins to sale!";
+                        final Response.Status expectedStatusCode = BAD_REQUEST;
+
+                        assertEquals(expectedMessage, e.getMessage());
+                        assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+                        verify(repository).findAllTransactions(client);
+                }
+
+                @Test
+                @DisplayName("Should be throw BusinessException with status code 400 Bad Request when quantity is greater than available quantity")
+                void givenValidateTransaction_whenIsInvalidQuantity_thenThrowBusinessException() {
+
+                        final BigDecimal totalSum = new BigDecimal(quantity.toString()).subtract(
+                                        new BigDecimal("1"));
+
+                        final Transaction transaction = Transaction.builder()
+                                        .type(TransactionType.PURCHASE)
+                                        .quantity(totalSum)
+                                        .build();
+
+                        when(repository.findAllTransactions(client))
+                                        .thenReturn(List.of(transaction));
+
+                        final BusinessException e = assertThrows(BusinessException.class,
+                                        () -> service.validateTransaction(client, quantity));
+
+                        final String expectedMessage = format(
+                                        "Quantity desired (%s) is greater than the available quantity (%s)!",
+                                        quantity,
+                                        totalSum);
+
+                        final Response.Status expectedStatusCode = BAD_REQUEST;
+
+                        assertEquals(expectedMessage, e.getMessage());
+                        assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
+
+                        verify(repository).findAllTransactions(client);
+                }
+
+                @Test
+                @DisplayName("Should does nothing when quantity is equals to available quantity")
+                void givenValidateTransaction_whenQuantityIsEqualsAvailableQuantity_thenDoesNothing() {
+
+                        final BigDecimal totalSum = new BigDecimal(quantity.toString());
+
+                        final Transaction transaction = Transaction.builder()
+                                        .type(TransactionType.PURCHASE)
+                                        .quantity(totalSum)
+                                        .build();
+
+                        when(repository.findAllTransactions(client))
+                                        .thenReturn(List.of(transaction));
+
+                        service.validateTransaction(client, quantity);
+
+                        verify(repository).findAllTransactions(client);
+                }
+
+                @Test
+                @DisplayName("Should does nothing when quantity is less than to available quantity")
+                void givenValidateTransaction_whenQuantityIsLessThanAvailableQuantity_thenDoesNothing() {
+
+                        final BigDecimal totalSum = new BigDecimal(quantity.toString()).add(
+                                        new BigDecimal("1"));
+
+                        final Transaction transaction = Transaction.builder()
+                                        .type(TransactionType.PURCHASE)
+                                        .quantity(totalSum)
+                                        .build();
+
+                        when(repository.findAllTransactions(client))
+                                        .thenReturn(List.of(transaction));
+
+                        service.validateTransaction(client, quantity);
+
+                        verify(repository).findAllTransactions(client);
+                }
         }
 
-        @ParameterizedTest
-        @ValueSource(strings = {"0", "-1", "0.0000001"})
-        @DisplayName("Must have one violation when quantity is less than decimal min")
-        void givenPersist_whenQuantityLessThanDecimalMin_thenThrowConstraintViolationException(@SkipInject final BigDecimal quantity) {
+        @Nested
+        @DisplayName("---- TransactionByTypeRequest tests")
+        class TransactionByTypeRequestTests {
 
-            final TransactionRequest request = new TransactionRequest(quantity);
+                @Test
+                @DisplayName("Should do nothing when no has types")
+                void givenFindByTypes_whenNoHasTypes_thenDoNothing() {
+                        final TransactionByTypeRequest request = new TransactionByTypeRequest(null, null);
+                        assertTrue(
+                                        hibernateValidator.validate(request).isEmpty());
+                }
 
-            final Set<ConstraintViolation<TransactionRequest>> violations = hibernateValidator.validate(request);
+                @ParameterizedTest
+                @MethodSource("getBlankTypes")
+                @DisplayName("Must have (types size * annotations quantity) violations when the is blank type")
+                void givenFindByTypes_whenIsBlankType_thenThrowConstraintViolationException(
+                                @SkipInject final List<String> types) {
 
-            final String message = violations.iterator().next().getMessage(),
-                    expectedMessage = "Quantity must be greater than 0.000001!";
+                        final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
 
-            final int size = violations.size(),
-                    expectedSize = 1;
+                        final List<String> messages = hibernateValidator.validate(request)
+                                        .stream()
+                                        .map(ConstraintViolation::getMessage)
+                                        .toList();
 
-            assertEquals(expectedSize, size);
-            assertEquals(expectedMessage, message);
+                        final List<String> expectedMessages = List.of(
+                                        "Required type!",
+                                        "Invalid transaction type!");
+
+                        final int size = messages.size();
+
+                        // Expected size is: (quantity of types * the request annotation quantity); two,
+                        // NotBlank and EnumValidator
+                        final int expectedSize = types.size() * expectedMessages.size();
+
+                        assertEquals(expectedSize, size);
+                        assertTrue(expectedMessages.containsAll(messages));
+                }
+
+                static Stream<Arguments> getBlankTypes() {
+                        final List<String> types = List.of(" ", "", "  ");
+                        return Stream.of(Arguments.of(types));
+                }
+
+                @ParameterizedTest
+                @MethodSource("getInvalidTypes")
+                @DisplayName("Must have types size violations when type is unlike of all TransactionType")
+                void givenFindByTypes_whenIsInvalidType_thenThrowConstraintViolationException(
+                                @SkipInject final List<String> types) {
+
+                        final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
+
+                        final Set<ConstraintViolation<TransactionByTypeRequest>> violations = hibernateValidator
+                                        .validate(request);
+
+                        final String message = violations.stream()
+                                        .map(ConstraintViolation::getMessage)
+                                        .distinct()
+                                        .findFirst()
+                                        .get();
+
+                        final String expectedMessage = "Invalid transaction type!";
+
+                        final int size = violations.size();
+                        final int expectedSize = types.size();
+
+                        assertEquals(expectedSize, size);
+                        assertEquals(expectedMessage, message);
+                }
+
+                static Stream<Arguments> getInvalidTypes() {
+                        final List<String> invalidTypes = List.of(
+                                        "Purchasee", "SAlee", "SaLEE", "PURCHASEE", "salee",
+                                        "Buyy", "SELLL", "Trannsaction", "PURCHAS", "sall",
+                                        "Acquirre", "DISPOSAL", "TRADEEE", "PURCHHASE", "saless",
+                                        "Investt", "WITHDRAWAL", "EXCHANGEE", "PURCHASED", "salesss",
+                                        "Purchasess", "SELLER", "TRADING", "PURCHASEING", "salessss",
+                                        "Acquisitionn", "DISPOSALS", "TRADINGS", "PURCHASING", "salesssss",
+                                        "Investingg", "WITHDRAWALS", "EXCHANGES", "PURCHASESS", "salessssss",
+                                        "Purchasesss", "SELLERS", "TRADESS", "PURCHASEEEE", "salesssssss",
+                                        "Acquisitions", "DISPOSALL", "TRADEINGS", "PURCHASERR", "salessssssss");
+                        return Stream.of(Arguments.of(invalidTypes));
+                }
+
+                @ParameterizedTest
+                @MethodSource("getValidTypes")
+                @DisplayName("Should do nothing when is valid type")
+                void givenFindByTypes_whenRequestIsValid_thenDoNothing(@SkipInject final List<String> types) {
+                        final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
+                        assertTrue(
+                                        hibernateValidator.validate(request).isEmpty());
+                }
+
+                static Stream<Arguments> getValidTypes() {
+                        final List<String> types = List.of(
+                                        "PURCHASE", "purchase", "Purchase", "PURchase", "pURCHASE",
+                                        "puRCHASE", "PURCHase", "purchASe", "PURCHaSE", "pUrchase",
+                                        "PURCHasE", "pURchASE", "pUrCHASE", "PURCHaSe", "purchasE",
+                                        "SALE", "sale", "Sale", "sALE", "SaLE",
+                                        "sAle", "SALe", "sALe", "SalE", "saLe",
+                                        "salE", "SAlE", "sALe", "SaLE", "sAle",
+                                        "PURCHASE", "purchase", "Purchase", "PURCHASE", "purchase",
+                                        "PURCHASE", "purchase", "Purchase", "PURCHASE", "purchase",
+                                        "SALE", "sale", "Sale", "SALE", "sale",
+                                        "SALE", "sale", "Sale", "SALE", "sale");
+                        return Stream.of(Arguments.of(types));
+                }
         }
-
-
-        @ParameterizedTest
-        @ValueSource(strings = {"1", "10", "0.000002"})
-        @DisplayName("Should does nothing when request is valid")
-        void givenPersist_whenRequestIsValid_thenDoesNothing(@SkipInject final BigDecimal quantity) {
-            final TransactionRequest request = new TransactionRequest(quantity);
-            assertEquals(0, hibernateValidator.validate(request).size());
-        }
-
-        @Test
-        @DisplayName("---- Should persist and return TransactionResponse when request is valid")
-        void givenPersist_whenRequestIsValid_thenPersistAndReturnTransactionResponse() {
-
-            final TransactionRequest request = new TransactionRequest(
-                    new BigDecimal("1")
-            );
-
-            final Transaction expectedTransaction = Transaction.builder()
-                    .client(client)
-                    .quantity(request.quantity())
-                    .type(type)
-                    .build();
-
-            final ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
-
-            final String bitcoinCurrentValue = NumberFormatUtils.formatNumber(bitcoin.price());
-            final String quantity = request.quantity() + " unit(s)";
-
-            final String transactionTotal = NumberFormatUtils.formatNumber(
-                    bitcoin.price().multiply(request.quantity())
-            );
-
-            final TransactionResponse expectedResponse = TransactionResponse.builder()
-                    .bitcoinCurrentValue(bitcoinCurrentValue)
-                    .currentValueDate(bitcoin.quotedAt().toLocalDate())
-                    .quantity(quantity)
-                    .createdAt(expectedTransaction.getCreatedAt())
-                    .type(type.getValue())
-                    .transactionTotal(transactionTotal)
-                    .build();
-
-            try (MockedStatic<LocalDateTime> mockCreatedAt = mockStatic(LocalDateTime.class)) {
-
-                //Used by mapper request to transaction in build()
-                mockCreatedAt.when(LocalDateTime::now).thenReturn(expectedTransaction.getCreatedAt());
-                doNothing().when(repository).persist(transactionCaptor.capture());
-
-                final TransactionResponse response = service.persist(request, client, type, bitcoin);
-                final Transaction capturedTransaction = transactionCaptor.getValue();
-
-                assertEquals(expectedResponse, response);
-                assertEquals(expectedTransaction, capturedTransaction);
-
-                verify(repository).persist(capturedTransaction);
-            }
-        }
-    }
-
-
-    @Nested
-    class ValidateTransactionTests {
-
-        Client client;
-
-        BigDecimal quantity;
-
-        @BeforeEach
-        void setUp() {
-            client = new Client();
-            quantity = new BigDecimal("3.5");
-        }
-
-        @Test
-        @DisplayName("Should be throw ForbiddenException with status code 409 Forbidden when no has transactions made")
-        void givenValidateTransaction_whenNoHasTransactions_thenThrowForbiddenException() {
-
-            when(repository.findAllTransactions(client)).thenReturn(List.of());
-
-            final ForbiddenException e = assertThrows(ForbiddenException.class,
-                    () -> service.validateTransaction(client, quantity));
-
-            final String expectedMessage = "You don´t have transactions made!";
-            final Response.Status expectedStatusCode = FORBIDDEN;
-
-            assertEquals(expectedMessage, e.getMessage());
-            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
-
-            verify(repository).findAllTransactions(client);
-        }
-
-        @Test
-        @DisplayName("Should be throw BusinessException with status code 400 Bad Request when no has available quantity")
-        void givenValidateTransaction_whenNoHasAvailableQuantity_thenThrowBusinessException() {
-
-            final BigDecimal totalSum = new BigDecimal(quantity.toString());
-
-            final Transaction purchaseTransaction = Transaction.builder()
-                    .type(TransactionType.PURCHASE)
-                    .quantity(totalSum)
-                    .build();
-
-            final Transaction saleTransaction = Transaction.builder()
-                    .type(TransactionType.SALE)
-                    .quantity(totalSum)
-                    .build();
-
-            when(repository.findAllTransactions(client))
-                    .thenReturn(List.of(purchaseTransaction, saleTransaction));
-
-            final BusinessException e = assertThrows(BusinessException.class,
-                    () -> service.validateTransaction(client, quantity));
-
-            final String expectedMessage = "No has bitcoins to sale!";
-            final Response.Status expectedStatusCode = BAD_REQUEST;
-
-            assertEquals(expectedMessage, e.getMessage());
-            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
-
-            verify(repository).findAllTransactions(client);
-        }
-
-        @Test
-        @DisplayName("Should be throw BusinessException with status code 400 Bad Request when quantity is greater than available quantity")
-        void givenValidateTransaction_whenIsInvalidQuantity_thenThrowBusinessException() {
-
-            final BigDecimal totalSum = new BigDecimal(quantity.toString()).subtract(
-                    new BigDecimal("1")
-            );
-
-            final Transaction transaction = Transaction.builder()
-                    .type(TransactionType.PURCHASE)
-                    .quantity(totalSum)
-                    .build();
-
-            when(repository.findAllTransactions(client))
-                    .thenReturn(List.of(transaction));
-
-            final BusinessException e = assertThrows(BusinessException.class,
-                    () -> service.validateTransaction(client, quantity));
-
-            final String expectedMessage = format(
-                    "Quantity desired (%s) is greater than the available quantity (%s)!",
-                    quantity,
-                    totalSum
-            );
-
-            final Response.Status expectedStatusCode = BAD_REQUEST;
-
-            assertEquals(expectedMessage, e.getMessage());
-            assertEquals(expectedStatusCode, e.getResponse().getStatusInfo().toEnum());
-
-            verify(repository).findAllTransactions(client);
-        }
-
-        @Test
-        @DisplayName("Should does nothing when quantity is equals to available quantity")
-        void givenValidateTransaction_whenQuantityIsEqualsAvailableQuantity_thenDoesNothing() {
-
-            final BigDecimal totalSum = new BigDecimal(quantity.toString());
-
-            final Transaction transaction = Transaction.builder()
-                    .type(TransactionType.PURCHASE)
-                    .quantity(totalSum)
-                    .build();
-
-            when(repository.findAllTransactions(client))
-                    .thenReturn(List.of(transaction));
-
-            service.validateTransaction(client, quantity);
-
-            verify(repository).findAllTransactions(client);
-        }
-
-        @Test
-        @DisplayName("Should does nothing when quantity is less than to available quantity")
-        void givenValidateTransaction_whenQuantityIsLessThanAvailableQuantity_thenDoesNothing() {
-
-            final BigDecimal totalSum = new BigDecimal(quantity.toString()).add(
-                    new BigDecimal("1")
-            );
-
-            final Transaction transaction = Transaction.builder()
-                    .type(TransactionType.PURCHASE)
-                    .quantity(totalSum)
-                    .build();
-
-            when(repository.findAllTransactions(client))
-                    .thenReturn(List.of(transaction));
-
-            service.validateTransaction(client, quantity);
-
-            verify(repository).findAllTransactions(client);
-        }
-    }
-
-    @Nested
-    @DisplayName("---- TransactionByTypeRequest tests")
-    class TransactionByTypeRequestTests {
-
-        @Test
-        @DisplayName("Should do nothing when no has types")
-        void givenFindByTypes_whenNoHasTypes_thenDoNothing() {
-            final TransactionByTypeRequest request = new TransactionByTypeRequest(null, null);
-            assertTrue(
-                    hibernateValidator.validate(request).isEmpty()
-            );
-        }
-
-        @ParameterizedTest
-        @MethodSource("getBlankTypes")
-        @DisplayName("Must have (types size * annotations quantity) violations when the is blank type")
-        void givenFindByTypes_whenIsBlankType_thenThrowConstraintViolationException(@SkipInject final List<String> types) {
-
-            final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
-
-            final List<String> messages = hibernateValidator.validate(request)
-                    .stream()
-                    .map(ConstraintViolation::getMessage)
-                    .toList();
-
-            final List<String> expectedMessages = List.of(
-                    "Required type!",
-                    "Invalid transaction type!"
-            );
-
-            final int size = messages.size();
-
-            //Expected size is: (quantity of types * the request annotation quantity); two, NotBlank and EnumValidator
-            final int expectedSize = types.size() * expectedMessages.size();
-
-            assertEquals(expectedSize, size);
-            assertTrue(expectedMessages.containsAll(messages));
-        }
-
-        static Stream<Arguments> getBlankTypes() {
-            final List<String> types = List.of(" ", "", "  ");
-            return Stream.of(Arguments.of(types));
-        }
-
-        @ParameterizedTest
-        @MethodSource("getInvalidTypes")
-        @DisplayName("Must have types size violations when type is unlike of all TransactionType")
-        void givenFindByTypes_whenIsInvalidType_thenThrowConstraintViolationException(@SkipInject final List<String> types) {
-
-            final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
-
-            final Set<ConstraintViolation<TransactionByTypeRequest>> violations = hibernateValidator.validate(request);
-
-            final String message = violations.stream()
-                    .map(ConstraintViolation::getMessage)
-                    .distinct()
-                    .findFirst()
-                    .get();
-
-            final String expectedMessage = "Invalid transaction type!";
-
-            final int size = violations.size();
-            final int expectedSize = types.size();
-
-            assertEquals(expectedSize, size);
-            assertEquals(expectedMessage, message);
-        }
-
-        static Stream<Arguments> getInvalidTypes() {
-            final List<String> invalidTypes = List.of(
-                    "Purchasee", "SAlee", "SaLEE", "PURCHASEE", "salee",
-                    "Buyy", "SELLL", "Trannsaction", "PURCHAS", "sall",
-                    "Acquirre", "DISPOSAL", "TRADEEE", "PURCHHASE", "saless",
-                    "Investt", "WITHDRAWAL", "EXCHANGEE", "PURCHASED", "salesss",
-                    "Purchasess", "SELLER", "TRADING", "PURCHASEING", "salessss",
-                    "Acquisitionn", "DISPOSALS", "TRADINGS", "PURCHASING", "salesssss",
-                    "Investingg", "WITHDRAWALS", "EXCHANGES", "PURCHASESS", "salessssss",
-                    "Purchasesss", "SELLERS", "TRADESS", "PURCHASEEEE", "salesssssss",
-                    "Acquisitions", "DISPOSALL", "TRADEINGS", "PURCHASERR", "salessssssss"
-            );
-            return Stream.of(Arguments.of(invalidTypes));
-        }
-
-        @ParameterizedTest
-        @MethodSource("getValidTypes")
-        @DisplayName("Should do nothing when is valid type")
-        void givenFindByTypes_whenRequestIsValid_thenDoNothing(@SkipInject final List<String> types) {
-            final TransactionByTypeRequest request = new TransactionByTypeRequest(types, null);
-            assertTrue(
-                    hibernateValidator.validate(request).isEmpty()
-            );
-        }
-
-        static Stream<Arguments> getValidTypes() {
-            final List<String> types = List.of(
-                    "PURCHASE", "purchase", "Purchase", "PURchase", "pURCHASE",
-                    "puRCHASE", "PURCHase", "purchASe", "PURCHaSE", "pUrchase",
-                    "PURCHasE", "pURchASE", "pUrCHASE", "PURCHaSe", "purchasE",
-                    "SALE", "sale", "Sale", "sALE", "SaLE",
-                    "sAle", "SALe", "sALe", "SalE", "saLe",
-                    "salE", "SAlE", "sALe", "SaLE", "sAle",
-                    "PURCHASE", "purchase", "Purchase", "PURCHASE", "purchase",
-                    "PURCHASE", "purchase", "Purchase", "PURCHASE", "purchase",
-                    "SALE", "sale", "Sale", "SALE", "sale",
-                    "SALE", "sale", "Sale", "SALE", "sale"
-            );
-            return Stream.of(Arguments.of(types));
-        }
-    }
 
     @Nested
     @DisplayName("---- FindByTypes tests ----")
@@ -466,108 +462,6 @@ class TransactionServiceTest {
                     .periodBetweenFirstAndLast("0 day(s)")
                     .build();
         }
-
-        @Test
-        @DisplayName("Should be return PageResponse with all aggregation types when no has types")
-        void givenFindByTypes_whenNoHasTypes_thenReturnPageResponseWithAllTypes() {
-
-            final List<TransactionByTypeResponse> expectedElements = List.of(purchaseResponse, saleResponse);
-
-            final int totalElements = expectedElements.size();
-
-            final PageResponse expectedResponse = new PageResponse(
-                    expectedElements,
-                    null,
-                    true,
-                    totalElements,
-                    1,
-                    1
-            );
-
-            final List<TransactionType> transactionTypes = new ArrayList<>();
-
-            when(repository.findTransactionsByTypes(request, client, transactionTypes))
-                    .thenReturn(mockQuery);
-
-            when(mockQuery.list())
-                    .thenReturn(expectedElements);
-
-            final PageResponse response = service.findByTypes(request, client, List.of());
-
-            assertEquals(expectedResponse, response);
-
-            verify(repository).findTransactionsByTypes(request, client, transactionTypes);
-            verify(mockQuery).list();
-        }
-
-        @Test
-        @DisplayName("Should be return PageResponse with purchase type when has purchase type")
-        void givenFindByTypes_whenHasPurchaseType_thenReturnPageResponseWithPurchaseType() {
-
-            final List<TransactionByTypeResponse> expectedElements = Collections.singletonList(purchaseResponse);
-
-            final int totalElements = expectedElements.size();
-
-            final PageResponse expectedResponse = new PageResponse(
-                    expectedElements,
-                    null,
-                    true,
-                    totalElements,
-                    1,
-                    1
-            );
-
-            final List<TransactionType> transactionTypes = Collections.singletonList(TransactionType.PURCHASE);
-
-            when(repository.findTransactionsByTypes(request, client, transactionTypes))
-                    .thenReturn(mockQuery);
-
-            //Calling by PaginationUtils
-            when(mockQuery.list())
-                    .thenReturn(expectedElements);
-
-            final PageResponse response = service.findByTypes(request, client, transactionTypes);
-
-            assertEquals(expectedResponse, response);
-
-            verify(repository).findTransactionsByTypes(request, client, transactionTypes);
-            verify(mockQuery).list();
-        }
-
-        @Test
-        @DisplayName("Should be return PageResponse with sale type when has sale type")
-        void givenFindByTypes_whenHasSaleType_thenReturnPageResponseWithSaleType() {
-
-            final List<TransactionByTypeResponse> expectedElements = Collections.singletonList(saleResponse);
-
-            final int totalElements = expectedElements.size();
-
-            final PageResponse expectedResponse = new PageResponse(
-                    expectedElements,
-                    null,
-                    true,
-                    totalElements,
-                    1,
-                    1
-            );
-
-            final List<TransactionType> transactionTypes = Collections.singletonList(TransactionType.SALE);
-
-            when(repository.findTransactionsByTypes(request, client, transactionTypes))
-                    .thenReturn(mockQuery);
-
-            //Calling by PaginationUtils
-            when(mockQuery.list())
-                    .thenReturn(expectedElements);
-
-            final PageResponse response = service.findByTypes(request, client, transactionTypes);
-
-            assertEquals(expectedResponse, response);
-
-            verify(repository).findTransactionsByTypes(request, client, transactionTypes);
-            verify(mockQuery).list();
-        }
-    }
 
     @Nested
     @DisplayName("---- DatePeriodRequest tests ---- ")
@@ -1223,4 +1117,5 @@ class TransactionServiceTest {
 
     }
 
+}
 }
