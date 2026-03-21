@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quarkus-bitcoin-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quarkus-bitcoin-api
+  template:
+    metadata:
+      labels:
+        app: quarkus-bitcoin-api
+    spec:
+      containers:
+        - name: app
+          image: rayanargolo/quarkus-bitcoin-api:latest
+          resources:
+            limits:
+              memory: 512mi
+              cpu: "1"
+            requests:
+              memory: 256mi
+              cpu: "0.2"
+          ports:
+            - containerPort: 8081
